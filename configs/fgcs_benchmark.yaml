@@ -1,0 +1,16 @@
+dataset:
+  input_csv: paper_outputs/replay_input_clean.csv
+  bc_actions_csv: paper_outputs/policy_first_outputs_bc.csv
+  fractions: [0.25, 0.50, 0.75, 1.00]
+
+benchmark:
+  seeds: [1, 2, 3]
+  workers: [1, 2, 4, 8]
+  policy_modes: ["proxy", "bc", "random", "always", "never"]
+
+logging:
+  output_dir: paper_outputs/fgcs_benchmarks
+  save_traces: true
+
+policy:
+  negative_labels: ["angry", "anger", "sad", "sadness", "fear", "disgust"]

@@ -1,0 +1,56 @@
+[
+  {
+    "Condition": "Fixed replay, seed 1",
+    "Repeated runs": 3,
+    "Mean intervention rate": 0.206,
+    "Intervention-rate variance": 0.0,
+    "Unauthorized invocation variance": 0.0,
+    "Action-sequence mismatch rate": 0.0,
+    "Unauthorized invocations per run": 0
+  },
+  {
+    "Condition": "Fixed replay, seed 2",
+    "Repeated runs": 3,
+    "Mean intervention rate": 0.206,
+    "Intervention-rate variance": 0.0,
+    "Unauthorized invocation variance": 0.0,
+    "Action-sequence mismatch rate": 0.0,
+    "Unauthorized invocations per run": 0
+  },
+  {
+    "Condition": "Fixed replay, seed 3",
+    "Repeated runs": 3,
+    "Mean intervention rate": 0.206,
+    "Intervention-rate variance": 0.0,
+    "Unauthorized invocation variance": 0.0,
+    "Action-sequence mismatch rate": 0.0,
+    "Unauthorized invocations per run": 0
+  },
+  {
+    "Condition": "Synthetic logging probability = 1.0",
+    "Repeated runs": 3,
+    "Mean intervention rate": 0.206,
+    "Intervention-rate variance": 0.0,
+    "Unauthorized invocation variance": 0.0,
+    "Action-sequence mismatch rate": 0.0,
+    "Unauthorized invocations per run": 0
+  },
+  {
+    "Condition": "Synthetic logging probability = 0.6",
+    "Repeated runs": 3,
+    "Mean intervention rate": 0.124,
+    "Intervention-rate variance": 0.0,
+    "Unauthorized invocation variance": 0.0,
+    "Action-sequence mismatch rate": 0.0,
+    "Unauthorized invocations per run": 0
+  },
+  {
+    "Condition": "Synthetic logging probability = 0.5",
+    "Repeated runs": 3,
+    "Mean intervention rate": 0.09600000000000002,
+    "Intervention-rate variance": 1.925929944387236e-34,
+    "Unauthorized invocation variance": 0.0,
+    "Action-sequence mismatch rate": 0.0,
+    "Unauthorized invocations per run": 0
+  }
+]

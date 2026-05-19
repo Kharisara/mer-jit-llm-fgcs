@@ -1,0 +1,95 @@
+# ------------------------------
+# PYTHON / VENV
+# ------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# ------------------------------
+# DATASETS (DO NOT COMMIT)
+# ------------------------------
+data/
+dataset/
+datasets/
+raw_data/
+processed_data/
+
+# Common dataset files
+*.csv
+*.tsv
+*.jsonl
+*.zip
+*.gz
+*.tar
+*.mp4
+*.wav
+*.m4a
+*.flac
+*.jpg
+*.jpeg
+*.png
+
+# ------------------------------
+# MODEL WEIGHTS & CHECKPOINTS
+# ------------------------------
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+
+# Checkpoint folders
+checkpoints/
+checkpoints_*/
+checkpoint_*/
+logs/
+runs/
+
+# ------------------------------
+# EXPERIMENT OUTPUTS
+# ------------------------------
+output/
+outputs/
+results/
+tensorboard/
+events.out.tfevents.*
+
+# ------------------------------
+# IDE / EDITOR STUFF
+# ------------------------------
+.vscode/
+.idea/
+*.iml
+
+# ------------------------------
+# OS FILES
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# JITAI / RL TRAINING ARTIFACTS
+# ------------------------------
+trajectories/
+state_cache/
+reward_logs/
+
+# ------------------------------
+# MER-JIT MULTIMODAL STATE FILES
+# ------------------------------
+*.npy
+*.npz
+*.pkl
+*.p
+*.pt
+
+# ------------------------------
+# OTHER
+# ------------------------------
+*.log

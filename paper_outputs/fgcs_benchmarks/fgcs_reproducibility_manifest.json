@@ -1,0 +1,86 @@
+{
+  "created_at_utc": "2026-05-16T09:45:47.732129+00:00",
+  "script": "run_fgcs_benchmark.py",
+  "config_path": "configs/fgcs_benchmark.yaml",
+  "environment": {
+    "python_version": "3.12.2 (tags/v3.12.2:6abddd9, Feb  6 2024, 21:26:36) [MSC v.1937 64 bit (AMD64)]",
+    "python_executable": "D:\\Project final\\mer-jit-llm\\.venv\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "system": "Windows",
+    "release": "11",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "cpu_count_logical": 12,
+    "working_directory": "D:\\Project final\\mer-jit-llm"
+  },
+  "package_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyyaml": "6.0.3",
+    "psutil": "not_available",
+    "matplotlib": "3.10.7"
+  },
+  "input_files": {
+    "input_csv": "paper_outputs/replay_input_clean.csv",
+    "bc_actions_csv": "paper_outputs/policy_first_outputs_bc.csv"
+  },
+  "benchmark_configuration": {
+    "dataset": {
+      "input_csv": "paper_outputs/replay_input_clean.csv",
+      "bc_actions_csv": "paper_outputs/policy_first_outputs_bc.csv",
+      "fractions": [
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ]
+    },
+    "benchmark": {
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "workers": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "policy_modes": [
+        "proxy",
+        "bc",
+        "random",
+        "always",
+        "never"
+      ]
+    },
+    "logging": {
+      "output_dir": "paper_outputs/fgcs_benchmarks",
+      "save_traces": true
+    },
+    "policy": {
+      "negative_labels": [
+        "angry",
+        "anger",
+        "sad",
+        "sadness",
+        "fear",
+        "disgust"
+      ]
+    }
+  },
+  "generated_outputs": {
+    "scaling_and_runtime_results": "paper_outputs\\fgcs_benchmarks\\scaling_and_runtime_results.csv",
+    "stage_latency_summary": "paper_outputs\\fgcs_benchmarks\\stage_latency_summary.csv",
+    "determinism_hash_results": "paper_outputs\\fgcs_benchmarks\\determinism_hash_results.csv",
+    "parallel_speedup_results": "paper_outputs\\fgcs_benchmarks\\parallel_speedup_results.csv",
+    "policy_ablation_costs": "paper_outputs\\fgcs_benchmarks\\policy_ablation_costs.csv"
+  },
+  "notes": [
+    "The benchmark evaluates deterministic offline replay behavior.",
+    "BC mode uses the learned behavioral-cloning action trace generated before benchmarking.",
+    "Trace hashes are used to verify deterministic replay consistency across worker counts.",
+    "Unauthorized invocation count verifies whether generation occurs when the selected action is non-intervention."
+  ]
+}
