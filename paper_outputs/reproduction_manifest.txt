@@ -6,7 +6,7 @@ Seed
 
 Dataset
 -------
-D:\Project final\mer-jit-llm\data\processed\meld_text_audio_video_arcface_states.csv
+D:\Project final\mer-jit-llm-fgcs\data\processed\meld_text_audio_video_arcface_states.csv
 
 Max rows
 --------
@@ -15,33 +15,33 @@ None
 Raw outputs
 -----------
 BC replay:
-D:\Project final\mer-jit-llm\paper_outputs\policy_first_outputs_bc.csv
+D:\Project final\mer-jit-llm-fgcs\paper_outputs\policy_first_outputs_bc.csv
 Purpose: learned BC intervention-policy learnability analysis.
 
 Proxy replay:
-D:\Project final\mer-jit-llm\paper_outputs\policy_first_outputs_proxy.csv
+D:\Project final\mer-jit-llm-fgcs\paper_outputs\policy_first_outputs_proxy.csv
 Purpose: deterministic architectural validation and Table III.
 
 Random baseline:
-D:\Project final\mer-jit-llm\paper_outputs\random_outputs.csv
+D:\Project final\mer-jit-llm-fgcs\paper_outputs\random_outputs.csv
 Purpose: aggregate and emotion-conditioned comparison.
 
 Gated policy:
-D:\Project final\mer-jit-llm\paper_outputs\gated_outputs.csv
+D:\Project final\mer-jit-llm-fgcs\paper_outputs\gated_outputs.csv
 Purpose: deployment-time controllability check.
 
 E2E baseline:
-D:\Project final\mer-jit-llm\paper_outputs\e2e_outputs.csv
+D:\Project final\mer-jit-llm-fgcs\paper_outputs\e2e_outputs.csv
 Purpose: architectural contrast only.
 
 Robustness:
-D:\Project final\mer-jit-llm\robustness_results
+D:\Project final\mer-jit-llm-fgcs\robustness_results
 Purpose: deterministic replay robustness from proxy replay.
 
 Paper tables
 ------------
-D:\Project final\mer-jit-llm\paper_tables
+D:\Project final\mer-jit-llm-fgcs\paper_tables
 
 Summary
 -------
-D:\Project final\mer-jit-llm\paper_outputs\reproduction_summary.csv
+D:\Project final\mer-jit-llm-fgcs\paper_outputs\reproduction_summary.csv
