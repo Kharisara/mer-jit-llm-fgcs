@@ -1,0 +1,24 @@
+dataset:
+  input_csv: paper_outputs/replay_input_clean.csv
+  bc_actions_csv: paper_outputs/policy_first_outputs_bc.csv
+  workload_sizes: [11351, 50000, 100000, 500000, 1000000]
+
+benchmark:
+  seeds: [1, 2, 3]
+  workers: [1, 2, 4, 8]
+  policy_modes: ["proxy", "bc", "random", "always", "never"]
+
+fault_injection:
+  enabled: true
+  policy_modes: ["proxy", "random", "never"]
+  rates: [0.001, 0.01, 0.05]
+  workload_sizes: [11351, 100000, 1000000]
+
+logging:
+  output_dir: paper_outputs/fgcs_extended_benchmarks
+  save_full_traces: false
+  save_sample_traces: true
+  sample_trace_rows: 1000
+
+policy:
+  negative_labels: ["angry", "anger", "sad", "sadness", "fear", "disgust"]
