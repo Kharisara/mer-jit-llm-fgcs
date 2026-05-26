@@ -44,13 +44,7 @@ pip install -r requirements.txt
 Run the full reproduction pipeline:
 
 ```bash
-python run_full_reproduction.py
-```
-
-Optional quick test:
-
-```bash
-python run_full_reproduction.py --max_rows 500
+python run_full_reproduction.py --skip_train --skip_e2e --skip_robustness
 ```
 
 Optional benchmark-only execution:
