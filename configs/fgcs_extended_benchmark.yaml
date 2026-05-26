@@ -1,24 +1,69 @@
+# FGCS extended benchmark configuration
+# Expected run count:
+#   5 workloads x 6 policy modes x 3 seeds x 4 worker settings = 360 runs
+
 dataset:
+  # Clean replay input used for the FGCS benchmark.
   input_csv: paper_outputs/replay_input_clean.csv
-  bc_actions_csv: paper_outputs/policy_first_outputs_bc.csv
-  workload_sizes: [11351, 50000, 100000, 500000, 1000000]
+
+  # Five workload scales. These are the "5 workloads" used in the paper tables.
+  fractions: [0.10, 0.25, 0.50, 0.75, 1.00]
+
+  # Leave empty if state_path values in the CSV are already valid relative paths.
+  # Set this only if the CSV stores paths relative to a separate directory.
+  state_root: ""
 
 benchmark:
+  # Three deterministic seeds.
   seeds: [1, 2, 3]
+
+  # Four worker settings. Together with the settings above, this gives 360 runs.
   workers: [1, 2, 4, 8]
-  policy_modes: ["proxy", "bc", "random", "always", "never"]
 
-fault_injection:
-  enabled: true
-  policy_modes: ["proxy", "random", "never"]
-  rates: [0.001, 0.01, 0.05]
-  workload_sizes: [11351, 100000, 1000000]
-
-logging:
-  output_dir: paper_outputs/fgcs_extended_benchmarks
-  save_full_traces: false
-  save_sample_traces: true
-  sample_trace_rows: 1000
+  # Final FGCS policy set. bc_live is the stronger live behavioral-cloning policy.
+  policy_modes: [proxy, bc, bc_live, random, always, never]
 
 policy:
-  negative_labels: ["angry", "anger", "sad", "sadness", "fear", "disgust"]
+  # MELD labels treated as negative/emotionally sensitive by the proxy policy.
+  negative_labels: [anger, disgust, fear, sadness]
+
+  # Deterministic pseudo-random intervention probability for the random policy.
+  random_intervention_probability: 0.50
+
+  # Offline BC trace generated earlier by the policy-first pipeline.
+  # Used only by policy_mode=bc.
+  bc_action_csv: paper_outputs/policy_first_outputs_bc.csv
+  bc_action_column: action
+  bc_key_column: utterance_id
+
+  # Live BC checkpoint used only by policy_mode=bc_live.
+  # Architecture expected by run_fgcs_extended_benchmark.py:
+  #   512 -> 256 -> 256 -> 2
+  bc_model_path: checkpoints/jitai_policy_bc.pt
+  bc_live_state_dim: 512
+  bc_live_hidden_dims: [256, 256]
+  bc_live_output_dim: 2
+  bc_live_batch_size: 4096
+  bc_live_torch_threads: 1
+  bc_live_device: cpu
+
+  # Keep this true for final paper runs so bad state files fail loudly.
+  bc_live_strict_state_dim: true
+
+  # Options: error, zeros.
+  # Use error for the final reproducibility run.
+  missing_state_policy: error
+
+fault_injection:
+  # Disabled for the main FGCS experiment count.
+  enabled: false
+  action_flip_probability: 0.0
+
+  # If fault injection is enabled for an auxiliary stress test, keep it away from
+  # bc and bc_live so learned-policy traces are not corrupted.
+  allowed_policy_modes: [proxy, random, never]
+
+logging:
+  output_dir: paper_outputs/fgcs_extended_benchmark
+  save_traces: true
+  save_live_bc_predictions: true
