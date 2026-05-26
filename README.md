@@ -4,7 +4,7 @@ This repository contains the reproducibility pipeline for the paper:
 
 **A Deterministic Replay and Benchmarking Infrastructure for Reproducible Validation of Policy-Gated Multimodal AI Systems**
 
-The repository reproduces the deterministic replay and benchmarking experiments reported in the paper using a MELD-derived replay workload.
+The repository reproduces the deterministic replay and benchmarking experiments reported in the paper using prepared MELD-derived replay inputs.
 
 ---
 
@@ -39,13 +39,15 @@ pip install -r requirements.txt
 
 ---
 
-# Running the Full Reproduction Pipeline
+# Running the FGCS Reproduction Pipeline
 
-Run the full reproduction pipeline:
+Run the full FGCS reproduction pipeline:
 
 ```bash
-python run_full_reproduction.py --skip_train --skip_e2e --skip_robustness
+python run_full_reproduction.py
 ```
+
+This command runs the extended deterministic replay benchmark and then generates the paper-ready tables and figures.
 
 Optional benchmark-only execution:
 
@@ -61,11 +63,47 @@ python summarize_fgcs_extended_results.py
 
 ---
 
+# Required Prepared Inputs
+
+The FGCS benchmark expects the following prepared inputs:
+
+```text
+configs/fgcs_extended_benchmark.yaml
+paper_outputs/replay_input_clean.csv
+paper_outputs/policy_first_outputs_bc.csv
+```
+
+The file `replay_input_clean.csv` contains the prepared MELD-derived replay decision points.
+
+The file `policy_first_outputs_bc.csv` contains the prepared learned-policy action trace used by the `bc` replay mode.
+
+---
+
+# Important Note on Policy Training
+
+This FGCS reproduction package does **not** retrain the behavioral-cloning policy.
+
+The learned-policy mode in this benchmark uses a prepared behavioral-cloning action trace:
+
+```text
+paper_outputs/policy_first_outputs_bc.csv
+```
+
+Therefore, the `bc` policy mode should be interpreted as:
+
+```text
+replay under a prepared learned-policy action trace
+```
+
+It should **not** be interpreted as live BC neural inference latency or as policy training inside the benchmark loop.
+
+---
+
 # Pipeline Overview
 
 The reproduction pipeline performs the following steps:
 
-1. Load deterministic replay inputs
+1. Load prepared deterministic replay inputs
 2. Construct amplified replay workloads
 3. Execute replay scheduling across worker configurations
 4. Run policy-ablation replay modes
@@ -143,55 +181,48 @@ All experiments use:
 
 * fixed random seeds,
 * deterministic replay ordering,
-* fixed replay trajectories,
+* fixed prepared replay trajectories,
 * deterministic workload amplification,
 * replay-order trace reconstruction.
 
-Under identical software and dataset conditions, the replay infrastructure is expected to produce identical action traces across runs.
+Under identical software and prepared-input conditions, the replay infrastructure is expected to produce identical action traces across runs.
 
 ---
 
 # Dataset
 
-Experiments use a replay workload derived from the MELD dataset (Multimodal EmotionLines Dataset):
+Experiments use prepared replay inputs derived from the MELD dataset:
 
 https://affective-meld.github.io/
 
-The MELD dataset itself is not redistributed in this repository due to licensing and storage constraints.
+The raw MELD dataset is not redistributed in this repository due to licensing and storage constraints.
+
+This artifact reproduces the reported FGCS benchmark results from prepared MELD-derived replay inputs, not from the full raw MELD preprocessing pipeline.
 
 ---
 
 # Dataset Preparation
 
-Download MELD from:
+This repository does not include the full raw MELD preprocessing pipeline.
 
-https://affective-meld.github.io/
-
-Place the raw dataset in:
+To reproduce the benchmark results directly, use the prepared replay input files included in this artifact:
 
 ```text
-data/raw/
+paper_outputs/replay_input_clean.csv
+paper_outputs/policy_first_outputs_bc.csv
 ```
 
-Prepare the replay inputs using the preprocessing scripts:
-
-```bash
-python reorganize_meld_frames.py
-python extract_tav_context_states.py
-python precompute_meld_video_embeddings.py
-```
-
-These scripts generate the multimodal replay representations required for deterministic replay benchmarking.
-
-Refer to the individual scripts for configuration details.
+If these files are not present, users must obtain MELD from the original providers and recreate equivalent replay inputs using their own preprocessing pipeline.
 
 ---
 
 # Notes
 
-* Full reproduction requires access to the MELD dataset.
-* Ensure dataset preprocessing is completed before running the pipeline.
-* Amplified replay workloads are generated through deterministic repetition of the original replay rows.
+* The repository reproduces the execution-level FGCS benchmark from prepared replay inputs.
+* The repository does not redistribute the raw MELD dataset.
+* The repository does not include full raw MELD preprocessing or behavioral-cloning policy training.
+* The learned-policy trace is treated as a fixed replay input and does not measure live BC model inference latency.
+* Amplified replay workloads are generated through deterministic repetition of the prepared replay rows.
 * The repository reproduces execution-level replay validation experiments under deterministic offline replay.
 * The repository does not provide conversational quality evaluation, clinical evaluation, or live LLM serving evaluation.
 * The current implementation evaluates local replay behavior and is not intended as a production distributed serving system.
