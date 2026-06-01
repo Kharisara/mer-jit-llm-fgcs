@@ -1,0 +1,19 @@
+\begin{table}[H]
+\centering
+\caption{Best mean full-workload speedup by policy. Values are mean $\pm$ SD across three seeds.}
+\label{tab:parallel_speedup_full}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\columnwidth}{lrlY}
+\toprule
+Policy & Best workers & Mean speedup & Interpretation \\
+\midrule
+\texttt{always} & 4 & 1.09 $\pm$ 0.01$\times$ & Modest acceleration. \\
+\texttt{bc} & 4 & 1.12 $\pm$ 0.01$\times$ & Modest acceleration. \\
+\texttt{bc\_live} & 1 & 1.00 $\pm$ 0.00$\times$ & No meaningful acceleration. \\
+\texttt{never} & 4 & 1.12 $\pm$ 0.02$\times$ & Modest acceleration. \\
+\texttt{proxy} & 4 & 2.05 $\pm$ 1.65$\times$ & Strongest full-workload acceleration. \\
+\texttt{random} & 4 & 1.13 $\pm$ 0.03$\times$ & Modest acceleration. \\
+\bottomrule
+\end{tabularx}
+\end{table}
