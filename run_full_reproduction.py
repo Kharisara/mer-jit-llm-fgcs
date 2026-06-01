@@ -5,9 +5,7 @@ Full reproduction runner for the FGCS deterministic replay and benchmarking arti
 
 This script runs:
 1. Extended FGCS deterministic replay benchmark
-2. Fault-injection evaluation
-3. Trace-verification overhead measurement
-4. Paper-ready table and figure generation
+2. Paper-ready table, figure, benchmark-summary, and mean-SD result generation
 
 Expected prepared inputs:
 - configs/fgcs_extended_benchmark.yaml
@@ -32,7 +30,7 @@ BC_TRACE = PROJECT_ROOT / "paper_outputs" / "policy_first_outputs_bc.csv"
 BENCHMARK_SCRIPT = PROJECT_ROOT / "run_fgcs_extended_benchmark.py"
 SUMMARY_SCRIPT = PROJECT_ROOT / "summarize_fgcs_extended_results.py"
 
-RAW_OUTPUT_DIR = PROJECT_ROOT / "paper_outputs" / "fgcs_extended_benchmarks"
+RAW_OUTPUT_DIR = PROJECT_ROOT / "paper_outputs" / "fgcs_extended_benchmark"
 TABLE_FIGURE_DIR = PROJECT_ROOT / "paper_outputs" / "fgcs_tables_figures"
 
 
@@ -90,12 +88,12 @@ def main() -> None:
 
     require_file(config_path, "benchmark configuration file")
     require_file(REPLAY_INPUT, "prepared replay input CSV")
-    require_file(BC_TRACE, "prepared learned-policy trace CSV")
+    require_file(BC_TRACE, "prepared offline behavioral-cloning trace CSV")
     require_file(BENCHMARK_SCRIPT, "extended benchmark script")
     require_file(SUMMARY_SCRIPT, "extended summarization script")
 
     if not args.skip_benchmark:
-        print("\n[STEP 1] Running extended FGCS benchmark")
+        print("\n[STEP 1] Running final extended FGCS benchmark")
         run_cmd([
             sys.executable,
             str(BENCHMARK_SCRIPT),
@@ -106,7 +104,7 @@ def main() -> None:
         print("\n[STEP 1] Skipping benchmark execution")
 
     if not args.skip_summary:
-        print("\n[STEP 2] Generating paper-ready tables and figures")
+        print("\n[STEP 2] Generating manuscript-ready tables, figures, and summaries")
         run_cmd([
             sys.executable,
             str(SUMMARY_SCRIPT),
