@@ -1,0 +1,13 @@
+{
+  "run_id": "cloud360_20260603",
+  "region": "asia-southeast1",
+  "bucket": "fgcs-cloud-results-fgcs-replay-validation",
+  "config_path": "configs/fgcs_extended_benchmark.yaml",
+  "output_dir": "paper_outputs/fgcs_extended_benchmark",
+  "cloud_job_runtime_seconds": 2131.587185977,
+  "python_version": "3.12.13 (main, May 19 2026, 23:48:44) [GCC 14.2.0]",
+  "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
+  "processor": "",
+  "timestamp_utc": "2026-06-03T15:36:04.830036+00:00",
+  "return_code": 0
+}

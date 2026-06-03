@@ -1,10 +1,10 @@
 {
-  "created_at_utc": "2026-05-21T03:27:57.924555+00:00",
+  "created_at_utc": "2026-05-26T07:48:57.936570+00:00",
   "script": "run_fgcs_extended_benchmark.py",
-  "config_path": "configs/fgcs_extended_benchmark.yaml",
+  "config_path": "D:\\Project final\\mer-jit-llm-fgcs\\configs\\fgcs_extended_benchmark.yaml",
   "environment": {
     "python_version": "3.12.2 (tags/v3.12.2:6abddd9, Feb  6 2024, 21:26:36) [MSC v.1937 64 bit (AMD64)]",
-    "python_executable": "C:\\Python312\\python.exe",
+    "python_executable": "D:\\Project final\\mer-jit-llm-fgcs\\.venv\\Scripts\\python.exe",
     "platform": "Windows-11-10.0.26200-SP0",
     "system": "Windows",
     "release": "11",
@@ -14,7 +14,7 @@
     "working_directory": "D:\\Project final\\mer-jit-llm-fgcs"
   },
   "package_versions": {
-    "numpy": "2.3.5",
+    "numpy": "2.2.6",
     "pandas": "2.3.3",
     "pyyaml": "6.0.3",
     "psutil": "not_available"
