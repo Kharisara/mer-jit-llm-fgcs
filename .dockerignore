@@ -1,0 +1,16 @@
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+paper_outputs/fgcs_extended_benchmark/
+paper_outputs/fgcs_tables_figures/
+paper_outputs/fgcs_benchmarks/
+
+*.pdf
+*.docx
+*.pptx

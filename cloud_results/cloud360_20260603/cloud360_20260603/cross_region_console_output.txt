@@ -1,0 +1,25 @@
+
+Cross-region match summary:
+policy_mode asia-southeast1_hash_sample us-central1_hash_sample  conditions_compared  matching_conditions  all_match  max_unauthorized_invocations
+     always         817f0e11762de58b...     817f0e11762de58b...                   60                   60       True                             0
+         bc         817f0e11762de58b...     817f0e11762de58b...                   60                   60       True                             0
+    bc_live         817f0e11762de58b...     817f0e11762de58b...                   60                   60       True                             0
+      never         85b204e18d148f25...     85b204e18d148f25...                   60                   60       True                             0
+      proxy         85b204e18d148f25...     85b204e18d148f25...                   60                   60       True                             0
+     random         37845ce378b96aef...     37845ce378b96aef...                   60                   60       True                             0
+
+Local vs cloud throughput summary:
+policy_mode  local_best_workers  local_runtime_seconds  local_throughput_points_per_second  asia-southeast1_best_workers  asia-southeast1_runtime_seconds  asia-southeast1_throughput_points_per_second  us-central1_best_workers  us-central1_runtime_seconds  us-central1_throughput_points_per_second  asia-southeast1_overhead_ms_per_point_vs_local  us-central1_overhead_ms_per_point_vs_local
+     always                   2               6.848114                         1657.536659                             1                         6.531247                                   1737.953028                         1                     7.484302                               1516.641187                                       -0.027915                                    0.056047
+         bc                   4               6.905351                         1643.797615                             1                         6.518096                                   1741.459383                         1                     6.919010                               1640.552671                                       -0.034116                                    0.001203
+    bc_live                   1               4.910853                         2311.411120                             1                         3.625291                                   3131.058949                         1                     4.481487                               2532.864524                                       -0.113255                                   -0.037826
+      never                   4               6.721250                         1688.822814                             1                         6.381912                                   1778.620639                         1                     7.306033                               1553.647496                                       -0.029895                                    0.051518
+      proxy                   2               6.825357                         1663.063095                             1                         6.482019                                   1751.151894                         1                     7.003355                               1620.794491                                       -0.030247                                    0.015681
+     random                   2               6.981493                         1625.869973                             1                         6.661416                                   1703.991996                         1                     7.273178                               1560.665840                                       -0.028198                                    0.025697
+
+Saved: cloud_results\cloud360_20260603\cloud360_20260603\cross_region_comparison.csv
+Saved: cloud_results\cloud360_20260603\cloud360_20260603\fgcs_table8_cross_region_hash_summary.csv
+Saved: cloud_results\cloud360_20260603\cloud360_20260603\fgcs_table9_local_vs_cloud_throughput.csv
+
+[OK] All cross-region hashes matched for identical workload/policy/seed/worker conditions.
+[OK] Zero unauthorized invocations across both cloud regions.
