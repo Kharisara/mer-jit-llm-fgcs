@@ -2,82 +2,88 @@
 
 ## Overview
 
-This repository contains the reproducibility artifact accompanying the paper:
+This repository contains the reproducibility artifact accompanying the
+paper:
 
-> **A Cloud-Deployable Deterministic Replay and Benchmarking Infrastructure for Reproducible Validation of Policy-Gated Multimodal AI Systems**
+> **A Cloud-Deployable Deterministic Replay and Benchmarking
+> Infrastructure for Reproducible Validation of Policy-Gated Multimodal
+> AI Systems**
 
-The artifact implements a deterministic replay and benchmarking framework for evaluating policy-gated multimodal AI systems under reproducible execution conditions.
+The artifact implements a deterministic replay and benchmarking
+infrastructure for reproducible validation of policy-gated multimodal AI
+systems under deterministic execution conditions.
 
-The benchmark operates on a MELD-derived replay workload containing **11,351 decision points** and evaluates replay behavior across multiple workload fractions, policy modes, random seeds, and worker configurations.
+The benchmark operates on a MELD-derived replay workload containing
+**11,351 decision points** and evaluates replay behavior across **5
+workload fractions**, **6 policy modes**, **3 random seeds**, and **4
+worker configurations** (360 benchmark conditions).
 
-The framework focuses on execution-identifiable properties including:
+The infrastructure focuses on **execution-identifiable** properties:
 
-- Intervention controllability
-- Deterministic replay consistency
-- Policy agreement behavior
-- Invocation-boundary enforcement
-- Auditability and trace reproducibility
-- Cross-region cloud deployment consistency
+-   Deterministic replay consistency
+-   Policy-gated invocation behavior
+-   Invocation-boundary enforcement
+-   Auditability and trace reproducibility
+-   Worker-level replay consistency
+-   Benchmark scalability
+-   Cross-region cloud reproducibility
 
-The framework does **not** attempt to evaluate causal effectiveness, policy optimality, personalization quality, or real-world intervention outcomes.
+It **does not** evaluate policy optimality, intervention effectiveness,
+personalization quality, or real-world deployment outcomes.
 
----
+------------------------------------------------------------------------
 
-## Repository Structure
+# Repository Structure
 
-```text
+``` text
 .
 ├── configs/
-│   └── fgcs_extended_benchmark.yaml
-│
+│   ├── fgcs_extended_benchmark.yaml
+│   ├── fgcs_fault_action_flip.yaml
+│   └── fgcs_fault_unauthorized_invoke.yaml
 ├── checkpoints/
 │   └── jitai_policy_bc.pt
-│
 ├── paper_outputs/
 │   ├── fgcs_extended_benchmark/
+│   ├── fgcs_fault_action_flip/
+│   ├── fgcs_fault_unauthorized_invoke/
 │   └── fgcs_tables_figures/
-│
 ├── cloud_results/
-│   └── cloud360_20260603/
-│
 ├── run_fgcs_extended_benchmark.py
 ├── run_fgcs_cloud_job.py
 ├── compare_cross_region_hashes.py
-├── check_fgcs_paths.py
+├── summarize_fgcs_fault_action_flip.py
+├── summarize_fgcs_fault_unauthorized_invoke.py
+├── summarize_fgcs_fault_trace_corruption.py
+├── summarize_fgcs_rq7_fault_validation.py
+├── fgcs_fault_validation_framework.py
 ├── Dockerfile
 ├── requirements.txt
 ├── requirements_cloud.txt
 └── README.md
 ```
 
----
+------------------------------------------------------------------------
 
-## Replay Workload
+# Replay Workload
 
-The benchmark uses a MELD-derived replay workload consisting of:
+The replay benchmark contains **11,351 decision points** derived from
+MELD replay traces.
 
-```text
-11,351 replay decision points
-```
+Each replay state includes:
 
-Each replay state contains:
+-   Multimodal availability metadata
+-   Emotion label metadata
+-   Replay identifiers
+-   State embeddings
 
-- Text modality availability
-- Audio modality availability
-- Video modality availability
-- Emotion label metadata
-- State embeddings
-- Replay identifiers
+The workload is used **only for deterministic replay benchmarking**.
 
-The workload is used exclusively for deterministic replay benchmarking and not for causal intervention evaluation.
+------------------------------------------------------------------------
 
----
+# Final Benchmark Design
 
-## Final Benchmark Design
-
-The final benchmark evaluates:
-
-```text
+``` text
 5 workload fractions
 × 6 policy modes
 × 3 random seeds
@@ -85,9 +91,9 @@ The final benchmark evaluates:
 = 360 benchmark conditions
 ```
 
-### Workload Fractions
+## Workload Fractions
 
-```text
+``` text
 0.10
 0.25
 0.50
@@ -95,10 +101,10 @@ The final benchmark evaluates:
 1.00
 ```
 
-### Policy Modes
+## Policy Modes
 
-```text
-proxy
+``` text
+risk_proxy
 bc
 bc_live
 random
@@ -106,65 +112,29 @@ always
 never
 ```
 
-### Random Seeds
+### Policy Descriptions
 
-```text
-1
-2
-3
-```
+-   **risk_proxy** -- deterministic affective-risk proxy providing
+    selective intervention for diagnostic replay.
+-   **bc** -- offline behavioural-cloning replay policy using stored
+    actions.
+-   **bc_live** -- live behavioural-cloning neural policy executed
+    during replay.
+-   **random** -- deterministic seed-controlled stochastic baseline.
+-   **always** -- always intervene.
+-   **never** -- never intervene.
 
-### Worker Configurations
+------------------------------------------------------------------------
 
-```text
-1
-2
-4
-8
-```
+# Running the Main Benchmark
 
----
-
-## Policy Modes
-
-### proxy
-
-Rule-based proxy intervention policy using emotion labels.
-
-### bc
-
-Behavioral-cloning replay policy using pre-generated actions.
-
-### bc_live
-
-Live neural behavioral-cloning policy executed during replay.
-
-### random
-
-Seed-controlled pseudo-random intervention policy.
-
-### always
-
-Always intervene.
-
-### never
-
-Never intervene.
-
----
-
-## Local Benchmark Execution
-
-Run the complete benchmark:
-
-```bash
-python run_fgcs_extended_benchmark.py \
-  --config configs/fgcs_extended_benchmark.yaml
+``` bash
+python run_fgcs_extended_benchmark.py --config configs/fgcs_extended_benchmark.yaml
 ```
 
 Expected outputs:
 
-```text
+``` text
 scaling_and_runtime_results.csv
 stage_latency_summary.csv
 determinism_hash_results.csv
@@ -173,139 +143,179 @@ policy_ablation_costs.csv
 live_bc_predictions.csv
 ```
 
----
+------------------------------------------------------------------------
 
-## Docker Build
+# Compact Fault Validation (RQ7)
 
-Build the cloud-validation container:
+The repository also includes compact fault-validation experiments that
+evaluate the infrastructure's ability to detect injected execution
+faults.
 
-```bash
+Supported fault categories:
+
+-   Action-flip (policy-output corruption)
+-   Unauthorized invocation
+-   Trace-action corruption
+-   Trace-row deletion
+-   Trace-row duplication
+
+## Action-Flip Validation
+
+``` bash
+python run_fgcs_extended_benchmark.py --config configs/fgcs_fault_action_flip.yaml
+python summarize_fgcs_fault_action_flip.py
+```
+
+## Unauthorized Invocation Validation
+
+``` bash
+python run_fgcs_extended_benchmark.py --config configs/fgcs_fault_unauthorized_invoke.yaml
+python summarize_fgcs_fault_unauthorized_invoke.py
+```
+
+## Trace-Integrity Validation
+
+``` bash
+python summarize_fgcs_fault_trace_corruption.py
+```
+
+## Combined RQ7 Tables
+
+``` bash
+python summarize_fgcs_rq7_fault_validation.py
+```
+
+Generated outputs include:
+
+``` text
+fgcs_table_fault_action_flip_detection_summary.csv
+fgcs_table_fault_unauthorized_invoke_detection_summary.csv
+fgcs_table_fault_trace_corruption_detection_summary.csv
+fgcs_table_rq7_fault_detection_combined.csv
+fgcs_table_validation_ablation_matrix.csv
+```
+
+------------------------------------------------------------------------
+
+# Docker and Cloud Validation
+
+Build:
+
+``` bash
 docker build -t fgcs-replay-cloud:v1 .
 ```
 
-The generated image can be executed locally or deployed to cloud environments.
+Cloud validation was executed using Google Cloud Run Jobs in:
 
----
-
-## Cross-Region Cloud Validation
-
-The benchmark infrastructure was validated using containerized deployments executed as Google Cloud Run Jobs in:
-
-```text
+``` text
 asia-southeast1
 us-central1
 ```
 
-Both regions executed the same benchmark configuration:
+Results:
 
-```text
-360 benchmark conditions
+-   360/360 matched benchmark conditions
+-   360/360 matching SHA-256 action-trace hashes
+-   Zero unauthorized invocations during clean replay
+
+------------------------------------------------------------------------
+
+# Generated Outputs
+
+## Local Benchmark
+
+``` text
+paper_outputs/fgcs_extended_benchmark/
 ```
 
-### Cross-Region Validation Results
+## Compact Fault Validation
 
-```text
-360 / 360 matched conditions
-360 / 360 matching SHA-256 action-trace hashes
-0 unauthorized invocations
+``` text
+paper_outputs/fgcs_fault_action_flip/
+paper_outputs/fgcs_fault_unauthorized_invoke/
+paper_outputs/fgcs_tables_figures/
 ```
 
-This validation demonstrates that identical replay configurations preserve trace-level reproducibility across geographically separated cloud environments.
+## Cloud Validation
 
----
-
-## Generated Outputs
-
-### Local Benchmark Outputs
-
-```text
-paper_outputs/
-└── fgcs_extended_benchmark/
-    ├── scaling_and_runtime_results.csv
-    ├── stage_latency_summary.csv
-    ├── determinism_hash_results.csv
-    ├── parallel_speedup_results.csv
-    ├── policy_ablation_costs.csv
-    └── live_bc_predictions.csv
-```
-
-### Cloud Validation Outputs
-
-```text
+``` text
 cloud_results/
-└── cloud360_20260603/
-    ├── asia-southeast1/
-    ├── us-central1/
-    ├── cross_region_comparison.csv
-    ├── fgcs_table8_cross_region_hash_summary.csv
-    ├── fgcs_table9_local_vs_cloud_throughput.csv
-    └── cross_region_console_output.txt
 ```
 
----
+------------------------------------------------------------------------
 
-## Reproducibility Scope
+# Reproducibility Scope
 
-The framework is intended to evaluate:
+The infrastructure validates:
 
-- Deterministic replay consistency
-- Policy-gated invocation behavior
-- Execution stability
-- Trace reproducibility
-- Benchmark scalability
-- Cross-region cloud deployment consistency
-- Invocation-boundary enforcement
+-   Deterministic replay
+-   Trace reproducibility
+-   Invocation-boundary enforcement
+-   Replay scalability
+-   Cross-region reproducibility
+-   Injected execution-fault detection
 
-The framework is **not** intended to evaluate:
+It does **not** evaluate:
 
-- Policy optimality
-- Reinforcement learning performance
-- Intervention effectiveness
-- Personalization quality
-- Safety effectiveness
-- Real-world outcome improvement
+-   Policy quality
+-   Clinical effectiveness
+-   Reinforcement learning performance
+-   Personalization
+-   Safety effectiveness
 
----
+------------------------------------------------------------------------
 
-## Reproducibility Manifest
+# Reproducibility Manifest
 
 The repository includes:
 
-```text
+``` text
 fgcs_extended_reproducibility_manifest.json
 ```
 
-which documents:
+covering:
 
-- Benchmark configuration
-- Workload definition
-- Policy modes
-- Experimental design
-- Generated artifacts
-- Reproducibility outputs
+-   Benchmark configuration
+-   Replay workload
+-   Policy modes
+-   Fault-validation configuration
+-   Experimental design
+-   Generated artifacts
+-   Validation outputs
 
----
+------------------------------------------------------------------------
 
-## Key Results
+# Key Results
 
-### Local Benchmark
+## Main Benchmark
 
-- 11,351 replay decision points
-- 360 benchmark conditions
-- Deterministic policies produced stable trace hashes
-- Zero unauthorized invocations
-- Best full-workload throughput exceeded 2,200 decision points/s for `bc_live`
+-   11,351 replay decision points
+-   360 benchmark conditions
+-   Deterministic policies produced one stable trace hash per workload
+    fraction
+-   `risk_proxy` produced an intermediate intervention profile (\~23%)
+-   Zero unauthorized invocations during clean replay
+-   Best full-workload throughput exceeded 2,200 decision points/s for
+    `bc_live`
 
-### Cloud Validation
+## Compact Fault Validation
 
-- Google Cloud Run deployment across two regions
-- 360 matched cross-region conditions
-- 360/360 matching SHA-256 action-trace hashes
-- Zero unauthorized invocations
-- Cross-region reproducibility successfully demonstrated
+-   100% detection of injected action-flip faults
+-   100% detection of injected unauthorized-invocation faults
+-   100% detection of injected trace-action corruption
+-   100% detection of dropped trace rows
+-   100% detection of duplicated trace rows
+-   No false positives during clean replay
 
----
+## Cross-Region Cloud Validation
 
-## License
+-   Successful execution in two cloud regions
+-   Matching SHA-256 action-trace hashes across regions
+-   Reproducible execution under identical configurations
 
-This repository is provided for academic research and reproducibility purposes.
+------------------------------------------------------------------------
+
+# License
+
+This repository is provided for academic research and reproducibility
+purposes.

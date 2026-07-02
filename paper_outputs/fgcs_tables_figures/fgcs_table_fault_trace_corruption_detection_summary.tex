@@ -1,0 +1,10 @@
+\begin{tabular}{lrrrlrll}
+\toprule
+fault\_mode & runs & corruptions\_injected\_total & detected\_runs & detection\_rate & false\_positive\_runs & detection\_channel & interpretation \\
+\midrule
+clean\_replay & 18 & 0 & 0 &  & 0 & none & Clean trace files are used as false-positive controls. \\
+drop\_trace\_rows\_1\_percent & 18 & 2052 & 18 & 1.000000 & 0 & row-count mismatch + SHA-256 action-trace mismatch & Dropped trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch. \\
+duplicate\_trace\_rows\_1\_percent & 18 & 2052 & 18 & 1.000000 & 0 & row-count mismatch + SHA-256 action-trace mismatch & Duplicated trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch. \\
+trace\_action\_corruption\_1\_percent & 18 & 2052 & 18 & 1.000000 & 0 & SHA-256 action-trace mismatch & Post-hoc action changes in saved traces were detected through SHA-256 action-trace mismatch. \\
+\bottomrule
+\end{tabular}

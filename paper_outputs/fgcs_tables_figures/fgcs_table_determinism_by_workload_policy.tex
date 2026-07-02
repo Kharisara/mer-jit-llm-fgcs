@@ -1,0 +1,36 @@
+\begin{tabular}{rlrlrrrrrrrrrl}
+\toprule
+dataset\_fraction & workload\_name & workload\_size & policy\_mode & unique\_trace\_hashes & minimum\_hash\_match & max\_intervention\_rate\_delta & mean\_intervention\_rate\_delta & mean\_intervention\_rate & std\_intervention\_rate & reference\_intervention\_rate & max\_unauthorized\_invocations & max\_fault\_injected\_count & deterministic\_replay\_interpretation \\
+\midrule
+0.100000 & fraction\_0p1 & 1135 & always & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.100000 & fraction\_0p1 & 1135 & bc & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.100000 & fraction\_0p1 & 1135 & bc\_live & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.100000 & fraction\_0p1 & 1135 & never & 1 & 1 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0 & 0 & stable across seeds/workers \\
+0.100000 & fraction\_0p1 & 1135 & random & 3 & 1 & 0.000000 & 0.000000 & 0.507783 & 0.005739 & 0.507783 & 0 & 0 & seed-dependent stochastic baseline \\
+0.100000 & fraction\_0p1 & 1135 & risk\_proxy & 1 & 1 & 0.000000 & 0.000000 & 0.199119 & 0.000000 & 0.199119 & 0 & 0 & stable across seeds/workers \\
+0.250000 & fraction\_0p25 & 2837 & always & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.250000 & fraction\_0p25 & 2837 & bc & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.250000 & fraction\_0p25 & 2837 & bc\_live & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.250000 & fraction\_0p25 & 2837 & never & 1 & 1 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0 & 0 & stable across seeds/workers \\
+0.250000 & fraction\_0p25 & 2837 & random & 3 & 1 & 0.000000 & 0.000000 & 0.494067 & 0.013458 & 0.494067 & 0 & 0 & seed-dependent stochastic baseline \\
+0.250000 & fraction\_0p25 & 2837 & risk\_proxy & 1 & 1 & 0.000000 & 0.000000 & 0.205146 & 0.000000 & 0.205146 & 0 & 0 & stable across seeds/workers \\
+0.500000 & fraction\_0p5 & 5675 & always & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.500000 & fraction\_0p5 & 5675 & bc & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.500000 & fraction\_0p5 & 5675 & bc\_live & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.500000 & fraction\_0p5 & 5675 & never & 1 & 1 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0 & 0 & stable across seeds/workers \\
+0.500000 & fraction\_0p5 & 5675 & random & 3 & 1 & 0.000000 & 0.000000 & 0.498913 & 0.006738 & 0.498913 & 0 & 0 & seed-dependent stochastic baseline \\
+0.500000 & fraction\_0p5 & 5675 & risk\_proxy & 1 & 1 & 0.000000 & 0.000000 & 0.209515 & 0.000000 & 0.209515 & 0 & 0 & stable across seeds/workers \\
+0.750000 & fraction\_0p75 & 8513 & always & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.750000 & fraction\_0p75 & 8513 & bc & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.750000 & fraction\_0p75 & 8513 & bc\_live & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+0.750000 & fraction\_0p75 & 8513 & never & 1 & 1 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0 & 0 & stable across seeds/workers \\
+0.750000 & fraction\_0p75 & 8513 & random & 3 & 1 & 0.000000 & 0.000000 & 0.496496 & 0.003056 & 0.496496 & 0 & 0 & seed-dependent stochastic baseline \\
+0.750000 & fraction\_0p75 & 8513 & risk\_proxy & 1 & 1 & 0.000000 & 0.000000 & 0.222718 & 0.000000 & 0.222718 & 0 & 0 & stable across seeds/workers \\
+1.000000 & fraction\_1p0 & 11351 & always & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+1.000000 & fraction\_1p0 & 11351 & bc & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+1.000000 & fraction\_1p0 & 11351 & bc\_live & 1 & 1 & 0.000000 & 0.000000 & 1.000000 & 0.000000 & 1.000000 & 0 & 0 & stable across seeds/workers \\
+1.000000 & fraction\_1p0 & 11351 & never & 1 & 1 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0 & 0 & stable across seeds/workers \\
+1.000000 & fraction\_1p0 & 11351 & random & 3 & 1 & 0.000000 & 0.000000 & 0.499604 & 0.004058 & 0.499604 & 0 & 0 & seed-dependent stochastic baseline \\
+1.000000 & fraction\_1p0 & 11351 & risk\_proxy & 1 & 1 & 0.000000 & 0.000000 & 0.229848 & 0.000000 & 0.229848 & 0 & 0 & stable across seeds/workers \\
+\bottomrule
+\end{tabular}

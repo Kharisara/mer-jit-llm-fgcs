@@ -186,7 +186,7 @@ def numeric_sort_key(value) -> Tuple[int, float, str]:
 
 
 def compact_policy_order(policies: Iterable[str]) -> List[str]:
-    preferred = ["never", "proxy", "bc", "bc_live", "random", "always"]
+    preferred = ["never", "risk_proxy", "proxy", "bc", "bc_live", "random", "always"]
     available = list(dict.fromkeys(str(p) for p in policies))
     ordered = [p for p in preferred if p in available]
     ordered += sorted([p for p in available if p not in ordered])

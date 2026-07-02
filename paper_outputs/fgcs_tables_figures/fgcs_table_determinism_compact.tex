@@ -1,0 +1,12 @@
+\begin{tabular}{lrrrrrl}
+\toprule
+policy\_mode & unique\_trace\_hashes\_across\_all\_workloads & minimum\_hash\_match & max\_unauthorized\_invocations & max\_fault\_injected\_count & max\_intervention\_rate\_delta & interpretation \\
+\midrule
+always & 5 & 1 & 0 & 0 & 0.000000 & one stable hash per workload \\
+bc & 5 & 1 & 0 & 0 & 0.000000 & one stable hash per workload \\
+bc\_live & 5 & 1 & 0 & 0 & 0.000000 & one stable hash per workload \\
+never & 5 & 1 & 0 & 0 & 0.000000 & one stable hash per workload \\
+random & 15 & 1 & 0 & 0 & 0.000000 & stochastic policy varies across seeds as expected \\
+risk\_proxy & 5 & 1 & 0 & 0 & 0.000000 & one stable hash per workload \\
+\bottomrule
+\end{tabular}

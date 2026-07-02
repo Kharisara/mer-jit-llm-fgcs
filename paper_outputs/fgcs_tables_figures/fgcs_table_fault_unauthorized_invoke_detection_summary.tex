@@ -1,0 +1,8 @@
+\begin{tabular}{lrrrlrrll}
+\toprule
+fault\_mode & runs & faults\_injected\_total & detected\_runs & detection\_rate & false\_positive\_runs & max\_unauthorized\_invocations & detection\_channel & interpretation \\
+\midrule
+clean\_replay & 18 & 0 & 0 &  & 0 & 0 & none & Clean baseline used as false-positive control. \\
+unauthorized\_invoke\_1\_percent & 18 & 1440 & 18 & 1.000000 & 0 & 115 & unauthorized-invocation counter + injected-fault counter & Forced generator calls after action=0 were detected as unauthorized invocations at the invocation boundary. \\
+\bottomrule
+\end{tabular}

@@ -1,0 +1,16 @@
+\begin{tabular}{lll}
+\toprule
+finding & observed\_value & paper\_interpretation \\
+\midrule
+Benchmark coverage & 360 runs & The benchmark covers 5 workload fractions, 6 policies, and 4 worker settings. \\
+Policy modes & never, risk\_proxy, bc, bc\_live, random, always & The evaluation includes fixed, stochastic, proxy, offline BC, and live BC policy modes. \\
+Maximum replay workload & 11,351 decision points & The benchmark reaches the full MELD-derived replay workload. \\
+Full-workload runtime range & 5.758491–25.130682 seconds & Runtime varies by policy mode and worker configuration under deterministic replay. \\
+Maximum full-workload throughput & 1971.176232 decision points/s & Replay throughput is directly measurable across workload and worker settings. \\
+Maximum observed speedup & 23.954177x & Parallel workers provide measurable acceleration, though gains depend on policy and workload. \\
+Deterministic trace hashes & \{'always': 5, 'bc': 5, 'bc\_live': 5, 'never': 5, 'random': 15, 'risk\_proxy': 5\} & Deterministic policies should produce one stable trace per workload; the random baseline is expected to vary across seeds. \\
+Unauthorized invocations & 0 & The policy-first gate prevented unauthorized generator invocation in normal replay. \\
+Live BC action rate & 1.000000 & The live BC policy executed end-to-end; action diversity should be reported conservatively. \\
+Full-workload mean intervention rates & \{'always': 1.0, 'bc': 1.0, 'bc\_live': 1.0, 'never': 0.0, 'random': 0.499604, 'risk\_proxy': 0.229848\} & Intervention frequency is policy-dependent and execution-identifiable under replay. \\
+\bottomrule
+\end{tabular}

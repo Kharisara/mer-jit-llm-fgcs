@@ -1,0 +1,12 @@
+\begin{tabular}{llrrrlrlll}
+\toprule
+fault\_mode & fault\_category & runs & faults\_or\_corruptions\_injected\_total & detected\_runs & detection\_rate & false\_positive\_runs & max\_unauthorized\_invocations & detection\_channel & paper\_interpretation \\
+\midrule
+clean\_replay & false-positive control & 54 & 0 & 0 &  & 0 & 0 & none & Clean replay and clean trace files produced no detected faults. \\
+action\_flip\_1\_percent & policy-output corruption & 18 & 2048 & 18 & 1.000000 & 0 & 0 & SHA-256 trace mismatch + injected-fault counter & Injected action flips changed the action sequence and were detected through SHA-256 trace mismatch. \\
+unauthorized\_invoke\_1\_percent & invocation-boundary violation & 18 & 1440 & 18 & 1.000000 & 0 & 115 & unauthorized-invocation counter + injected-fault counter & Forced generator calls after action=0 were detected as unauthorized invocations at the invocation boundary. \\
+trace\_action\_corruption\_1\_percent & post-hoc action-trace corruption & 18 & 2052 & 18 & 1.000000 & 0 &  & SHA-256 action-trace mismatch & Post-hoc action changes in saved traces were detected through SHA-256 action-trace mismatch. \\
+drop\_trace\_rows\_1\_percent & missing trace rows & 18 & 2052 & 18 & 1.000000 & 0 &  & row-count mismatch + SHA-256 action-trace mismatch & Dropped trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch. \\
+duplicate\_trace\_rows\_1\_percent & duplicated trace rows & 18 & 2052 & 18 & 1.000000 & 0 &  & row-count mismatch + SHA-256 action-trace mismatch & Duplicated trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch. \\
+\bottomrule
+\end{tabular}

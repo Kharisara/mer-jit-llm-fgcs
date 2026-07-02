@@ -1,0 +1,46 @@
+# Compact RQ7 invocation-boundary fault-injection run
+# Expected run count:
+#   1 workload x 3 policy modes x 3 seeds x 2 worker settings = 18 runs
+
+dataset:
+  input_csv: paper_outputs/replay_input_clean.csv
+  fractions: [1.00]
+  state_root: ""
+
+benchmark:
+  seeds: [1, 2, 3]
+  workers: [1, 4]
+  policy_modes: [risk_proxy, random, never]
+
+policy:
+  negative_labels: [anger, angry, disgust, disgusted, fear, fearful, sadness, sad]
+
+  random_intervention_probability: 0.50
+
+  bc_action_csv: paper_outputs/policy_first_outputs_bc.csv
+  bc_action_column: action
+  bc_key_column: utterance_id
+
+  bc_model_path: checkpoints/jitai_policy_bc.pt
+  bc_live_state_dim: 512
+  bc_live_hidden_dims: [256, 256]
+  bc_live_output_dim: 2
+  bc_live_batch_size: 4096
+  bc_live_torch_threads: 1
+  bc_live_device: cpu
+  bc_live_strict_state_dim: true
+  missing_state_policy: error
+
+fault_injection:
+  enabled: true
+
+  # Keep action flipping off for this experiment. This fault tests only
+  # invocation-boundary enforcement: generation is forced when action=0.
+  action_flip_probability: 0.0
+  unauthorized_invoke_probability: 0.01
+  allowed_policy_modes: [risk_proxy, random, never]
+
+logging:
+  output_dir: paper_outputs/fgcs_fault_unauthorized_invoke
+  save_traces: true
+  save_live_bc_predictions: false

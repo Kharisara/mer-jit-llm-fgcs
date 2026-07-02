@@ -20,12 +20,14 @@ benchmark:
   # Four worker settings. Together with the settings above, this gives 360 runs.
   workers: [1, 2, 4, 8]
 
-  # Final FGCS policy set. bc_live is the stronger live behavioral-cloning policy.
-  policy_modes: [proxy, bc, bc_live, random, always, never]
+  # Final FGCS policy set. risk_proxy replaces the old all-zero proxy policy.
+  policy_modes: [risk_proxy, bc, bc_live, random, always, never]
 
 policy:
-  # MELD labels treated as negative/emotionally sensitive by the proxy policy.
-  negative_labels: [anger, disgust, fear, sadness]
+  # MELD labels treated as negative/emotionally sensitive by the risk_proxy policy.
+  # Both noun/adjective variants are included to avoid an all-zero proxy if the
+  # replay CSV stores labels such as "sad" or "angry" rather than "sadness" or "anger".
+  negative_labels: [anger, angry, disgust, disgusted, fear, fearful, sadness, sad]
 
   # Deterministic pseudo-random intervention probability for the random policy.
   random_intervention_probability: 0.50
@@ -55,13 +57,13 @@ policy:
   missing_state_policy: error
 
 fault_injection:
-  # Disabled for the main FGCS experiment count.
+  # Disabled for the main clean FGCS 360-run experiment.
   enabled: false
   action_flip_probability: 0.0
 
   # If fault injection is enabled for an auxiliary stress test, keep it away from
   # bc and bc_live so learned-policy traces are not corrupted.
-  allowed_policy_modes: [proxy, random, never]
+  allowed_policy_modes: [risk_proxy, random, never]
 
 logging:
   output_dir: paper_outputs/fgcs_extended_benchmark

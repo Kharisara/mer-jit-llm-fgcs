@@ -1,0 +1,11 @@
+\begin{tabular}{lllllllll}
+\toprule
+fault\_mode & fault\_category & logging\_only & hash\_only & gate\_only & row\_count\_only & hash\_plus\_gate & full\_validator & primary\_detection\_channel \\
+\midrule
+action\_flip\_1\_percent & policy-output corruption & No & Yes & No & No & Yes & Yes & SHA-256 trace mismatch \\
+unauthorized\_invoke\_1\_percent & invocation-boundary violation & No & No & Yes & No & Yes & Yes & unauthorized-invocation counter \\
+trace\_action\_corruption\_1\_percent & post-hoc action-trace corruption & No & Yes & No & No & Yes & Yes & SHA-256 action-trace mismatch \\
+drop\_trace\_rows\_1\_percent & missing trace rows & No & Yes & No & Yes & Yes & Yes & row-count mismatch + SHA-256 mismatch \\
+duplicate\_trace\_rows\_1\_percent & duplicated trace rows & No & Yes & No & Yes & Yes & Yes & row-count mismatch + SHA-256 mismatch \\
+\bottomrule
+\end{tabular}

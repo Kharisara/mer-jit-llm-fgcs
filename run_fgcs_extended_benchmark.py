@@ -6,7 +6,7 @@ This script runs deterministic offline replay experiments over:
     workloads/fractions x policy modes x seeds x worker counts
 
 Final policy modes for the FGCS extension:
-    proxy, bc, bc_live, random, always, never
+    risk_proxy, bc, bc_live, random, always, never
 
 Expected default count:
     5 workloads x 6 policies x 3 seeds x 4 worker settings = 360 runs
@@ -51,8 +51,8 @@ except ImportError:  # torch is only required for bc_live
     nn = None
 
 
-SUPPORTED_POLICY_MODES = {"proxy", "bc", "bc_live", "random", "always", "never"}
-DEFAULT_POLICY_ORDER = ["proxy", "bc", "bc_live", "random", "always", "never"]
+SUPPORTED_POLICY_MODES = {"risk_proxy", "proxy", "bc", "bc_live", "random", "always", "never"}
+DEFAULT_POLICY_ORDER = ["risk_proxy", "bc", "bc_live", "random", "always", "never"]
 
 
 # ---------------------------------------------------------------------------
@@ -502,8 +502,48 @@ def load_bc_reference_actions(
     return out
 
 
+def normalize_label(value: Any) -> str:
+    """Normalize categorical affect/emotion labels for deterministic proxy policies."""
+    if value is None or pd.isna(value):
+        return ""
+    return str(value).strip().lower()
+
+
+def extract_label_from_row(row: Mapping[str, Any]) -> Any:
+    """Return the first available MELD-style label/emotion value from a replay row."""
+    candidates = [
+        "label",
+        "emotion",
+        "Emotion",
+        "emotion_label",
+        "Emotion_Label",
+        "meld_emotion",
+        "MELD_emotion",
+        "affective_label",
+    ]
+    for col in candidates:
+        if col in row:
+            value = row.get(col, "")
+            if normalize_label(value):
+                return value
+    return ""
+
+
 def proxy_action(label: Any, negative_labels: set[str]) -> int:
-    return 1 if str(label).lower() in negative_labels else 0
+    """Backward-compatible deterministic proxy action."""
+    return 1 if normalize_label(label) in negative_labels else 0
+
+
+def risk_proxy_action(row: Mapping[str, Any], negative_labels: set[str]) -> int:
+    """
+    Deterministic affective-risk diagnostic proxy.
+
+    This is an action-diverse diagnostic replay policy, not a clinically valid
+    intervention policy. It selects intervention only when the replay label is
+    one of the configured negative/sensitive labels.
+    """
+    label = extract_label_from_row(row)
+    return proxy_action(label, negative_labels)
 
 
 def random_action(row: Mapping[str, Any], seed: int, row_index: int, p: float) -> int:
@@ -522,8 +562,8 @@ def base_action_for_row(
     bc_actions: Optional[Mapping[int, int]] = None,
     live_actions: Optional[Mapping[int, int]] = None,
 ) -> int:
-    if policy_mode == "proxy":
-        return proxy_action(row.get("label", ""), negative_labels)
+    if policy_mode in {"risk_proxy", "proxy"}:
+        return risk_proxy_action(row, negative_labels)
 
     if policy_mode == "random":
         return random_action(row, seed, row_index, random_p)
@@ -558,22 +598,54 @@ def maybe_fault_inject(
     """
     Optional deterministic action-flip fault injection.
 
-    By default, this is disabled. If enabled, it is intentionally limited to
-    proxy/random/never unless the YAML explicitly changes allowed_policy_modes.
-    It is not applied to bc or bc_live by default, preserving learned-policy traces.
+    This simulates policy-output corruption by flipping selected actions before
+    invocation gating. It should be detected by trace-hash mismatch, not by
+    the unauthorized-invocation counter.
     """
     enabled = bool(fault_cfg.get("enabled", False))
     flip_p = float(fault_cfg.get("action_flip_probability", 0.0))
-    allowed = set(fault_cfg.get("allowed_policy_modes", ["proxy", "random", "never"]))
+    allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "random", "never"]))
 
     if not enabled or flip_p <= 0.0 or policy_mode not in allowed:
         return int(action), 0
 
     utterance_id = row.get("utterance_id", row_index)
-    r = stable_hash_to_float("fault", seed, policy_mode, utterance_id, row_index)
+    r = stable_hash_to_float("fault_action_flip", seed, policy_mode, utterance_id, row_index)
     if r < flip_p:
         return 1 - int(action), 1
     return int(action), 0
+
+
+def maybe_force_unauthorized_invocation(
+    action: int,
+    row: Mapping[str, Any],
+    row_index: int,
+    policy_mode: str,
+    seed: int,
+    fault_cfg: Mapping[str, Any],
+) -> int:
+    """
+    Optional deterministic invocation-boundary violation injection.
+
+    This simulates a generator/service call that occurs even though the policy
+    action is 0 and the invocation gate therefore did not authorize generation.
+    It should be detected by the unauthorized_invocation counter while leaving
+    the policy action unchanged.
+    """
+    enabled = bool(fault_cfg.get("enabled", False))
+    invoke_p = float(fault_cfg.get("unauthorized_invoke_probability", 0.0))
+    allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "random", "never"]))
+
+    if not enabled or invoke_p <= 0.0 or policy_mode not in allowed:
+        return 0
+
+    # Only rows with action=0 are eligible, because action=1 is already authorized.
+    if int(action) != 0:
+        return 0
+
+    utterance_id = row.get("utterance_id", row_index)
+    r = stable_hash_to_float("fault_unauthorized_invoke", seed, policy_mode, utterance_id, row_index)
+    return 1 if r < invoke_p else 0
 
 
 # ---------------------------------------------------------------------------
@@ -812,9 +884,24 @@ def process_one_row(
     authorized_to_generate = int(action) == 1
     g1 = time.perf_counter()
 
+    # Optional invocation-boundary violation fault. This does not change the
+    # policy action. It forces generation after the gate when action=0 so the
+    # unauthorized-invocation counter can detect the violation.
+    unauthorized_invoke_fault = maybe_force_unauthorized_invocation(
+        action=action,
+        row=row_dict,
+        row_index=row_index,
+        policy_mode=policy_mode,
+        seed=seed,
+        fault_cfg=fault_cfg,
+    )
+
     # Stage 4: generation stub.
     gen0 = time.perf_counter()
-    generated = generate_stub(action, row_dict.get("label", ""))
+    generation_action = 1 if unauthorized_invoke_fault else action
+    generated = generate_stub(generation_action, row_dict.get("label", ""))
+    if unauthorized_invoke_fault:
+        generated["unauthorized_invocation"] = 1
     gen1 = time.perf_counter()
 
     # Stage 5: logging/result construction.
@@ -830,7 +917,9 @@ def process_one_row(
         "seed": seed,
         "action_before_fault": int(action_before_fault),
         "action": int(action),
-        "fault_injected": int(fault_injected),
+        "action_flip_fault_injected": int(fault_injected),
+        "unauthorized_invoke_fault_injected": int(unauthorized_invoke_fault),
+        "fault_injected": int(fault_injected) + int(unauthorized_invoke_fault),
         "authorized_to_generate": int(authorized_to_generate),
         "generation_invoked": int(generated["invoked"]),
         "unauthorized_invocation": int(generated["unauthorized_invocation"]),
@@ -1112,7 +1201,7 @@ def main() -> None:
     output_dir = Path(logging_cfg.get("output_dir", "paper_outputs/fgcs_extended_benchmark"))
     save_traces = bool(logging_cfg.get("save_traces", True))
     save_live_bc_predictions = bool(logging_cfg.get("save_live_bc_predictions", True))
-    negative_labels = {str(x).lower() for x in policy_cfg.get("negative_labels", [])}
+    negative_labels = {normalize_label(x) for x in policy_cfg.get("negative_labels", [])}
 
     ensure_dir(output_dir)
 
