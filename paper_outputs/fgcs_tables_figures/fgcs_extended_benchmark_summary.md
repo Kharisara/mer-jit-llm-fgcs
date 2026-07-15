@@ -19,9 +19,9 @@
 | Benchmark coverage                    | 360 runs                                                                                             | The benchmark covers 5 workload fractions, 6 policies, and 4 worker settings.                                              |
 | Policy modes                          | never, risk_proxy, bc, bc_live, random, always                                                       | The evaluation includes fixed, stochastic, proxy, offline BC, and live BC policy modes.                                    |
 | Maximum replay workload               | 11,351 decision points                                                                               | The benchmark reaches the full MELD-derived replay workload.                                                               |
-| Full-workload runtime range           | 5.758491–25.130682 seconds                                                                           | Runtime varies by policy mode and worker configuration under deterministic replay.                                         |
-| Maximum full-workload throughput      | 1971.176232 decision points/s                                                                        | Replay throughput is directly measurable across workload and worker settings.                                              |
-| Maximum observed speedup              | 23.954177x                                                                                           | Parallel workers provide measurable acceleration, though gains depend on policy and workload.                              |
+| Full-workload runtime range           | 5.553629–30.310232 seconds                                                                           | Runtime varies by policy mode and worker configuration under deterministic replay.                                         |
+| Maximum full-workload throughput      | 2043.888669 decision points/s                                                                        | Replay throughput is directly measurable across workload and worker settings.                                              |
+| Maximum observed speedup              | 24.725832x                                                                                           | Parallel workers provide measurable acceleration, though gains depend on policy and workload.                              |
 | Deterministic trace hashes            | {'always': 5, 'bc': 5, 'bc_live': 5, 'never': 5, 'random': 15, 'risk_proxy': 5}                      | Deterministic policies should produce one stable trace per workload; the random baseline is expected to vary across seeds. |
 | Unauthorized invocations              | 0                                                                                                    | The policy-first gate prevented unauthorized generator invocation in normal replay.                                        |
 | Live BC action rate                   | 1.000000                                                                                             | The live BC policy executed end-to-end; action diversity should be reported conservatively.                                |
@@ -46,10 +46,10 @@
 | Live BC intervention rate |      1        |
 | Live BC action=0 count    |      0        |
 | Live BC action=1 count    | 354132        |
-| state_loading_ms mean     |      0.64596  |
-| state_loading_ms max      |     76.3295   |
-| policy_inference_ms mean  |      0.0055   |
-| policy_inference_ms max   |      0.323214 |
+| state_loading_ms mean     |      0.471163 |
+| state_loading_ms max      |     44.8126   |
+| policy_inference_ms mean  |      0.005216 |
+| policy_inference_ms max   |      0.343525 |
 
 ## Safe paper wording
 

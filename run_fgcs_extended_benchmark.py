@@ -629,8 +629,9 @@ def maybe_force_unauthorized_invocation(
 
     This simulates a generator/service call that occurs even though the policy
     action is 0 and the invocation gate therefore did not authorize generation.
-    It should be detected by the unauthorized_invocation counter while leaving
-    the policy action unchanged.
+    The policy action remains unchanged. The caller records the actual generation
+    execution and derives the unauthorized-invocation indicator from the
+    authorization--execution contradiction.
     """
     enabled = bool(fault_cfg.get("enabled", False))
     invoke_p = float(fault_cfg.get("unauthorized_invoke_probability", 0.0))
@@ -763,20 +764,22 @@ def compute_bc_live_actions(
 # ---------------------------------------------------------------------------
 
 
-def generate_stub(action: int, label: Any) -> Dict[str, Any]:
-    """
-    Deterministic generation stub.
+def no_generation_result() -> Dict[str, Any]:
+    """Return the trace payload for a replay point where generation was not executed."""
+    return {
+        "response_json": "",
+        "safety": "not_invoked",
+    }
 
-    This measures invocation and structural-output behavior, not content quality.
-    """
-    if int(action) == 0:
-        return {
-            "invoked": False,
-            "response_json": "",
-            "safety": "not_invoked",
-            "unauthorized_invocation": 0,
-        }
 
+def execute_generation_stub(label: Any) -> Dict[str, Any]:
+    """
+    Execute the deterministic downstream generation stub.
+
+    Reaching this function is the observed generation event. Authorization is
+    evaluated before this call, and the caller derives any violation by comparing
+    the observed call event with the preceding authorization decision.
+    """
     label_l = str(label).lower()
     if label_l in {"joy", "surprise"}:
         response = {
@@ -796,10 +799,8 @@ def generate_stub(action: int, label: Any) -> Dict[str, Any]:
         }
 
     return {
-        "invoked": True,
         "response_json": json.dumps(response, ensure_ascii=False),
         "safety": response["safety"],
-        "unauthorized_invocation": 0,
     }
 
 
@@ -896,12 +897,19 @@ def process_one_row(
         fault_cfg=fault_cfg,
     )
 
-    # Stage 4: generation stub.
+    # Stage 4: observed downstream generation execution.
+    # The controlled fault can force the call while authorization remains false.
     gen0 = time.perf_counter()
-    generation_action = 1 if unauthorized_invoke_fault else action
-    generated = generate_stub(generation_action, row_dict.get("label", ""))
-    if unauthorized_invoke_fault:
-        generated["unauthorized_invocation"] = 1
+    should_execute_generation = bool(authorized_to_generate or unauthorized_invoke_fault)
+    if should_execute_generation:
+        generated = execute_generation_stub(row_dict.get("label", ""))
+        generation_invoked = 1
+    else:
+        generated = no_generation_result()
+        generation_invoked = 0
+
+    # Derive the violation from the observed execution and prior authorization.
+    unauthorized_invocation = int(generation_invoked == 1 and not authorized_to_generate)
     gen1 = time.perf_counter()
 
     # Stage 5: logging/result construction.
@@ -921,8 +929,8 @@ def process_one_row(
         "unauthorized_invoke_fault_injected": int(unauthorized_invoke_fault),
         "fault_injected": int(fault_injected) + int(unauthorized_invoke_fault),
         "authorized_to_generate": int(authorized_to_generate),
-        "generation_invoked": int(generated["invoked"]),
-        "unauthorized_invocation": int(generated["unauthorized_invocation"]),
+        "generation_invoked": int(generation_invoked),
+        "unauthorized_invocation": int(unauthorized_invocation),
         "response_safety": generated["safety"],
         "response_json": generated["response_json"],
         "state_exists": int(state_exists),
@@ -1350,3 +1358,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

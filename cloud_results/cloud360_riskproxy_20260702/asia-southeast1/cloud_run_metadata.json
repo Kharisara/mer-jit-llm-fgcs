@@ -1,0 +1,13 @@
+{
+  "run_id": "cloud360_riskproxy_20260702",
+  "region": "asia-southeast1",
+  "bucket": "fgcs-cloud-results-fgcs-replay-validation",
+  "config_path": "configs/fgcs_extended_benchmark.yaml",
+  "output_dir": "paper_outputs/fgcs_extended_benchmark",
+  "cloud_job_runtime_seconds": 2153.9234296999994,
+  "python_version": "3.12.13 (main, Jun 24 2026, 02:08:01) [GCC 14.2.0]",
+  "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
+  "processor": "",
+  "timestamp_utc": "2026-07-02T09:10:05.590830+00:00",
+  "return_code": 0
+}

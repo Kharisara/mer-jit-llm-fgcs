@@ -1,0 +1,23 @@
+{
+  "captured_at_utc": "2026-07-14T07:51:52.345184+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "system": "Windows",
+  "release": "11",
+  "machine": "AMD64",
+  "processor": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+  "python_version": "3.12.2",
+  "python_executable": "D:\\Project final\\mer-jit-llm-fgcs\\.venv\\Scripts\\python.exe",
+  "logical_cpu_count": 12,
+  "numpy_version": "2.2.6",
+  "pandas_version": "2.3.3",
+  "torch_version": "2.9.1+cpu",
+  "torch_cuda_available": false,
+  "torch_num_threads": 1,
+  "thread_environment": {
+    "OMP_NUM_THREADS": null,
+    "MKL_NUM_THREADS": null,
+    "OPENBLAS_NUM_THREADS": null,
+    "NUMEXPR_NUM_THREADS": null,
+    "PYTHONHASHSEED": null
+  }
+}

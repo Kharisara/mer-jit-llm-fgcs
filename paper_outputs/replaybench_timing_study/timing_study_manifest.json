@@ -1,0 +1,64 @@
+{
+  "study_name": "ReplayBench-PG targeted warmed-up timing study",
+  "design": {
+    "workload_scaling_arm": "all fractions x all policies x one worker",
+    "worker_scaling_arm": "full workload x all policies x all worker settings",
+    "unique_configurations": 48,
+    "untimed_warmups_per_configuration": 1,
+    "measured_repetitions_per_configuration": 7,
+    "fixed_policy_seed": 1,
+    "configuration_order_seed": 20260714,
+    "aggregation": "median, quartiles, IQR; no inferential significance test"
+  },
+  "runtime": {
+    "study_elapsed_seconds": 2237.840118599999,
+    "warmup_runs": 48,
+    "measured_runs": 336
+  },
+  "inputs": {
+    "config_path": "D:\\Project final\\mer-jit-llm-fgcs\\configs\\fgcs_extended_benchmark.yaml",
+    "config_sha256": "4bf045955d91efd46018611c328757ad4de2ce7e7da128440f345d079eb29625",
+    "input_csv": "D:\\Project final\\mer-jit-llm-fgcs\\paper_outputs\\replay_input_clean.csv",
+    "input_rows": 11351,
+    "fractions": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "policies": [
+      "risk_proxy",
+      "bc",
+      "bc_live",
+      "random",
+      "always",
+      "never"
+    ],
+    "workers": [
+      1,
+      2,
+      4,
+      8
+    ]
+  },
+  "software": {
+    "timing_script": "D:\\Project final\\mer-jit-llm-fgcs\\run_replaybench_timing_study.py",
+    "timing_script_sha256": "d6db14a997e9022941c696337447bc4f502a631daacdfcfb336d1c8a4b81e519",
+    "benchmark_runner": "D:\\Project final\\mer-jit-llm-fgcs\\run_fgcs_extended_benchmark.py",
+    "benchmark_runner_sha256": "d7500cc652cec2e7c35dd34890ca44fb183000304f51b64c7ba95d31db5c8b84"
+  },
+  "validation": {
+    "all_configurations_have_expected_repetitions": true,
+    "all_repetition_trace_hashes_match": true,
+    "unauthorized_invocations_total": 0,
+    "fault_injected_count_total": 0
+  },
+  "outputs": [
+    "paper_outputs\\replaybench_timing_study\\timing_repetitions_raw.csv",
+    "paper_outputs\\replaybench_timing_study\\timing_summary.csv",
+    "paper_outputs\\replaybench_timing_study\\timing_stage_latency_summary.csv",
+    "paper_outputs\\replaybench_timing_study\\timing_trace_consistency.csv",
+    "paper_outputs\\replaybench_timing_study\\timing_environment.json"
+  ]
+}
