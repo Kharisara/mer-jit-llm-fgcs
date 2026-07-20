@@ -1,0 +1,3 @@
+fault_mode,runs,faults_injected_total,detected_runs,detection_rate,false_positive_runs,max_unauthorized_invocations,detection_channel,interpretation
+clean_replay,18,0,0,,0,0,none,Clean baseline used as false-positive control.
+unauthorized_invoke_1_percent,18,2762,18,1.0,0,223,unauthorized-invocation counter + injected-fault counter,Forced generator calls after action=0 were detected as unauthorized invocations at the invocation boundary.

@@ -1,0 +1,41 @@
+# Compact cross-workload validation using the real MetroPT-3 industrial
+# sensor dataset.
+# Expected clean run count:
+# 3 fractions x 4 policies x 3 seeds x 2 workers = 72.
+
+dataset:
+  input_csv: paper_outputs/secondary_metropt3/replay_input_metropt3.csv
+  fractions: [0.25, 0.50, 1.00]
+  state_root: ""
+
+benchmark:
+  seeds: [1, 2, 3]
+  workers: [1, 4]
+  policy_modes: [rule_gate, random, always, never]
+
+policy:
+  random_intervention_probability: 0.50
+
+  # Deterministic execution gate based on the MetroPT-3 DV electric
+  # control-state signal. This is not a ground-truth fault label.
+  rule_gate:
+    combine: any
+    any_equals:
+      dv_electric: [1]
+    numeric_rules: []
+
+fault_injection:
+  enabled: false
+  action_flip_probability: 0.0
+  unauthorized_invoke_probability: 0.0
+  allowed_policy_modes: [rule_gate, random, never]
+
+generation_stub:
+  mode: generic_service
+  service_name: industrial_control_service
+  record_id_column: source_record_id
+
+logging:
+  output_dir: paper_outputs/secondary_metropt3/clean_benchmark
+  save_traces: true
+  save_live_bc_predictions: false

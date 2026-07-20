@@ -1,0 +1,7 @@
+fault_mode,fault_category,runs,faults_or_corruptions_injected_total,detected_runs,detection_rate,false_positive_runs,max_unauthorized_invocations,detection_channel,paper_interpretation
+clean_replay,false-positive control,54,0,0,,0,0,none,Clean replay and clean trace files produced no detected faults.
+action_flip_1_percent,policy-output corruption,18,3522,18,1.0,0,0,SHA-256 trace mismatch + injected-fault counter,Injected action flips changed the action sequence and were detected through SHA-256 trace mismatch.
+unauthorized_invoke_1_percent,invocation-boundary violation,18,2762,18,1.0,0,223,unauthorized-invocation counter + injected-fault counter,Forced generator calls after action=0 were detected as unauthorized invocations at the invocation boundary.
+trace_action_corruption_1_percent,post-hoc action-trace corruption,18,3600,18,1.0,0,,SHA-256 action-trace mismatch,Post-hoc action changes in saved traces were detected through SHA-256 action-trace mismatch.
+drop_trace_rows_1_percent,missing trace rows,18,3600,18,1.0,0,,row-count mismatch + SHA-256 action-trace mismatch,Dropped trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch.
+duplicate_trace_rows_1_percent,duplicated trace rows,18,3600,18,1.0,0,,row-count mismatch + SHA-256 action-trace mismatch,Duplicated trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch.

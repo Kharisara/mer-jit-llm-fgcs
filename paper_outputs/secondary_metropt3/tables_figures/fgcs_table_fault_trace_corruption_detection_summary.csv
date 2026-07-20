@@ -1,0 +1,5 @@
+fault_mode,runs,corruptions_injected_total,detected_runs,detection_rate,false_positive_runs,detection_channel,interpretation
+clean_replay,18,0,0,,0,none,Clean trace files are used as false-positive controls.
+drop_trace_rows_1_percent,18,3600,18,1.0,0,row-count mismatch + SHA-256 action-trace mismatch,Dropped trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch.
+duplicate_trace_rows_1_percent,18,3600,18,1.0,0,row-count mismatch + SHA-256 action-trace mismatch,Duplicated trace rows were detected through row-count mismatch and SHA-256 action-trace mismatch.
+trace_action_corruption_1_percent,18,3600,18,1.0,0,SHA-256 action-trace mismatch,Post-hoc action changes in saved traces were detected through SHA-256 action-trace mismatch.

@@ -1,0 +1,6 @@
+fault_mode,fault_category,logging_only,hash_only,gate_only,row_count_only,hash_plus_gate,full_validator,primary_detection_channel
+action_flip_1_percent,policy-output corruption,No,Yes,No,No,Yes,Yes,SHA-256 trace mismatch
+unauthorized_invoke_1_percent,invocation-boundary violation,No,No,Yes,No,Yes,Yes,unauthorized-invocation counter
+trace_action_corruption_1_percent,post-hoc action-trace corruption,No,Yes,No,No,Yes,Yes,SHA-256 action-trace mismatch
+drop_trace_rows_1_percent,missing trace rows,No,Yes,No,Yes,Yes,Yes,row-count mismatch + SHA-256 mismatch
+duplicate_trace_rows_1_percent,duplicated trace rows,No,Yes,No,Yes,Yes,Yes,row-count mismatch + SHA-256 mismatch

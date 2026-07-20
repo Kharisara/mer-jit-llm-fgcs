@@ -1,0 +1,5 @@
+policy_mode,conditions,unique_hashes,all_worker_matches,max_unauthorized_invocations,full_workload_mean_intervention_rate
+always,18,3,True,0,1.0
+never,18,3,True,0,0.0
+random,18,9,True,0,0.50205
+rule_gate,18,3,True,0,0.1622

@@ -51,7 +51,7 @@ except ImportError:  # torch is only required for bc_live
     nn = None
 
 
-SUPPORTED_POLICY_MODES = {"risk_proxy", "proxy", "bc", "bc_live", "random", "always", "never"}
+SUPPORTED_POLICY_MODES = {"risk_proxy", "proxy", "rule_gate", "bc", "bc_live", "random", "always", "never"}
 DEFAULT_POLICY_ORDER = ["risk_proxy", "bc", "bc_live", "random", "always", "never"]
 
 
@@ -546,6 +546,101 @@ def risk_proxy_action(row: Mapping[str, Any], negative_labels: set[str]) -> int:
     return proxy_action(label, negative_labels)
 
 
+def _normalized_rule_value(value: Any) -> Any:
+    """Normalize scalar values used by the configuration-driven rule gate."""
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return None
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (int, np.integer)):
+        return int(value)
+    if isinstance(value, (float, np.floating)):
+        return float(value)
+    text = str(value).strip()
+    lowered = text.lower()
+    if lowered in {"true", "yes"}:
+        return True
+    if lowered in {"false", "no"}:
+        return False
+    try:
+        return int(text)
+    except ValueError:
+        pass
+    try:
+        return float(text)
+    except ValueError:
+        return lowered
+
+
+def _evaluate_numeric_rule(value: Any, operator: str, threshold: float) -> bool:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return False
+    if np.isnan(numeric):
+        return False
+    if operator == "<":
+        return numeric < threshold
+    if operator == "<=":
+        return numeric <= threshold
+    if operator == ">":
+        return numeric > threshold
+    if operator == ">=":
+        return numeric >= threshold
+    if operator == "==":
+        return numeric == threshold
+    if operator == "!=":
+        return numeric != threshold
+    raise ValueError(f"Unsupported rule_gate numeric operator: {operator!r}")
+
+
+def rule_gate_action(row: Mapping[str, Any], policy_cfg: Mapping[str, Any]) -> int:
+    """
+    Configuration-driven deterministic gate for a secondary workload.
+
+    The gate supports categorical equality rules and numeric threshold rules.
+    It is intended as a transparent diagnostic policy for execution validation,
+    not as a claim of domain-optimal decision making.
+    """
+    gate_cfg = policy_cfg.get("rule_gate", {})
+    if not isinstance(gate_cfg, Mapping):
+        raise ValueError("policy.rule_gate must be a mapping")
+
+    results: List[bool] = []
+
+    any_equals = gate_cfg.get("any_equals", {})
+    if any_equals:
+        if not isinstance(any_equals, Mapping):
+            raise ValueError("policy.rule_gate.any_equals must be a mapping")
+        for column, accepted_values in any_equals.items():
+            values = accepted_values if isinstance(accepted_values, (list, tuple, set)) else [accepted_values]
+            accepted = {_normalized_rule_value(v) for v in values}
+            results.append(_normalized_rule_value(row.get(str(column))) in accepted)
+
+    numeric_rules = gate_cfg.get("numeric_rules", [])
+    if numeric_rules:
+        if not isinstance(numeric_rules, list):
+            raise ValueError("policy.rule_gate.numeric_rules must be a list")
+        for rule in numeric_rules:
+            if not isinstance(rule, Mapping):
+                raise ValueError("Each policy.rule_gate.numeric_rules entry must be a mapping")
+            column = str(rule.get("column", "")).strip()
+            operator = str(rule.get("operator", "")).strip()
+            if not column or "value" not in rule:
+                raise ValueError("Each numeric rule requires column, operator, and value")
+            results.append(_evaluate_numeric_rule(row.get(column), operator, float(rule["value"])))
+
+    if not results:
+        raise ValueError("policy.rule_gate must define at least one categorical or numeric rule")
+
+    combine = str(gate_cfg.get("combine", "any")).strip().lower()
+    if combine == "any":
+        return int(any(results))
+    if combine == "all":
+        return int(all(results))
+    raise ValueError("policy.rule_gate.combine must be 'any' or 'all'")
+
+
 def random_action(row: Mapping[str, Any], seed: int, row_index: int, p: float) -> int:
     utterance_id = row.get("utterance_id", row_index)
     r = stable_hash_to_float("random_policy", seed, utterance_id, row_index)
@@ -561,9 +656,15 @@ def base_action_for_row(
     random_p: float,
     bc_actions: Optional[Mapping[int, int]] = None,
     live_actions: Optional[Mapping[int, int]] = None,
+    policy_cfg: Optional[Mapping[str, Any]] = None,
 ) -> int:
     if policy_mode in {"risk_proxy", "proxy"}:
         return risk_proxy_action(row, negative_labels)
+
+    if policy_mode == "rule_gate":
+        if policy_cfg is None:
+            raise ValueError("policy_mode='rule_gate' requires the policy configuration")
+        return rule_gate_action(row, policy_cfg)
 
     if policy_mode == "random":
         return random_action(row, seed, row_index, random_p)
@@ -604,7 +705,7 @@ def maybe_fault_inject(
     """
     enabled = bool(fault_cfg.get("enabled", False))
     flip_p = float(fault_cfg.get("action_flip_probability", 0.0))
-    allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "random", "never"]))
+    allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "rule_gate", "random", "never"]))
 
     if not enabled or flip_p <= 0.0 or policy_mode not in allowed:
         return int(action), 0
@@ -635,7 +736,7 @@ def maybe_force_unauthorized_invocation(
     """
     enabled = bool(fault_cfg.get("enabled", False))
     invoke_p = float(fault_cfg.get("unauthorized_invoke_probability", 0.0))
-    allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "random", "never"]))
+    allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "rule_gate", "random", "never"]))
 
     if not enabled or invoke_p <= 0.0 or policy_mode not in allowed:
         return 0
@@ -772,31 +873,49 @@ def no_generation_result() -> Dict[str, Any]:
     }
 
 
-def execute_generation_stub(label: Any) -> Dict[str, Any]:
+def execute_generation_stub(
+    row: Mapping[str, Any],
+    generation_cfg: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
     """
-    Execute the deterministic downstream generation stub.
+    Execute the deterministic downstream service stub.
 
-    Reaching this function is the observed generation event. Authorization is
-    evaluated before this call, and the caller derives any violation by comparing
-    the observed call event with the preceding authorization decision.
+    Reaching this function is the observed downstream-execution event. The
+    default mode preserves the original affective response stub. A generic
+    service mode is available for secondary non-conversational workloads.
     """
-    label_l = str(label).lower()
-    if label_l in {"joy", "surprise"}:
+    cfg = generation_cfg or {}
+    mode = str(cfg.get("mode", "affective_response")).strip().lower()
+
+    if mode == "generic_service":
+        service_name = str(cfg.get("service_name", "downstream_service"))
+        record_id_column = str(cfg.get("record_id_column", "utterance_id"))
         response = {
-            "sentences": [
-                "That sounds positive.",
-                "We can keep the response brief and structured.",
-            ],
+            "service": service_name,
+            "status": "executed",
+            "record_id": row.get(record_id_column, row.get("utterance_id", "")),
             "safety": "ok",
         }
+    elif mode == "affective_response":
+        label_l = str(row.get("label", "")).lower()
+        if label_l in {"joy", "surprise"}:
+            response = {
+                "sentences": [
+                    "That sounds positive.",
+                    "We can keep the response brief and structured.",
+                ],
+                "safety": "ok",
+            }
+        else:
+            response = {
+                "sentences": [
+                    "I hear you.",
+                    "We can pause here for a moment.",
+                ],
+                "safety": "ok",
+            }
     else:
-        response = {
-            "sentences": [
-                "I hear you.",
-                "We can pause here for a moment.",
-            ],
-            "safety": "ok",
-        }
+        raise ValueError(f"Unsupported generation_stub.mode: {mode!r}")
 
     return {
         "response_json": json.dumps(response, ensure_ascii=False),
@@ -851,6 +970,7 @@ def process_one_row(
             random_p=random_p,
             bc_actions=bc_actions,
             live_actions=live_actions,
+            policy_cfg=policy_cfg,
         )
         # Use measured batch inference time, not the dictionary lookup time.
         _ = time.perf_counter() - p0
@@ -866,6 +986,7 @@ def process_one_row(
             random_p=random_p,
             bc_actions=bc_actions,
             live_actions=live_actions,
+            policy_cfg=policy_cfg,
         )
         p1 = time.perf_counter()
         policy_inference_ms = (p1 - p0) * 1000.0
@@ -902,7 +1023,10 @@ def process_one_row(
     gen0 = time.perf_counter()
     should_execute_generation = bool(authorized_to_generate or unauthorized_invoke_fault)
     if should_execute_generation:
-        generated = execute_generation_stub(row_dict.get("label", ""))
+        generated = execute_generation_stub(
+            row=row_dict,
+            generation_cfg=cfg.get("generation_stub", {}),
+        )
         generation_invoked = 1
     else:
         generated = no_generation_result()
@@ -917,6 +1041,8 @@ def process_one_row(
     result: Dict[str, Any] = {
         "row_index": row_index,
         "utterance_id": row_dict.get("utterance_id", row_index),
+        "source_record_id": row_dict.get("source_record_id", row_dict.get("utterance_id", row_index)),
+        "timestamp": row_dict.get("timestamp", ""),
         "label": row_dict.get("label", ""),
         "split": row_dict.get("split", ""),
         "Dialogue_ID": row_dict.get("Dialogue_ID", ""),
@@ -1140,7 +1266,6 @@ def validate_config(cfg: Mapping[str, Any]) -> None:
         (benchmark_cfg, "benchmark.seeds"),
         (benchmark_cfg, "benchmark.workers"),
         (benchmark_cfg, "benchmark.policy_modes"),
-        (policy_cfg, "policy.negative_labels"),
     ]
     for section, full_name in required:
         key = full_name.split(".")[-1]
@@ -1151,6 +1276,16 @@ def validate_config(cfg: Mapping[str, Any]) -> None:
     unknown = sorted(set(policy_modes) - SUPPORTED_POLICY_MODES)
     if unknown:
         raise ValueError(f"Unknown policy_modes in config: {unknown}")
+
+    if any(mode in {"risk_proxy", "proxy"} for mode in policy_modes) and "negative_labels" not in policy_cfg:
+        raise ValueError("risk_proxy/proxy requires policy.negative_labels")
+
+    if "rule_gate" in policy_modes:
+        gate_cfg = policy_cfg.get("rule_gate")
+        if not isinstance(gate_cfg, Mapping):
+            raise ValueError("policy_mode='rule_gate' requires policy.rule_gate")
+        if not gate_cfg.get("any_equals") and not gate_cfg.get("numeric_rules"):
+            raise ValueError("policy.rule_gate must define any_equals and/or numeric_rules")
 
     input_csv = Path(str(dataset_cfg["input_csv"]).replace("\\", os.sep))
     if not input_csv.exists():

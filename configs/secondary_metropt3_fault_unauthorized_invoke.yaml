@@ -1,0 +1,34 @@
+dataset:
+  input_csv: paper_outputs/secondary_metropt3/replay_input_metropt3.csv
+  fractions: [1.00]
+  state_root: ""
+
+benchmark:
+  seeds: [1, 2, 3]
+  workers: [1, 4]
+  policy_modes: [rule_gate, random, never]
+
+policy:
+  random_intervention_probability: 0.50
+
+  rule_gate:
+    combine: any
+    any_equals:
+      dv_electric: [1]
+    numeric_rules: []
+
+fault_injection:
+  enabled: true
+  action_flip_probability: 0.0
+  unauthorized_invoke_probability: 0.01
+  allowed_policy_modes: [rule_gate, random, never]
+
+generation_stub:
+  mode: generic_service
+  service_name: industrial_control_service
+  record_id_column: source_record_id
+
+logging:
+  output_dir: paper_outputs/secondary_metropt3/fault_unauthorized_invoke
+  save_traces: true
+  save_live_bc_predictions: false

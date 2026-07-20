@@ -1,0 +1,8 @@
+\begin{tabular}{lrrrlrrll}
+\toprule
+fault\_mode & runs & faults\_injected\_total & detected\_runs & detection\_rate & false\_positive\_runs & max\_unauthorized\_invocations & detection\_channel & interpretation \\
+\midrule
+clean\_replay & 18 & 0 & 0 &  & 0 & 0 & none & Clean baseline used as false-positive control. \\
+action\_flip\_1\_percent & 18 & 3522 & 18 & 1.000000 & 0 & 0 & SHA-256 trace mismatch + injected-fault counter & Injected action flips changed the action sequence and were detected through SHA-256 trace mismatch. \\
+\bottomrule
+\end{tabular}
