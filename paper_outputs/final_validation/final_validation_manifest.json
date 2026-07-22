@@ -1,0 +1,336 @@
+{
+  "completed_at_utc": "2026-07-22T16:45:32.249409+00:00",
+  "components": {
+    "cloud_validation": {
+      "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
+      "cross_region": {
+        "all_match": true,
+        "compared": 360,
+        "matched": 360,
+        "source": "cloud_results/cloud360_riskproxy_20260702/cross_region_comparison.csv"
+      },
+      "local_to_cloud": {
+        "all_match": true,
+        "compared": 720,
+        "matched": 720,
+        "source": "cloud_results/cloud360_riskproxy_20260702/local_to_cloud_hash_comparison.csv"
+      },
+      "max_clean_unauthorized_invocations": 0
+    },
+    "code_quality": {
+      "dataframe_map_replacement_present": true,
+      "deprecated_applymap_removed": true,
+      "file": "fgcs_fault_validation_framework.py"
+    },
+    "metropt3": {
+      "all_worker_hashes_match": true,
+      "clean_conditions": 72,
+      "expected_clean_conditions": 72,
+      "fault_validation": {
+        "all_fault_classes_detected_18_of_18": true,
+        "clean_comparison_instances": 54,
+        "clean_false_positive_detections": 0,
+        "fault_classes": 5,
+        "faults": {
+          "action_flip_1_percent": {
+            "detected_runs": 18,
+            "false_positive_runs": 0,
+            "injected_events": 3522,
+            "label": "Action flip (1%)",
+            "runs": 18
+          },
+          "drop_trace_rows_1_percent": {
+            "detected_runs": 18,
+            "false_positive_runs": 0,
+            "injected_events": 3600,
+            "label": "Dropped trace rows (1%)",
+            "runs": 18
+          },
+          "duplicate_trace_rows_1_percent": {
+            "detected_runs": 18,
+            "false_positive_runs": 0,
+            "injected_events": 3600,
+            "label": "Duplicated trace rows (1%)",
+            "runs": 18
+          },
+          "trace_action_corruption_1_percent": {
+            "detected_runs": 18,
+            "false_positive_runs": 0,
+            "injected_events": 3600,
+            "label": "Saved-action corruption (1%)",
+            "runs": 18
+          },
+          "unauthorized_invoke_1_percent": {
+            "detected_runs": 18,
+            "false_positive_runs": 0,
+            "injected_events": 2762,
+            "label": "Unauthorized invocation (1%)",
+            "runs": 18
+          }
+        },
+        "runs_per_fault_class": 18
+      },
+      "full_workload_mean_intervention_rate_by_policy": {
+        "always": 1.0,
+        "never": 0.0,
+        "random": 0.50205,
+        "rule_gate": 0.1622
+      },
+      "max_clean_unauthorized_invocations": 0,
+      "unique_hashes_by_policy": {
+        "always": 3,
+        "never": 3,
+        "random": 9,
+        "rule_gate": 3
+      }
+    },
+    "primary_benchmark": {
+      "all_worker_hashes_match": true,
+      "condition_matrix_complete": true,
+      "conditions": 360,
+      "determinism_rows": 360,
+      "deterministic_policies_seed_invariant": true,
+      "expected_conditions": 360,
+      "full_workload_decision_points": 11351,
+      "full_workload_mean_intervention_rate_by_policy": {
+        "always": 1.0,
+        "bc": 1.0,
+        "bc_live": 1.0,
+        "never": 0.0,
+        "random": 0.49960355915778343,
+        "risk_proxy": 0.22984759052065887
+      },
+      "max_clean_unauthorized_invocations": 0,
+      "unique_hashes_by_policy": {
+        "always": 5,
+        "bc": 5,
+        "bc_live": 5,
+        "never": 5,
+        "random": 15,
+        "risk_proxy": 5
+      }
+    },
+    "primary_controlled_faults": {
+      "all_fault_classes_detected_18_of_18": true,
+      "clean_comparison_instances": 54,
+      "clean_false_positive_detections": 0,
+      "fault_classes": 5,
+      "faults": {
+        "action_flip_1_percent": {
+          "detected_runs": 18,
+          "false_positive_runs": 0,
+          "injected_events": 2048,
+          "label": "Action flip (1%)",
+          "runs": 18
+        },
+        "drop_trace_rows_1_percent": {
+          "detected_runs": 18,
+          "false_positive_runs": 0,
+          "injected_events": 2052,
+          "label": "Dropped trace rows (1%)",
+          "runs": 18
+        },
+        "duplicate_trace_rows_1_percent": {
+          "detected_runs": 18,
+          "false_positive_runs": 0,
+          "injected_events": 2052,
+          "label": "Duplicated trace rows (1%)",
+          "runs": 18
+        },
+        "trace_action_corruption_1_percent": {
+          "detected_runs": 18,
+          "false_positive_runs": 0,
+          "injected_events": 2052,
+          "label": "Saved-action corruption (1%)",
+          "runs": 18
+        },
+        "unauthorized_invoke_1_percent": {
+          "detected_runs": 18,
+          "false_positive_runs": 0,
+          "injected_events": 1440,
+          "label": "Unauthorized invocation (1%)",
+          "runs": 18
+        }
+      },
+      "runs_per_fault_class": 18
+    },
+    "pytest": {
+      "all_tests_passed": true,
+      "command": [
+        "D:\\Project final\\mer-jit-llm-fgcs\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "output": ".................                                                        [100%]\n17 passed in 41.28s",
+      "tests_passed": 17
+    },
+    "python_compilation": {
+      "all_python_files_compile": true,
+      "compiled_files": [
+        "analyze_ablation.py",
+        "apply_final_code_quality_fix.py",
+        "build_local_to_cloud_comparison.py",
+        "check_fgcs_paths.py",
+        "compare_cross_region_hashes.py",
+        "compute_identifiability_metrics.py",
+        "compute_identifiability_sweep.py",
+        "dashboard.py",
+        "fgcs_fault_validation_framework.py",
+        "final_artifact_utils.py",
+        "freeze_final_repository.py",
+        "generate_final_manuscript_tables.py",
+        "make_fgcs_mean_sd_tables.py",
+        "mer/__init__.py",
+        "mer/audio_encoder.py",
+        "mer/check_state_coverage.py",
+        "mer/check_video_paths.py",
+        "mer/dataset_audio_meld.py",
+        "mer/dataset_multimodal_meld_ta.py",
+        "mer/dataset_multimodal_meld_tav.py",
+        "mer/dataset_multimodal_meld_tav_context.py",
+        "mer/dataset_text.py",
+        "mer/env_meld_jitai.py",
+        "mer/eval_multimodal_ta.py",
+        "mer/eval_multimodal_tav.py",
+        "mer/eval_multimodal_tav_context.py",
+        "mer/extract_tav_context_states.py",
+        "mer/model_audio_only.py",
+        "mer/model_multimodal_ta.py",
+        "mer/model_multimodal_tav.py",
+        "mer/model_multimodal_tav_context.py",
+        "mer/model_text_only.py",
+        "mer/precompute_meld_video_embeddings.py",
+        "mer/precompute_meld_video_embeddings_arcface.py",
+        "mer/simulate_dialogue.py",
+        "mer/simulate_e2e_llm.py",
+        "mer/simulate_with_bc.py",
+        "mer/text_encoder.py",
+        "mer/train_audio_baseline.py",
+        "mer/train_audio_only.py",
+        "mer/train_jitai_imitation.py",
+        "mer/train_jitai_policy.py",
+        "mer/train_multimodal_ta_baseline.py",
+        "mer/train_multimodal_tav.py",
+        "mer/train_multimodal_tav_context.py",
+        "mer/train_text_baseline.py",
+        "mer/train_text_only.py",
+        "mer/utils/pca_fit_states.py",
+        "mer/video_encoder.py",
+        "reorganize_meld_frames.py",
+        "replaybench/validation.py",
+        "robustness_experiment.py",
+        "run_array_revision_validation.py",
+        "run_fgcs_benchmark.py",
+        "run_fgcs_cloud_job.py",
+        "run_fgcs_extended_benchmark.py",
+        "run_final_artifact_validation.py",
+        "run_full_reproduction.py",
+        "run_ipd_demo.py",
+        "run_ray_comparison.py",
+        "run_replaybench_timing_study.py",
+        "run_secondary_metropt3_validation.py",
+        "scripts/extract_meld_audio.py",
+        "scripts/extract_meld_frames.py",
+        "scripts/mer_noise_stress.py",
+        "scripts/policy_ablation.py",
+        "scripts/prepare_metropt3_secondary_workload.py",
+        "scripts/preprocess_meld.py",
+        "summarize_fgcs_extended_results.py",
+        "summarize_fgcs_fault_action_flip.py",
+        "summarize_fgcs_fault_trace_corruption.py",
+        "summarize_fgcs_fault_unauthorized_invoke.py",
+        "summarize_fgcs_results.py",
+        "summarize_fgcs_rq7_fault_validation.py",
+        "summarize_replaybench_timing_study.py",
+        "summarize_secondary_workload_results.py",
+        "test_bc_live.py",
+        "tests/test_array_revision_validation.py",
+        "tests/test_final_artifact_utils.py",
+        "tests/test_timing_statistics.py",
+        "tests/test_validation.py",
+        "tools/analyze_simulation.py",
+        "tools/clean_local_replies.py",
+        "tools/eval_replies.py",
+        "tools/evaluate_simulation.py",
+        "tools/inspect_8b.py",
+        "tools/inspect_simulation_bc.py",
+        "tools/inspect_simulation_local.py",
+        "tools/make_metadata_splits.py",
+        "tools/merge_local_simulations.py",
+        "tools/merge_simulations.py",
+        "tools/openai_smoke_check.py",
+        "tools/quick_view.py",
+        "tools/select_sample_for_cloud.py"
+      ],
+      "python_files_compiled": 94,
+      "python_files_discovered": 94
+    },
+    "ray_validation": {
+      "all_detection_expectations_met": true,
+      "all_external_references": true,
+      "clean_conditions": 18,
+      "clean_external_hash_matches": 18,
+      "clean_false_positive_detections": 0,
+      "conditions": 54,
+      "expected_conditions": 54,
+      "fault_conditions": 36,
+      "fault_conditions_flagged": 36,
+      "max_unauthorized_invocations": 0
+    },
+    "required_files": {
+      "all_present": true,
+      "required_configurations": 7,
+      "required_manifests": 9,
+      "required_scripts": 13
+    },
+    "timing_study": {
+      "all_recorded_validation_flags_pass": true,
+      "configurations_with_15_repetitions": 24,
+      "configurations_with_7_repetitions": 24,
+      "expected_measured_rows": 528,
+      "legacy_missing_validation_values": {
+        "authorization_execution_consistent": 336,
+        "fault_injected_count": 0,
+        "hash_match": 336,
+        "row_count_match": 336,
+        "unauthorized_invocations": 0,
+        "validation_passed": 336
+      },
+      "measured_rows": 528,
+      "runtime_summary_rows": 48,
+      "stable_hashes_within_configuration": true,
+      "unique_configurations": 48,
+      "worker_speedup_rows": 24
+    }
+  },
+  "output_dir": "paper_outputs/final_validation",
+  "outputs": {
+    "claims_numbers": "paper_outputs/final_validation/final_claims_numbers.json",
+    "inventory": "paper_outputs/final_validation/final_results_inventory.csv",
+    "manifest": "paper_outputs/final_validation/final_validation_manifest.json",
+    "sha256_manifest": "paper_outputs/final_validation/file_sha256_manifest.csv"
+  },
+  "project_dir": "D:/Project final/mer-jit-llm-fgcs",
+  "schema_version": "1.0",
+  "started_at_utc": "2026-07-22T16:44:44.002020+00:00",
+  "status": "passed",
+  "strict_requirements": {
+    "all_python_files_compile": true,
+    "all_tests_pass": true,
+    "clean_authorization_contradictions": 0,
+    "cloud_cross_region_matches": "360/360",
+    "cloud_local_to_cloud_matches": "720/720",
+    "metropt3_clean_conditions": 72,
+    "metropt3_fault_classes": "5 classes, 18/18 each",
+    "primary_benchmark_conditions": 360,
+    "primary_fault_classes": "5 classes, 18/18 each",
+    "ray_clean_external_hash_matches": "18/18",
+    "ray_conditions": 54,
+    "ray_fault_conditions_flagged": "36/36",
+    "timing_configurations_x_15": 24,
+    "timing_configurations_x_7": 24,
+    "timing_rows": 528
+  }
+}

@@ -1,0 +1,42 @@
+# Final reduced Ray comparison for the Array revision.
+# Inherit the exact ReplayBench-PG dataset, risk_proxy labels, random-policy
+# probability, and deterministic generation-stub configuration.
+base_config: configs/fgcs_extended_benchmark.yaml
+
+dataset:
+  workload_fraction: 1.0
+
+benchmark:
+  policy_modes:
+    - risk_proxy
+    - random
+    - never
+  seeds:
+    - 1
+    - 2
+    - 3
+  workers:
+    - 1
+    - 4
+  fault_modes:
+    - clean
+    - action_flip
+    - dropped_row
+  ray_chunk_size: 256
+
+fault_injection:
+  action_flip_probability: 0.01
+  dropped_row_probability: 0.01
+
+reference:
+  determinism_csv: paper_outputs/fgcs_extended_benchmark/determinism_hash_results.csv
+  require_reference_results: true
+
+execution_semantics:
+  task_retry_enabled: false
+  task_failure_policy: fail_fast
+  duplicate_delivery_supported: false
+
+logging:
+  output_dir: paper_outputs/ray_comparison
+  save_traces: true

@@ -1,0 +1,78 @@
+{
+  "experiment": "ReplayBench-PG Ray comparison",
+  "purpose": "Empirical comparison of a general-purpose Ray execution substrate with application-level policy-gated replay validation logic",
+  "python_version": "3.12.2 (tags/v3.12.2:6abddd9, Feb  6 2024, 21:26:36) [MSC v.1937 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "ray_version": "2.56.1",
+  "git_commit": "be7836317c6074bebf3b87ed178bde8874d11e97",
+  "config_path": "configs/ray_comparison.yaml",
+  "resolved_base_config": "D:\\Project final\\mer-jit-llm-fgcs\\configs\\fgcs_extended_benchmark.yaml",
+  "input_csv": "paper_outputs\\replay_input_clean.csv",
+  "input_sha256": "9b2dff24e0197227e2a0b9b651c7a61576bc700e89a5a882260a4c27cf3ce75a",
+  "full_input_rows": 11351,
+  "workload_fraction": 1.0,
+  "decision_points": 11351,
+  "policy_modes": [
+    "risk_proxy",
+    "random",
+    "never"
+  ],
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "workers": [
+    1,
+    4
+  ],
+  "fault_modes": [
+    "clean",
+    "action_flip",
+    "dropped_row"
+  ],
+  "ray_chunk_size": 256,
+  "expected_conditions": 54,
+  "completed_conditions": 54,
+  "ray_init_seconds_by_worker": {
+    "1": 4.246945700000651,
+    "4": 3.4552158000005875
+  },
+  "execution_semantics": {
+    "task_retry_enabled": false,
+    "task_failure_policy": "fail_fast",
+    "duplicate_delivery_supported": false
+  },
+  "reference": {
+    "determinism_csv": "paper_outputs/fgcs_extended_benchmark/determinism_hash_results.csv",
+    "reference_file_exists": true,
+    "loaded_reference_hashes": 72,
+    "external_clean_comparisons": 18,
+    "external_clean_hash_matches": 18
+  },
+  "validation": {
+    "ordered_reconstruction": "Records sorted by stable row_index after Ray task completion",
+    "action_hash": "SHA-256 over canonical ordered integer actions",
+    "authorization_execution_invariant": "Violation when downstream execution=1 and prior authorization=0",
+    "row_count_validation": true,
+    "fault_classes": [
+      "action_flip",
+      "dropped_row"
+    ]
+  },
+  "results": {
+    "all_detection_expectations_met": true,
+    "clean_conditions": 18,
+    "clean_false_positive_detections": 0,
+    "fault_conditions": 36,
+    "fault_conditions_flagged": 36
+  },
+  "outputs": {
+    "raw": "paper_outputs\\ray_comparison\\ray_comparison_raw.csv",
+    "per_run": "paper_outputs\\ray_comparison\\ray_comparison_per_run.csv",
+    "summary": "paper_outputs\\ray_comparison\\ray_comparison_summary.csv",
+    "component_inventory": "paper_outputs\\ray_comparison\\ray_validation_component_inventory.csv",
+    "effective_config": "paper_outputs\\ray_comparison\\ray_comparison_effective_config.json",
+    "traces_saved": true
+  }
+}

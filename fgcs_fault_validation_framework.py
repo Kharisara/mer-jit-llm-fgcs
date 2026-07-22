@@ -769,7 +769,7 @@ def make_validation_ablation_figure(matrix: pd.DataFrame, tables_dir: Path) -> N
         "Duplicated rows",
     ]
 
-    data = matrix[validator_cols].applymap(lambda x: 1 if str(x).lower() == "yes" else 0).to_numpy()
+    data = matrix[validator_cols].map(lambda x: 1 if str(x).lower() == "yes" else 0).to_numpy()
 
     plt.figure(figsize=(9.5, 4.8))
     plt.imshow(data, aspect="auto")

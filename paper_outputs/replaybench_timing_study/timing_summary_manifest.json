@@ -1,0 +1,66 @@
+{
+  "input": "D:\\Project final\\mer-jit-llm-fgcs\\paper_outputs\\replaybench_timing_study\\timing_repetitions_raw.csv",
+  "outputs": {
+    "normalized": "paper_outputs\\replaybench_timing_study\\timing_repetitions_normalized.csv",
+    "runtime_summary": "paper_outputs\\replaybench_timing_study\\timing_runtime_summary_mixed_7_15.csv",
+    "paired_speedup_summary": "paper_outputs\\replaybench_timing_study\\timing_worker_speedup_paired_ci.csv"
+  },
+  "design": {
+    "workload_repetitions": 7,
+    "worker_repetitions": 15,
+    "measured_rows": 528,
+    "expected_measured_rows": 528,
+    "unique_configurations": 48,
+    "workload_scaling_configurations": 24,
+    "worker_scaling_configurations": 24,
+    "policies": [
+      "always",
+      "bc",
+      "bc_live",
+      "never",
+      "random",
+      "risk_proxy"
+    ],
+    "workers": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "fractions": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "full_fraction": 1.0,
+    "invariant_checks": {
+      "hash_match": true,
+      "authorization_execution_consistent": true,
+      "row_count_match": true,
+      "validation_passed": true,
+      "fault_injected_count": true,
+      "unauthorized_invocations": true,
+      "stable_hash_per_configuration": true
+    },
+    "legacy_missing_validation_values": {
+      "hash_match": 336,
+      "authorization_execution_consistent": 336,
+      "row_count_match": 336,
+      "validation_passed": 336,
+      "fault_injected_count": 0,
+      "unauthorized_invocations": 0
+    }
+  },
+  "statistics": {
+    "runtime_location": "median",
+    "runtime_dispersion": "interquartile range",
+    "speedup_definition": "paired runtime_1 / runtime_k",
+    "speedup_location": "median of paired speedups",
+    "confidence_interval": "percentile bootstrap",
+    "confidence": 0.95,
+    "bootstrap_samples": 10000,
+    "bootstrap_seed": 20260722
+  }
+}

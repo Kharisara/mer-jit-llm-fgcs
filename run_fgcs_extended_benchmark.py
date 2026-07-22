@@ -19,6 +19,7 @@ Outputs are written to the configured logging.output_dir:
     - policy_ablation_costs.csv
     - live_bc_predictions.csv            only if bc_live and enabled
     - trace_*.csv                         only if logging.save_traces=true
+    - benchmark_run_manifest.json
 """
 
 from __future__ import annotations
@@ -79,10 +80,74 @@ def stable_hash_to_float(*parts: Any) -> float:
     return int(h[:16], 16) / float(16**16)
 
 
-def trace_hash(actions: Sequence[int]) -> str:
-    """Hash an action sequence for deterministic replay comparison."""
-    s = ",".join(str(int(a)) for a in actions)
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+def canonical_action_hash(actions: Sequence[int]) -> str:
+    """
+    Compute SHA-256 over the canonical ordered integer action sequence.
+
+    Example:
+        [0, 1, 0] -> "0,1,0" -> SHA-256
+    """
+    canonical = ",".join(str(int(action)) for action in actions)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def authorization_execution_violation(
+    authorized: bool | int,
+    executed: bool | int,
+) -> int:
+    """
+    Evaluate the authorization-execution consistency invariant.
+
+    Returns 1 only when downstream execution occurred without prior
+    authorization; otherwise returns 0.
+    """
+    return int(bool(executed) and not bool(authorized))
+
+
+def validate_trace(
+    *,
+    actions: Sequence[int],
+    expected_hash: Optional[str],
+    observed_rows: int,
+    expected_rows: int,
+    unauthorized_invocations: int,
+) -> Dict[str, Any]:
+    """
+    Validate the ordered action sequence, row cardinality, and the
+    authorization-execution consistency invariant.
+
+    When expected_hash is None, hash equality is not evaluated and does not
+    cause validation failure. This is useful for the first/reference run.
+    """
+    actual_hash = canonical_action_hash(actions)
+    hash_match: Optional[bool]
+
+    if expected_hash is None:
+        hash_match = None
+    else:
+        hash_match = actual_hash == expected_hash
+
+    row_count_match = int(observed_rows) == int(expected_rows)
+    authorization_execution_consistent = int(unauthorized_invocations) == 0
+
+    validation_passed = (
+        row_count_match
+        and authorization_execution_consistent
+        and hash_match is not False
+    )
+
+    return {
+        "actual_hash": actual_hash,
+        "expected_hash": expected_hash,
+        "hash_match": None if hash_match is None else int(hash_match),
+        "observed_rows": int(observed_rows),
+        "expected_rows": int(expected_rows),
+        "row_count_match": int(row_count_match),
+        "authorization_execution_consistent": int(
+            authorization_execution_consistent
+        ),
+        "validation_passed": int(validation_passed),
+    }
 
 
 def sanitize_token(value: Any) -> str:
@@ -1032,8 +1097,12 @@ def process_one_row(
         generated = no_generation_result()
         generation_invoked = 0
 
-    # Derive the violation from the observed execution and prior authorization.
-    unauthorized_invocation = int(generation_invoked == 1 and not authorized_to_generate)
+    # Evaluate the authorization-execution consistency invariant from the
+    # separately observed authorization and downstream execution facts.
+    unauthorized_invocation = authorization_execution_violation(
+        authorized=authorized_to_generate,
+        executed=generation_invoked,
+    )
     gen1 = time.perf_counter()
 
     # Stage 5: logging/result construction.
@@ -1151,6 +1220,17 @@ def run_replay(
     decision_points = len(out_df)
     total_latencies = out_df["total_latency_ms"].astype(float).tolist()
 
+    unauthorized_invocation_count = int(
+        out_df["unauthorized_invocation"].sum()
+    )
+    trace_validation = validate_trace(
+        actions=actions,
+        expected_hash=None,
+        observed_rows=decision_points,
+        expected_rows=len(df),
+        unauthorized_invocations=unauthorized_invocation_count,
+    )
+
     summary: Dict[str, Any] = {
         "policy_mode": policy_mode,
         "seed": int(seed),
@@ -1162,9 +1242,16 @@ def run_replay(
         "median_latency_ms": statistics.median(total_latencies) if total_latencies else 0.0,
         "p95_latency_ms": float(np.percentile(total_latencies, 95)) if total_latencies else 0.0,
         "intervention_rate": float(out_df["action"].mean()) if decision_points else 0.0,
-        "unauthorized_invocations": int(out_df["unauthorized_invocation"].sum()),
+        "unauthorized_invocations": unauthorized_invocation_count,
+        "authorization_execution_consistent": trace_validation[
+            "authorization_execution_consistent"
+        ],
+        "expected_row_count": trace_validation["expected_rows"],
+        "observed_row_count": trace_validation["observed_rows"],
+        "row_count_match": trace_validation["row_count_match"],
+        "validation_passed": trace_validation["validation_passed"],
         "fault_injected_count": int(out_df["fault_injected"].sum()),
-        "trace_hash": trace_hash(actions),
+        "trace_hash": trace_validation["actual_hash"],
         "memory_before_mb": mem_before,
         "memory_after_mb": mem_after,
         "memory_delta_mb": (mem_after - mem_before) if mem_before is not None and mem_after is not None else None,
@@ -1243,6 +1330,9 @@ def build_policy_cost_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
         "p95_latency_ms": "mean",
         "intervention_rate": "mean",
         "unauthorized_invocations": "mean",
+        "authorization_execution_consistent": "mean",
+        "row_count_match": "mean",
+        "validation_passed": "mean",
         "fault_injected_count": "mean",
         "memory_delta_mb": "mean",
         "state_missing_count": "mean",
@@ -1259,6 +1349,31 @@ def validate_config(cfg: Mapping[str, Any]) -> None:
     dataset_cfg = cfg.get("dataset", {})
     benchmark_cfg = cfg.get("benchmark", {})
     policy_cfg = cfg.get("policy", {})
+    execution_cfg = cfg.get("execution_semantics", {})
+
+    if execution_cfg and not isinstance(execution_cfg, Mapping):
+        raise ValueError("execution_semantics must be a mapping when provided")
+
+    retry_enabled = bool(execution_cfg.get("task_retry_enabled", False))
+    failure_policy = str(
+        execution_cfg.get("task_failure_policy", "fail_fast")
+    ).strip().lower()
+    duplicate_delivery_supported = bool(
+        execution_cfg.get("duplicate_delivery_supported", False)
+    )
+
+    if retry_enabled:
+        raise ValueError(
+            "This benchmark currently assumes task_retry_enabled=false"
+        )
+    if failure_policy != "fail_fast":
+        raise ValueError(
+            "This benchmark currently supports only task_failure_policy='fail_fast'"
+        )
+    if duplicate_delivery_supported:
+        raise ValueError(
+            "This benchmark does not currently support duplicate delivery"
+        )
 
     required = [
         (dataset_cfg, "dataset.input_csv"),
@@ -1335,6 +1450,14 @@ def main() -> None:
     benchmark_cfg = cfg["benchmark"]
     policy_cfg = cfg["policy"]
     logging_cfg = cfg.get("logging", {})
+    execution_semantics = cfg.get(
+        "execution_semantics",
+        {
+            "task_retry_enabled": False,
+            "task_failure_policy": "fail_fast",
+            "duplicate_delivery_supported": False,
+        },
+    )
 
     input_csv = dataset_cfg["input_csv"]
     fractions = [float(x) for x in dataset_cfg["fractions"]]
@@ -1443,6 +1566,13 @@ def main() -> None:
                         "reference_intervention_rate": reference_ir,
                         "intervention_rate_delta": intervention_rate_delta,
                         "unauthorized_invocations": summary["unauthorized_invocations"],
+                        "authorization_execution_consistent": summary[
+                            "authorization_execution_consistent"
+                        ],
+                        "expected_row_count": summary["expected_row_count"],
+                        "observed_row_count": summary["observed_row_count"],
+                        "row_count_match": summary["row_count_match"],
+                        "validation_passed": summary["validation_passed"],
                         "fault_injected_count": summary["fault_injected_count"],
                     })
 
@@ -1483,6 +1613,41 @@ def main() -> None:
         pd.concat(live_prediction_frames, ignore_index=True).to_csv(live_bc_path, index=False)
         print(f"[OUT] {live_bc_path}")
 
+    run_manifest = {
+        "input_csv": str(input_csv),
+        "input_rows": int(len(df_full)),
+        "fractions": fractions,
+        "policy_modes": policy_modes,
+        "seeds": seeds,
+        "workers": workers_list,
+        "expected_runs": int(expected_runs),
+        "completed_runs": int(len(summary_df)),
+        "execution_semantics": dict(execution_semantics),
+        "validation": {
+            "action_hash": (
+                "SHA-256 over the canonical ordered integer action sequence"
+            ),
+            "authorization_execution_invariant": (
+                "violation when downstream execution=1 and prior authorization=0"
+            ),
+            "row_count_validation": True,
+        },
+        "all_runs_authorization_execution_consistent": bool(
+            summary_df["authorization_execution_consistent"].eq(1).all()
+        ) if not summary_df.empty else False,
+        "all_runs_row_count_match": bool(
+            summary_df["row_count_match"].eq(1).all()
+        ) if not summary_df.empty else False,
+        "all_runs_validation_passed": bool(
+            summary_df["validation_passed"].eq(1).all()
+        ) if not summary_df.empty else False,
+    }
+
+    manifest_path = output_dir / "benchmark_run_manifest.json"
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(run_manifest, f, indent=2)
+
+    print(f"[OUT] {manifest_path}")
     print("[DONE] FGCS extended benchmark complete.")
     print(f"[OUT] {summary_path}")
     print(f"[OUT] {stage_path}")

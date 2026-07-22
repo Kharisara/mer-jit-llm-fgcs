@@ -1,478 +1,629 @@
 #!/usr/bin/env python3
-"""
-Targeted warmed-up timing study for ReplayBench-PG.
+"""Run the targeted 15-repetition ReplayBench-PG timing study.
 
-Purpose
--------
-This script separates performance repetitions from the benchmark's policy seeds.
-It measures only the configurations needed for the paper's timing claims:
+The script executes the two timing arms used in the manuscript:
 
-1. Workload-scaling arm:
-   all configured fractions x all policy modes x 1 worker
-2. Worker-scaling arm:
-   full workload x all policy modes x all configured worker counts
+1. workload scaling: every configured fraction and policy with one worker;
+2. worker scaling: full workload, every policy, and every configured worker.
 
-The union normally contains 48 configurations for the published design:
-(5 fractions x 6 policies x 1 worker) +
-(1 full fraction x 6 policies x 4 workers) -
-(1 overlapping full-fraction x 6 policies x 1 worker).
-
-Each configuration receives untimed warm-up execution(s), followed by measured
-repetitions. The policy seed remains fixed across repetitions so timing noise is
-not conflated with stochastic policy variation. Configuration order is shuffled
-within every warm-up and measurement round using a fixed order seed.
-
-Expected outputs
-----------------
-paper_outputs/replaybench_timing_study/
-    timing_repetitions_raw.csv
-    timing_summary.csv
-    timing_stage_latency_summary.csv
-    timing_trace_consistency.csv
-    timing_environment.json
-    timing_study_manifest.json
+The overlapping full-workload/one-worker configurations are executed once.
+Each active configuration receives untimed warm-up execution(s). Non-full
+workload-scaling configurations retain seven measured repetitions, while the
+24 full-workload worker-scaling configurations are extended to fifteen.
+``--resume`` retains the original seven-repetition rows and executes only the
+192 missing full-workload measurements.
 """
 
 from __future__ import annotations
 
 import argparse
-import gc
-import hashlib
 import json
-import os
-import platform
 import random
+import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, Mapping, Optional
 
-import numpy as np
 import pandas as pd
 
-import run_fgcs_extended_benchmark as bench
+from run_fgcs_extended_benchmark import (
+    ensure_dir,
+    load_bc_reference_actions,
+    load_config,
+    normalize_label,
+    run_replay,
+    summarize_stage_latency,
+    validate_config,
+)
 
 
-def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+@dataclass(frozen=True, order=True)
+class TimingCondition:
+    dataset_fraction: float
+    policy_mode: str
+    workers: int
 
 
-def package_version(module: Any) -> Optional[str]:
-    return getattr(module, "__version__", None) if module is not None else None
-
-
-def quantile(values: pd.Series, q: float) -> float:
-    return float(values.quantile(q))
-
-
-def summarize_repetitions(raw_df: pd.DataFrame) -> pd.DataFrame:
-    group_cols = ["study_arm", "dataset_fraction", "workload_name", "decision_points", "policy_mode", "workers"]
-    rows: List[Dict[str, Any]] = []
-
-    for keys, group in raw_df.groupby(group_cols, dropna=False, sort=True):
-        key_map = dict(zip(group_cols, keys if isinstance(keys, tuple) else (keys,)))
-        runtimes = group["total_runtime_seconds"].astype(float)
-        throughputs = group["throughput_points_per_second"].astype(float)
-        mean_latencies = group["mean_latency_ms"].astype(float)
-        p95_latencies = group["p95_latency_ms"].astype(float)
-
-        runtime_mean = float(runtimes.mean())
-        runtime_std = float(runtimes.std(ddof=1)) if len(runtimes) > 1 else 0.0
-
-        rows.append({
-            **key_map,
-            "measured_repetitions": int(len(group)),
-            "fixed_policy_seed": int(group["policy_seed"].iloc[0]),
-            "runtime_median_seconds": float(runtimes.median()),
-            "runtime_q1_seconds": quantile(runtimes, 0.25),
-            "runtime_q3_seconds": quantile(runtimes, 0.75),
-            "runtime_iqr_seconds": quantile(runtimes, 0.75) - quantile(runtimes, 0.25),
-            "runtime_min_seconds": float(runtimes.min()),
-            "runtime_max_seconds": float(runtimes.max()),
-            "runtime_mean_seconds": runtime_mean,
-            "runtime_std_seconds": runtime_std,
-            "runtime_cv": runtime_std / runtime_mean if runtime_mean > 0 else 0.0,
-            "throughput_median_points_per_second": float(throughputs.median()),
-            "throughput_q1_points_per_second": quantile(throughputs, 0.25),
-            "throughput_q3_points_per_second": quantile(throughputs, 0.75),
-            "throughput_iqr_points_per_second": quantile(throughputs, 0.75) - quantile(throughputs, 0.25),
-            "mean_latency_median_ms": float(mean_latencies.median()),
-            "p95_latency_median_ms": float(p95_latencies.median()),
-            "intervention_rate": float(group["intervention_rate"].median()),
-            "unauthorized_invocations_total": int(group["unauthorized_invocations"].sum()),
-            "fault_injected_count_total": int(group["fault_injected_count"].sum()),
-            "unique_trace_hashes": int(group["trace_hash"].nunique()),
-            "all_trace_hashes_match": bool(group["trace_hash"].nunique() == 1),
-        })
-
-    return pd.DataFrame(rows)
-
-
-def summarize_stage_latency(raw_df: pd.DataFrame) -> pd.DataFrame:
-    stage_metrics = [
-        "state_loading_ms_mean",
-        "state_loading_ms_p95",
-        "policy_inference_ms_mean",
-        "policy_inference_ms_p95",
-        "gating_ms_mean",
-        "gating_ms_p95",
-        "generation_stub_ms_mean",
-        "generation_stub_ms_p95",
-        "logging_ms_mean",
-        "logging_ms_p95",
-        "total_latency_ms_mean",
-        "total_latency_ms_p95",
-    ]
-    existing = [c for c in stage_metrics if c in raw_df.columns]
-    group_cols = ["study_arm", "dataset_fraction", "workload_name", "decision_points", "policy_mode", "workers"]
-    rows: List[Dict[str, Any]] = []
-
-    for keys, group in raw_df.groupby(group_cols, dropna=False, sort=True):
-        key_map = dict(zip(group_cols, keys if isinstance(keys, tuple) else (keys,)))
-        row: Dict[str, Any] = {**key_map, "measured_repetitions": int(len(group))}
-        for col in existing:
-            values = group[col].astype(float)
-            row[f"{col}_median_across_repetitions"] = float(values.median())
-            row[f"{col}_q1_across_repetitions"] = quantile(values, 0.25)
-            row[f"{col}_q3_across_repetitions"] = quantile(values, 0.75)
-        rows.append(row)
-
-    return pd.DataFrame(rows)
-
-
-def build_trace_consistency(raw_df: pd.DataFrame) -> pd.DataFrame:
-    group_cols = ["study_arm", "dataset_fraction", "workload_name", "decision_points", "policy_mode", "workers"]
-    return (
-        raw_df.groupby(group_cols, as_index=False, dropna=False)
-        .agg(
-            measured_repetitions=("repetition", "count"),
-            unique_trace_hashes=("trace_hash", "nunique"),
-            reference_trace_hash=("trace_hash", "first"),
-            unauthorized_invocations_total=("unauthorized_invocations", "sum"),
-            fault_injected_count_total=("fault_injected_count", "sum"),
+def get_git_commit() -> Optional[str]:
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
         )
-        .assign(all_trace_hashes_match=lambda d: d["unique_trace_hashes"] == 1)
+        return completed.stdout.strip() or None
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def build_target_conditions(
+    fractions: Iterable[float],
+    policies: Iterable[str],
+    workers: Iterable[int],
+    full_fraction: float = 1.0,
+) -> list[TimingCondition]:
+    """Build the union of workload- and worker-scaling configurations."""
+    conditions = {
+        TimingCondition(float(fraction), str(policy), 1)
+        for fraction in fractions
+        for policy in policies
+    }
+    conditions.update(
+        TimingCondition(float(full_fraction), str(policy), int(worker))
+        for policy in policies
+        for worker in workers
+    )
+    return sorted(conditions)
+
+
+def condition_key(condition: TimingCondition) -> tuple[float, str, int]:
+    return (
+        round(float(condition.dataset_fraction), 12),
+        condition.policy_mode,
+        int(condition.workers),
     )
 
 
-def build_configurations(
-    fractions: Sequence[float],
-    policies: Sequence[str],
-    workers: Sequence[int],
-) -> List[Dict[str, Any]]:
-    if not fractions:
-        raise ValueError("No dataset fractions configured")
-    if not policies:
-        raise ValueError("No policy modes configured")
-    if not workers:
-        raise ValueError("No worker settings configured")
+def normalize_existing(frame: pd.DataFrame) -> pd.DataFrame:
+    if frame.empty:
+        return frame
 
-    one_worker = 1 if 1 in workers else min(workers)
-    full_fraction = max(fractions)
+    frame = frame.copy()
 
-    configs: Dict[Tuple[float, str, int], Dict[str, Any]] = {}
+    if "policy_mode" not in frame.columns and "policy" in frame.columns:
+        frame["policy_mode"] = frame["policy"]
+    if "policy" not in frame.columns and "policy_mode" in frame.columns:
+        frame["policy"] = frame["policy_mode"]
 
-    # RQ3 workload-scaling arm.
-    for fraction in fractions:
-        for policy in policies:
-            key = (float(fraction), str(policy), int(one_worker))
-            configs[key] = {
-                "dataset_fraction": float(fraction),
-                "policy_mode": str(policy),
-                "workers": int(one_worker),
-                "study_arm": "workload_scaling",
-            }
+    if (
+        "dataset_fraction" not in frame.columns
+        and "workload_fraction" in frame.columns
+    ):
+        frame["dataset_fraction"] = frame["workload_fraction"]
+    if (
+        "workload_fraction" not in frame.columns
+        and "dataset_fraction" in frame.columns
+    ):
+        frame["workload_fraction"] = frame["dataset_fraction"]
 
-    # RQ4 worker-scaling arm. Mark the overlap as both arms.
-    for policy in policies:
-        for worker_count in workers:
-            key = (float(full_fraction), str(policy), int(worker_count))
-            if key in configs:
-                configs[key]["study_arm"] = "workload_and_worker_scaling"
-            else:
-                configs[key] = {
-                    "dataset_fraction": float(full_fraction),
-                    "policy_mode": str(policy),
-                    "workers": int(worker_count),
-                    "study_arm": "worker_scaling",
-                }
+    if (
+        "total_runtime_seconds" not in frame.columns
+        and "runtime_seconds" in frame.columns
+    ):
+        frame["total_runtime_seconds"] = frame["runtime_seconds"]
+    if (
+        "runtime_seconds" not in frame.columns
+        and "total_runtime_seconds" in frame.columns
+    ):
+        frame["runtime_seconds"] = frame["total_runtime_seconds"]
 
-    return list(configs.values())
+    required = {
+        "dataset_fraction",
+        "policy_mode",
+        "workers",
+        "repetition",
+        "total_runtime_seconds",
+        "trace_hash",
+    }
+    missing = sorted(required - set(frame.columns))
+    if missing:
+        raise ValueError(
+            "Existing timing CSV cannot be resumed; missing columns: "
+            f"{missing}"
+        )
+
+    frame["dataset_fraction"] = pd.to_numeric(
+        frame["dataset_fraction"], errors="raise"
+    ).astype(float)
+    frame["policy_mode"] = frame["policy_mode"].astype(str)
+    frame["workers"] = pd.to_numeric(
+        frame["workers"], errors="raise"
+    ).astype(int)
+    frame["repetition"] = pd.to_numeric(
+        frame["repetition"], errors="raise"
+    ).astype(int)
+    frame["total_runtime_seconds"] = pd.to_numeric(
+        frame["total_runtime_seconds"], errors="raise"
+    ).astype(float)
+    frame["policy"] = frame["policy_mode"]
+    frame["runtime_seconds"] = frame["total_runtime_seconds"]
+    frame["workload_fraction"] = frame["dataset_fraction"]
+
+    duplicate_mask = frame.duplicated(
+        ["dataset_fraction", "policy_mode", "workers", "repetition"],
+        keep=False,
+    )
+    if duplicate_mask.any():
+        raise ValueError("Existing timing CSV contains duplicate repetitions")
+    if (frame["total_runtime_seconds"] <= 0).any():
+        raise ValueError("Existing timing CSV contains nonpositive runtimes")
+
+    checks = {
+        "authorization_execution_consistent": 1,
+        "row_count_match": 1,
+        "validation_passed": 1,
+        "fault_injected_count": 0,
+        "unauthorized_invocations": 0,
+        "hash_match": 1,
+    }
+    for column, expected in checks.items():
+        if column not in frame.columns:
+            continue
+
+        values = pd.to_numeric(frame[column], errors="coerce")
+        recorded_values = values.dropna()
+
+        if not recorded_values.eq(expected).all():
+            invalid_rows = frame.loc[values.notna() & ~values.eq(expected)]
+            raise ValueError(
+                f"Existing timing CSV fails functional check: {column}\n"
+                f"{invalid_rows.to_string(index=False)}"
+            )
+
+    return frame.reset_index(drop=True)
+
+
+def target_repetitions_for_condition(
+    condition: TimingCondition,
+    *,
+    full_fraction: float,
+    workload_repetitions: int,
+    worker_repetitions: int,
+) -> int:
+    return (
+        worker_repetitions
+        if abs(condition.dataset_fraction - full_fraction) < 1e-12
+        else workload_repetitions
+    )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the ReplayBench-PG warmed-up timing study.")
-    parser.add_argument("--config", default="configs/fgcs_extended_benchmark.yaml")
-    parser.add_argument("--warmups", type=int, default=1, help="Untimed warm-up rounds per configuration.")
-    parser.add_argument("--repetitions", type=int, default=7, help="Measured repetitions per configuration.")
-    parser.add_argument("--policy-seed", type=int, default=1, help="Fixed policy seed used in every timing repetition.")
-    parser.add_argument("--order-seed", type=int, default=20260714, help="Seed used only to shuffle configuration order.")
+    parser = argparse.ArgumentParser(
+        description="Run the mixed 7/15-repetition ReplayBench-PG timing study."
+    )
+    parser.add_argument(
+        "--config",
+        default="configs/fgcs_extended_benchmark.yaml",
+        help="Base ReplayBench-PG benchmark YAML.",
+    )
     parser.add_argument(
         "--output-dir",
         default="paper_outputs/replaybench_timing_study",
-        help="Directory for timing-study outputs.",
     )
-    parser.add_argument("--no-validate-files", action="store_true")
+    parser.add_argument("--workload-repetitions", type=int, default=7)
+    parser.add_argument("--worker-repetitions", type=int, default=15)
+    parser.add_argument("--warmups", type=int, default=1)
+    parser.add_argument("--policy-seed", type=int, default=1)
+    parser.add_argument("--order-seed", type=int, default=20260714)
+    parser.add_argument("--full-fraction", type=float, default=1.0)
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Keep valid existing rows and run only missing repetitions. "
+            "With the original seven-repetition file, this adds only the "
+            "eight missing repetitions to the 24 full-workload worker "
+            "configurations (192 executions)."
+        ),
+    )
     args = parser.parse_args()
 
+    if args.workload_repetitions < 2:
+        raise ValueError("--workload-repetitions must be at least 2")
+    if args.worker_repetitions < args.workload_repetitions:
+        raise ValueError(
+            "--worker-repetitions must be at least --workload-repetitions"
+        )
     if args.warmups < 0:
-        raise ValueError("--warmups must be >= 0")
-    if args.repetitions < 3:
-        raise ValueError("--repetitions must be >= 3; seven is recommended for the paper")
+        raise ValueError("--warmups cannot be negative")
+    if not 0.0 < args.full_fraction <= 1.0:
+        raise ValueError("--full-fraction must be in (0, 1]")
 
-    config_path = Path(args.config)
-    cfg = bench.load_config(config_path)
-    if not args.no_validate_files:
-        bench.validate_config(cfg)
+    cfg = load_config(args.config)
+    validate_config(cfg)
 
     dataset_cfg = cfg["dataset"]
     benchmark_cfg = cfg["benchmark"]
     policy_cfg = cfg["policy"]
 
-    input_csv = dataset_cfg["input_csv"]
-    fractions = [float(x) for x in dataset_cfg["fractions"]]
-    policies = list(benchmark_cfg.get("policy_modes", bench.DEFAULT_POLICY_ORDER))
-    workers = [int(x) for x in benchmark_cfg["workers"]]
-    negative_labels = {bench.normalize_label(x) for x in policy_cfg.get("negative_labels", [])}
+    fractions = [float(value) for value in dataset_cfg["fractions"]]
+    policies = [str(value) for value in benchmark_cfg["policy_modes"]]
+    workers = sorted({int(value) for value in benchmark_cfg["workers"]})
+
+    if 1 not in workers:
+        raise ValueError("Timing design requires workers=1")
+    if not any(abs(value - args.full_fraction) < 1e-12 for value in fractions):
+        raise ValueError(
+            f"Full fraction {args.full_fraction} is not present in config"
+        )
+
+    conditions = build_target_conditions(
+        fractions,
+        policies,
+        workers,
+        full_fraction=args.full_fraction,
+    )
 
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    ensure_dir(output_dir)
+    raw_path = output_dir / "timing_repetitions_raw.csv"
+    manifest_path = output_dir / "timing_study_manifest.json"
+    environment_path = output_dir / "timing_environment_manifest.json"
 
+    if args.resume and raw_path.exists():
+        existing = normalize_existing(pd.read_csv(raw_path))
+    else:
+        existing = pd.DataFrame()
+
+    target_keys = {condition_key(condition) for condition in conditions}
+    condition_by_key = {
+        condition_key(condition): condition for condition in conditions
+    }
+
+    existing_ids: dict[tuple[float, str, int], set[int]] = {
+        key: set() for key in target_keys
+    }
+    if not existing.empty:
+        existing_keys = {
+            (
+                round(float(row.dataset_fraction), 12),
+                str(row.policy_mode),
+                int(row.workers),
+            )
+            for row in existing.itertuples(index=False)
+        }
+        unexpected = sorted(existing_keys - target_keys)
+        if unexpected:
+            raise ValueError(
+                "Existing timing CSV contains configurations outside the "
+                f"target design: {unexpected}"
+            )
+
+        for row in existing.itertuples(index=False):
+            key = (
+                round(float(row.dataset_fraction), 12),
+                str(row.policy_mode),
+                int(row.workers),
+            )
+            condition = condition_by_key[key]
+            target = target_repetitions_for_condition(
+                condition,
+                full_fraction=args.full_fraction,
+                workload_repetitions=args.workload_repetitions,
+                worker_repetitions=args.worker_repetitions,
+            )
+            repetition = int(row.repetition)
+            if repetition > target:
+                raise ValueError(
+                    "Existing timing CSV contains repetition identifiers above "
+                    f"the target for {key}: repetition={repetition}, target={target}"
+                )
+            existing_ids[key].add(repetition)
+
+    input_csv = Path(str(dataset_cfg["input_csv"]))
     df_full = pd.read_csv(input_csv).reset_index(drop=True)
     if df_full.empty:
         raise ValueError(f"Input CSV has no rows: {input_csv}")
 
+    negative_labels = {
+        normalize_label(value)
+        for value in policy_cfg.get("negative_labels", [])
+    }
+
     bc_actions: Optional[Dict[int, int]] = None
     if "bc" in policies:
-        bc_actions = bench.load_bc_reference_actions(
-            bc_action_csv=policy_cfg.get("bc_action_csv", "paper_outputs/policy_first_outputs_bc.csv"),
+        bc_actions = load_bc_reference_actions(
+            bc_action_csv=policy_cfg.get(
+                "bc_action_csv",
+                "paper_outputs/policy_first_outputs_bc.csv",
+            ),
             df_full=df_full,
             action_column=str(policy_cfg.get("bc_action_column", "action")),
             key_column=str(policy_cfg.get("bc_key_column", "utterance_id")),
         )
 
-    df_by_fraction: Dict[float, pd.DataFrame] = {}
+    fraction_frames: dict[float, pd.DataFrame] = {}
     for fraction in fractions:
-        n = max(1, int(len(df_full) * fraction))
-        df_by_fraction[fraction] = df_full.iloc[:n].copy().reset_index(drop=True)
+        count = max(1, int(len(df_full) * fraction))
+        fraction_frames[round(fraction, 12)] = (
+            df_full.iloc[:count].copy().reset_index(drop=True)
+        )
 
-    configurations = build_configurations(fractions, policies, workers)
-    total_measured = len(configurations) * args.repetitions
-    total_warmups = len(configurations) * args.warmups
+    reference_hashes: dict[tuple[float, str, int], str] = {}
+    if not existing.empty:
+        for key, group in existing.groupby(
+            ["dataset_fraction", "policy_mode", "workers"]
+        ):
+            hashes = set(group["trace_hash"].astype(str))
+            if len(hashes) != 1:
+                raise ValueError(
+                    f"Existing timing hashes are unstable for {key}"
+                )
+            reference_hashes[
+                (round(float(key[0]), 12), str(key[1]), int(key[2]))
+            ] = next(iter(hashes))
 
-    print("\n========== REPLAYBENCH-PG TIMING STUDY ==========")
-    print(f"Configurations          : {len(configurations)}")
-    print(f"Untimed warm-up runs    : {total_warmups}")
-    print(f"Measured repetitions    : {total_measured}")
-    print(f"Fixed policy seed       : {args.policy_seed}")
-    print(f"Configuration order seed: {args.order_seed}")
-    print(f"Output directory        : {output_dir}")
-    print("=================================================\n")
+    measured_rows = (
+        existing.to_dict(orient="records") if not existing.empty else []
+    )
+    invocation_started = time.time()
+    warmup_executions = 0
+    measured_executions = 0
 
-    study_started = time.perf_counter()
+    conditions_needing_runs = [
+        condition
+        for condition in conditions
+        if len(existing_ids[condition_key(condition)])
+        < target_repetitions_for_condition(
+            condition,
+            full_fraction=args.full_fraction,
+            workload_repetitions=args.workload_repetitions,
+            worker_repetitions=args.worker_repetitions,
+        )
+    ]
 
-    # Warm-up rounds. Each round uses a deterministic but different shuffle.
-    for warmup_round in range(1, args.warmups + 1):
-        ordered = configurations.copy()
-        random.Random(args.order_seed + warmup_round).shuffle(ordered)
-        print(f"[WARMUP] round {warmup_round}/{args.warmups}")
-        for index, item in enumerate(ordered, start=1):
-            fraction = float(item["dataset_fraction"])
-            policy_mode = str(item["policy_mode"])
-            worker_count = int(item["workers"])
-            df = df_by_fraction[fraction]
-            print(
-                f"  [{index:02d}/{len(ordered)}] fraction={fraction:g}, "
-                f"policy={policy_mode}, workers={worker_count}"
-            )
-            bench.run_replay(
-                df=df,
+    # Warm only configurations that will receive new measured executions in
+    # this invocation. When resuming the original seven-repetition file, this
+    # is exactly the 24 full-workload worker-scaling configurations.
+    for warmup_index in range(1, args.warmups + 1):
+        ordered = list(conditions_needing_runs)
+        random.Random(args.order_seed + warmup_index - 1).shuffle(ordered)
+        for condition in ordered:
+            frame = fraction_frames[round(condition.dataset_fraction, 12)]
+            _, summary, _ = run_replay(
+                df=frame,
                 cfg=cfg,
-                policy_mode=policy_mode,
+                policy_mode=condition.policy_mode,
                 negative_labels=negative_labels,
                 seed=args.policy_seed,
-                workers=worker_count,
+                workers=condition.workers,
                 bc_actions=bc_actions,
             )
-            gc.collect()
+            if int(summary["authorization_execution_consistent"]) != 1:
+                raise RuntimeError("Warm-up authorization invariant failed")
+            if int(summary["row_count_match"]) != 1:
+                raise RuntimeError("Warm-up row-count validation failed")
+            if int(summary["fault_injected_count"]) != 0:
+                raise RuntimeError("Warm-up unexpectedly injected a fault")
+            warmup_executions += 1
 
-    raw_rows: List[Dict[str, Any]] = []
+    for repetition in range(1, args.worker_repetitions + 1):
+        missing = []
+        for condition in conditions:
+            target = target_repetitions_for_condition(
+                condition,
+                full_fraction=args.full_fraction,
+                workload_repetitions=args.workload_repetitions,
+                worker_repetitions=args.worker_repetitions,
+            )
+            if (
+                repetition <= target
+                and repetition not in existing_ids[condition_key(condition)]
+            ):
+                missing.append(condition)
 
-    # Measured rounds. Re-shuffling every round reduces fixed ordering bias.
-    for repetition in range(1, args.repetitions + 1):
-        ordered = configurations.copy()
-        random.Random(args.order_seed + 10_000 + repetition).shuffle(ordered)
-        print(f"[MEASURE] repetition {repetition}/{args.repetitions}")
+        random.Random(args.order_seed + 10_000 + repetition).shuffle(missing)
 
-        for index, item in enumerate(ordered, start=1):
-            fraction = float(item["dataset_fraction"])
-            policy_mode = str(item["policy_mode"])
-            worker_count = int(item["workers"])
-            df = df_by_fraction[fraction]
-            workload_name = f"fraction_{bench.sanitize_token(fraction)}"
+        for condition in missing:
+            target = target_repetitions_for_condition(
+                condition,
+                full_fraction=args.full_fraction,
+                workload_repetitions=args.workload_repetitions,
+                worker_repetitions=args.worker_repetitions,
+            )
+            fraction_key = round(condition.dataset_fraction, 12)
+            frame = fraction_frames[fraction_key]
 
             print(
-                f"  [{index:02d}/{len(ordered)}] fraction={fraction:g}, "
-                f"policy={policy_mode}, workers={worker_count}"
+                "[RUN] "
+                f"rep={repetition}/{target}, "
+                f"fraction={condition.dataset_fraction}, "
+                f"policy={condition.policy_mode}, "
+                f"workers={condition.workers}"
             )
 
-            trace_df, summary, _ = bench.run_replay(
-                df=df,
+            trace, summary, _ = run_replay(
+                df=frame,
                 cfg=cfg,
-                policy_mode=policy_mode,
+                policy_mode=condition.policy_mode,
                 negative_labels=negative_labels,
                 seed=args.policy_seed,
-                workers=worker_count,
+                workers=condition.workers,
                 bc_actions=bc_actions,
             )
-            stage = bench.summarize_stage_latency(trace_df)
 
-            raw_rows.append({
-                "study_arm": item["study_arm"],
-                "repetition": int(repetition),
-                "dataset_fraction": fraction,
-                "workload_name": workload_name,
-                "decision_points": int(len(df)),
-                "policy_mode": policy_mode,
+            if int(summary["authorization_execution_consistent"]) != 1:
+                raise RuntimeError("Authorization-execution invariant failed")
+            if int(summary["row_count_match"]) != 1:
+                raise RuntimeError("Row-count validation failed")
+            if int(summary["validation_passed"]) != 1:
+                raise RuntimeError("Trace validation failed")
+            if int(summary["fault_injected_count"]) != 0:
+                raise RuntimeError("Timing run unexpectedly injected a fault")
+
+            key = condition_key(condition)
+            trace_hash = str(summary["trace_hash"])
+            expected_hash = reference_hashes.get(key)
+            if expected_hash is None:
+                reference_hashes[key] = trace_hash
+                hash_match = 1
+            else:
+                hash_match = int(trace_hash == expected_hash)
+                if not hash_match:
+                    raise RuntimeError(
+                        "Timing action hash changed for "
+                        f"fraction={condition.dataset_fraction}, "
+                        f"policy={condition.policy_mode}, "
+                        f"workers={condition.workers}"
+                    )
+
+            row: dict[str, Any] = {
+                "dataset_fraction": float(condition.dataset_fraction),
+                "workload_name": f"fraction_{condition.dataset_fraction}",
+                "decision_points": int(summary["decision_points"]),
+                "policy": condition.policy_mode,
+                "policy_mode": condition.policy_mode,
                 "policy_seed": int(args.policy_seed),
-                "workers": worker_count,
-                **summary,
-                **stage,
-            })
-            gc.collect()
+                "workers": int(condition.workers),
+                "repetition": int(repetition),
+                "runtime_seconds": float(summary["total_runtime_seconds"]),
+                "total_runtime_seconds": float(
+                    summary["total_runtime_seconds"]
+                ),
+                "throughput_points_per_second": float(
+                    summary["throughput_points_per_second"]
+                ),
+                "trace_hash": trace_hash,
+                "reference_hash": reference_hashes[key],
+                "hash_match": int(hash_match),
+                "unauthorized_invocations": int(
+                    summary["unauthorized_invocations"]
+                ),
+                "authorization_execution_consistent": int(
+                    summary["authorization_execution_consistent"]
+                ),
+                "row_count_match": int(summary["row_count_match"]),
+                "validation_passed": int(summary["validation_passed"]),
+                "fault_injected_count": int(summary["fault_injected_count"]),
+                "intervention_rate": float(summary["intervention_rate"]),
+            }
+            row.update(summarize_stage_latency(trace))
+            measured_rows.append(row)
+            existing_ids[key].add(repetition)
+            measured_executions += 1
 
-        # Persist after every repetition so an interrupted study retains completed work.
-        pd.DataFrame(raw_rows).to_csv(output_dir / "timing_repetitions_raw.partial.csv", index=False)
+            current = pd.DataFrame(measured_rows).sort_values(
+                ["dataset_fraction", "policy_mode", "workers", "repetition"]
+            )
+            current.to_csv(raw_path, index=False)
 
-    raw_df = pd.DataFrame(raw_rows)
-    summary_df = summarize_repetitions(raw_df)
-    stage_df = summarize_stage_latency(raw_df)
-    trace_df = build_trace_consistency(raw_df)
+    final = normalize_existing(pd.DataFrame(measured_rows))
+    expected_rows = sum(
+        target_repetitions_for_condition(
+            condition,
+            full_fraction=args.full_fraction,
+            workload_repetitions=args.workload_repetitions,
+            worker_repetitions=args.worker_repetitions,
+        )
+        for condition in conditions
+    )
+    if len(final) != expected_rows:
+        raise RuntimeError(
+            f"Incomplete timing study: expected={expected_rows}, "
+            f"observed={len(final)}"
+        )
 
-    raw_path = output_dir / "timing_repetitions_raw.csv"
-    summary_path = output_dir / "timing_summary.csv"
-    stage_path = output_dir / "timing_stage_latency_summary.csv"
-    trace_path = output_dir / "timing_trace_consistency.csv"
+    for condition in conditions:
+        key = condition_key(condition)
+        target = target_repetitions_for_condition(
+            condition,
+            full_fraction=args.full_fraction,
+            workload_repetitions=args.workload_repetitions,
+            worker_repetitions=args.worker_repetitions,
+        )
+        if existing_ids[key] != set(range(1, target + 1)):
+            raise RuntimeError(
+                f"Incomplete repetition set for {key}: "
+                f"{sorted(existing_ids[key])}"
+            )
 
-    raw_df.to_csv(raw_path, index=False)
-    summary_df.to_csv(summary_path, index=False)
-    stage_df.to_csv(stage_path, index=False)
-    trace_df.to_csv(trace_path, index=False)
-
-    partial_path = output_dir / "timing_repetitions_raw.partial.csv"
-    if partial_path.exists():
-        partial_path.unlink()
-
-    try:
-        import torch
-    except ImportError:
-        torch = None
+    final = final.sort_values(
+        ["dataset_fraction", "policy_mode", "workers", "repetition"]
+    ).reset_index(drop=True)
+    final.to_csv(raw_path, index=False)
 
     environment = {
-        "captured_at_utc": datetime.now(timezone.utc).isoformat(),
-        "platform": platform.platform(),
-        "system": platform.system(),
-        "release": platform.release(),
-        "machine": platform.machine(),
-        "processor": platform.processor(),
-        "python_version": platform.python_version(),
-        "python_executable": sys.executable,
-        "logical_cpu_count": os.cpu_count(),
-        "numpy_version": package_version(np),
-        "pandas_version": package_version(pd),
-        "torch_version": package_version(torch),
-        "torch_cuda_available": bool(torch is not None and torch.cuda.is_available()),
-        "torch_num_threads": int(torch.get_num_threads()) if torch is not None else None,
-        "thread_environment": {
-            name: os.environ.get(name)
-            for name in [
-                "OMP_NUM_THREADS",
-                "MKL_NUM_THREADS",
-                "OPENBLAS_NUM_THREADS",
-                "NUMEXPR_NUM_THREADS",
-                "PYTHONHASHSEED",
-            ]
-        },
+        "python_version": sys.version,
+        "git_commit": get_git_commit(),
+        "config": str(args.config),
+        "input_csv": str(input_csv),
     }
+    environment_path.write_text(
+        json.dumps(environment, indent=2), encoding="utf-8"
+    )
 
-    environment_path = output_dir / "timing_environment.json"
-    environment_path.write_text(json.dumps(environment, indent=2), encoding="utf-8")
+    non_full_configurations = sum(
+        1
+        for condition in conditions
+        if abs(condition.dataset_fraction - args.full_fraction) >= 1e-12
+    )
+    full_configurations = len(conditions) - non_full_configurations
 
-    script_path = Path(__file__).resolve()
-    benchmark_runner_path = Path(bench.__file__).resolve()
-    elapsed_seconds = time.perf_counter() - study_started
     manifest = {
-        "study_name": "ReplayBench-PG targeted warmed-up timing study",
-        "design": {
-            "workload_scaling_arm": "all fractions x all policies x one worker",
-            "worker_scaling_arm": "full workload x all policies x all worker settings",
-            "unique_configurations": len(configurations),
-            "untimed_warmups_per_configuration": args.warmups,
-            "measured_repetitions_per_configuration": args.repetitions,
-            "fixed_policy_seed": args.policy_seed,
-            "configuration_order_seed": args.order_seed,
-            "aggregation": "median, quartiles, IQR; no inferential significance test",
-        },
-        "runtime": {
-            "study_elapsed_seconds": elapsed_seconds,
-            "warmup_runs": total_warmups,
-            "measured_runs": total_measured,
-        },
-        "inputs": {
-            "config_path": str(config_path.resolve()),
-            "config_sha256": sha256_file(config_path.resolve()),
-            "input_csv": str(Path(input_csv).resolve()),
-            "input_rows": int(len(df_full)),
-            "fractions": fractions,
-            "policies": policies,
-            "workers": workers,
-        },
-        "software": {
-            "timing_script": str(script_path),
-            "timing_script_sha256": sha256_file(script_path),
-            "benchmark_runner": str(benchmark_runner_path),
-            "benchmark_runner_sha256": sha256_file(benchmark_runner_path),
-        },
-        "validation": {
-            "all_configurations_have_expected_repetitions": bool(
-                (summary_df["measured_repetitions"] == args.repetitions).all()
-            ),
-            "all_repetition_trace_hashes_match": bool(trace_df["all_trace_hashes_match"].all()),
-            "unauthorized_invocations_total": int(raw_df["unauthorized_invocations"].sum()),
-            "fault_injected_count_total": int(raw_df["fault_injected_count"].sum()),
-        },
-        "outputs": [
-            str(raw_path),
-            str(summary_path),
-            str(stage_path),
-            str(trace_path),
-            str(environment_path),
-        ],
+        "study": "ReplayBench-PG targeted timing study",
+        "config": str(args.config),
+        "output": str(raw_path),
+        "fractions": fractions,
+        "policies": policies,
+        "workers": workers,
+        "full_fraction": args.full_fraction,
+        "policy_seed": args.policy_seed,
+        "order_seed": args.order_seed,
+        "workload_repetitions": args.workload_repetitions,
+        "worker_repetitions": args.worker_repetitions,
+        "non_full_workload_configurations": non_full_configurations,
+        "full_workload_worker_configurations": full_configurations,
+        "unique_configurations": len(conditions),
+        "expected_measured_rows": expected_rows,
+        "completed_measured_rows": len(final),
+        "warmups_per_active_configuration_in_this_invocation": args.warmups,
+        "active_configurations_in_this_invocation": len(
+            conditions_needing_runs
+        ),
+        "warmup_executions_in_this_invocation": warmup_executions,
+        "measured_executions_in_this_invocation": measured_executions,
+        "resume_mode": bool(args.resume),
+        "invocation_started_unix": invocation_started,
+        "invocation_completed_unix": time.time(),
+        "all_hashes_stable": True,
+        "all_authorization_execution_consistent": bool(
+            final["authorization_execution_consistent"].dropna().eq(1).all()
+        ),
+        "all_row_counts_match": bool(
+            final["row_count_match"].dropna().eq(1).all()
+        ),
+        "all_validation_passed": bool(
+            final["validation_passed"].dropna().eq(1).all()
+        ),
+        "all_fault_counts_zero": bool(
+            final["fault_injected_count"].dropna().eq(0).all()
+        ),
+        "all_unauthorized_invocations_zero": bool(
+            final["unauthorized_invocations"].dropna().eq(0).all()
+        ),
+        "legacy_rows_without_validation_metadata": int(
+            final["authorization_execution_consistent"].isna().sum()
+        ),
     }
-    manifest_path = output_dir / "timing_study_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
-    print("\n========== TIMING STUDY VALIDATION ==========")
-    print(f"Raw measured rows            : {len(raw_df)}")
-    print(f"Summary configurations       : {len(summary_df)}")
-    print(f"Expected repetitions/config  : {args.repetitions}")
-    print(f"All repetition counts valid  : {manifest['validation']['all_configurations_have_expected_repetitions']}")
-    print(f"All trace hashes stable      : {manifest['validation']['all_repetition_trace_hashes_match']}")
-    print(f"Unauthorized invocations     : {manifest['validation']['unauthorized_invocations_total']}")
-    print(f"Injected faults              : {manifest['validation']['fault_injected_count_total']}")
-    print("=============================================\n")
+    print("[DONE] Timing study complete")
     print(f"[OUT] {raw_path}")
-    print(f"[OUT] {summary_path}")
-    print(f"[OUT] {stage_path}")
-    print(f"[OUT] {trace_path}")
-    print(f"[OUT] {environment_path}")
     print(f"[OUT] {manifest_path}")
-    print("[DONE] ReplayBench-PG timing study complete.")
+    print(f"[OUT] {environment_path}")
 
 
 if __name__ == "__main__":
