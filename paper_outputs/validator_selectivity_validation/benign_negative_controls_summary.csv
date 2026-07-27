@@ -1,0 +1,5 @@
+benign_mode,independent_clean_executions,correctly_classified,false_positive_executions,anomaly_findings
+completion_order_changed_then_reconstructed,6,6,0,0
+metadata_column_order_changed,6,6,0,0
+permitted_logging_format_changed,6,6,0,0
+timing_fields_changed,6,6,0,0

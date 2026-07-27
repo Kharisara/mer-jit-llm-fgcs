@@ -24,7 +24,7 @@
       "unique_hashes": 9,
       "all_worker_matches": true,
       "max_unauthorized_invocations": 0,
-      "full_workload_mean_intervention_rate": 0.50205
+      "full_workload_mean_intervention_rate": 0.4975333333333334
     },
     {
       "policy_mode": "rule_gate",
@@ -32,7 +32,7 @@
       "unique_hashes": 3,
       "all_worker_matches": true,
       "max_unauthorized_invocations": 0,
-      "full_workload_mean_intervention_rate": 0.1622
+      "full_workload_mean_intervention_rate": 0.16045
     }
   ],
   "clean_max_unauthorized_invocations": 0,
@@ -40,14 +40,14 @@
     {
       "fault_mode": "action_flip_1_percent",
       "runs": 18,
-      "faults_or_corruptions_injected_total": 3522,
+      "faults_or_corruptions_injected_total": 3550,
       "detected_runs": 18,
       "false_positive_runs": 0
     },
     {
       "fault_mode": "unauthorized_invoke_1_percent",
       "runs": 18,
-      "faults_or_corruptions_injected_total": 2762,
+      "faults_or_corruptions_injected_total": 2774,
       "detected_runs": 18,
       "false_positive_runs": 0
     },

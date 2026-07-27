@@ -1,0 +1,37 @@
+{
+  "experiment": "independent_execution_receipts_and_record_bound_trace",
+  "input_csv": "paper_outputs/replay_input_clean.csv",
+  "decision_points": 11351,
+  "policies": [
+    "risk_proxy",
+    "random",
+    "always"
+  ],
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "workers": [
+    1,
+    4
+  ],
+  "conditions_per_mode": 18,
+  "receipt_modes": [
+    "clean",
+    "unlogged_downstream_call",
+    "false_execution_log",
+    "duplicate_downstream_call",
+    "mismatched_correlation_id"
+  ],
+  "record_corruptions": [
+    "row_reordering",
+    "replay_id_action_reassignment",
+    "authorization_field_corruption",
+    "execution_field_corruption",
+    "configuration_label_corruption"
+  ],
+  "receipt_fault_probability": 0.01,
+  "receipt_validation_all_expected": true,
+  "record_corruption_all_detected": true
+}

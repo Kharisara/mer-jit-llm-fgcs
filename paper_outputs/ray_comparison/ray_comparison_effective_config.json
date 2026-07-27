@@ -1,0 +1,75 @@
+{
+  "dataset": {
+    "input_csv": "paper_outputs/replay_input_clean.csv",
+    "workload_fraction": 1.0
+  },
+  "benchmark": {
+    "policy_modes": [
+      "risk_proxy",
+      "random",
+      "never"
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "workers": [
+      1,
+      4
+    ],
+    "fault_modes": [
+      "clean",
+      "action_flip",
+      "dropped_row"
+    ],
+    "ray_chunk_size": 256
+  },
+  "policy": {
+    "negative_labels": [
+      "anger",
+      "angry",
+      "disgust",
+      "disgusted",
+      "fear",
+      "fearful",
+      "sadness",
+      "sad"
+    ],
+    "random_intervention_probability": 0.5,
+    "bc_action_csv": "paper_outputs/policy_first_outputs_bc.csv",
+    "bc_action_column": "action",
+    "bc_key_column": "utterance_id",
+    "bc_model_path": "checkpoints/jitai_policy_bc.pt",
+    "bc_live_state_dim": 512,
+    "bc_live_hidden_dims": [
+      256,
+      256
+    ],
+    "bc_live_output_dim": 2,
+    "bc_live_batch_size": 4096,
+    "bc_live_torch_threads": 1,
+    "bc_live_device": "cpu",
+    "bc_live_strict_state_dim": true,
+    "missing_state_policy": "error"
+  },
+  "generation_stub": {},
+  "fault_injection": {
+    "action_flip_probability": 0.01,
+    "dropped_row_probability": 0.01
+  },
+  "reference": {
+    "determinism_csv": "paper_outputs/fgcs_extended_benchmark/determinism_hash_results.csv",
+    "require_reference_results": true
+  },
+  "execution_semantics": {
+    "task_retry_enabled": false,
+    "task_failure_policy": "fail_fast",
+    "duplicate_delivery_supported": false
+  },
+  "logging": {
+    "output_dir": "paper_outputs/ray_comparison",
+    "save_traces": true
+  },
+  "_resolved_base_config": "D:\\Project final\\mer-jit-llm-fgcs\\configs\\fgcs_extended_benchmark.yaml"
+}

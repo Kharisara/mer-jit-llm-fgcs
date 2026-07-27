@@ -19,6 +19,7 @@ Outputs are written to the configured logging.output_dir:
     - policy_ablation_costs.csv
     - live_bc_predictions.csv            only if bc_live and enabled
     - trace_*.csv                         only if logging.save_traces=true
+    - benchmark_run_manifest.json
 """
 
 from __future__ import annotations
@@ -37,6 +38,18 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 import yaml
+
+from replaybench.integrity import (
+    DownstreamReceiptCollector,
+    ReceiptContext,
+    build_run_identity,
+    config_bound_trace_hash,
+    make_correlation_id,
+    make_replay_point_id,
+    reconcile_execution_receipts,
+    record_bound_trace_hash,
+    validate_receipt_digest_rows,
+)
 
 try:
     import psutil
@@ -79,10 +92,74 @@ def stable_hash_to_float(*parts: Any) -> float:
     return int(h[:16], 16) / float(16**16)
 
 
-def trace_hash(actions: Sequence[int]) -> str:
-    """Hash an action sequence for deterministic replay comparison."""
-    s = ",".join(str(int(a)) for a in actions)
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+def canonical_action_hash(actions: Sequence[int]) -> str:
+    """
+    Compute SHA-256 over the canonical ordered integer action sequence.
+
+    Example:
+        [0, 1, 0] -> "0,1,0" -> SHA-256
+    """
+    canonical = ",".join(str(int(action)) for action in actions)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def authorization_execution_violation(
+    authorized: bool | int,
+    executed: bool | int,
+) -> int:
+    """
+    Evaluate the authorization-execution consistency invariant.
+
+    Returns 1 only when downstream execution occurred without prior
+    authorization; otherwise returns 0.
+    """
+    return int(bool(executed) and not bool(authorized))
+
+
+def validate_trace(
+    *,
+    actions: Sequence[int],
+    expected_hash: Optional[str],
+    observed_rows: int,
+    expected_rows: int,
+    unauthorized_invocations: int,
+) -> Dict[str, Any]:
+    """
+    Validate the ordered action sequence, row cardinality, and the
+    authorization-execution consistency invariant.
+
+    When expected_hash is None, hash equality is not evaluated and does not
+    cause validation failure. This is useful for the first/reference run.
+    """
+    actual_hash = canonical_action_hash(actions)
+    hash_match: Optional[bool]
+
+    if expected_hash is None:
+        hash_match = None
+    else:
+        hash_match = actual_hash == expected_hash
+
+    row_count_match = int(observed_rows) == int(expected_rows)
+    authorization_execution_consistent = int(unauthorized_invocations) == 0
+
+    validation_passed = (
+        row_count_match
+        and authorization_execution_consistent
+        and hash_match is not False
+    )
+
+    return {
+        "actual_hash": actual_hash,
+        "expected_hash": expected_hash,
+        "hash_match": None if hash_match is None else int(hash_match),
+        "observed_rows": int(observed_rows),
+        "expected_rows": int(expected_rows),
+        "row_count_match": int(row_count_match),
+        "authorization_execution_consistent": int(
+            authorization_execution_consistent
+        ),
+        "validation_passed": int(validation_passed),
+    }
 
 
 def sanitize_token(value: Any) -> str:
@@ -688,6 +765,22 @@ def base_action_for_row(
     raise ValueError(f"Unknown policy_mode: {policy_mode}")
 
 
+def _row_index_is_targeted(
+    fault_cfg: Mapping[str, Any],
+    key: str,
+    row_index: int,
+) -> Optional[bool]:
+    """Return targeted-selection status, or None when probability mode is used."""
+    configured = fault_cfg.get(key, None)
+    if configured is None:
+        return None
+    if isinstance(configured, (set, frozenset)):
+        targets = configured
+    else:
+        targets = {int(value) for value in configured}
+    return int(row_index) in targets
+
+
 def maybe_fault_inject(
     action: int,
     row: Mapping[str, Any],
@@ -706,8 +799,15 @@ def maybe_fault_inject(
     enabled = bool(fault_cfg.get("enabled", False))
     flip_p = float(fault_cfg.get("action_flip_probability", 0.0))
     allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "rule_gate", "random", "never"]))
+    targeted = _row_index_is_targeted(
+        fault_cfg, "action_flip_target_indices", row_index
+    )
 
-    if not enabled or flip_p <= 0.0 or policy_mode not in allowed:
+    if not enabled or policy_mode not in allowed:
+        return int(action), 0
+    if targeted is not None:
+        return (1 - int(action), 1) if targeted else (int(action), 0)
+    if flip_p <= 0.0:
         return int(action), 0
 
     utterance_id = row.get("utterance_id", row_index)
@@ -737,17 +837,85 @@ def maybe_force_unauthorized_invocation(
     enabled = bool(fault_cfg.get("enabled", False))
     invoke_p = float(fault_cfg.get("unauthorized_invoke_probability", 0.0))
     allowed = set(fault_cfg.get("allowed_policy_modes", ["risk_proxy", "proxy", "rule_gate", "random", "never"]))
+    targeted = _row_index_is_targeted(
+        fault_cfg, "unauthorized_invoke_target_indices", row_index
+    )
 
-    if not enabled or invoke_p <= 0.0 or policy_mode not in allowed:
+    if not enabled or policy_mode not in allowed:
         return 0
 
     # Only rows with action=0 are eligible, because action=1 is already authorized.
     if int(action) != 0:
         return 0
+    if targeted is not None:
+        return int(targeted)
+    if invoke_p <= 0.0:
+        return 0
 
     utterance_id = row.get("utterance_id", row_index)
     r = stable_hash_to_float("fault_unauthorized_invoke", seed, policy_mode, utterance_id, row_index)
     return 1 if r < invoke_p else 0
+
+
+RECEIPT_FAULT_MODES = {
+    "clean",
+    "unlogged_downstream_call",
+    "false_execution_log",
+    "duplicate_downstream_call",
+    "mismatched_correlation_id",
+}
+
+
+def select_receipt_fault_mode(
+    *,
+    action: int,
+    row: Mapping[str, Any],
+    row_index: int,
+    policy_mode: str,
+    seed: int,
+    fault_cfg: Mapping[str, Any],
+) -> str:
+    """Select an optional deterministic cross-log positive-control fault."""
+    mode = str(fault_cfg.get("receipt_fault_mode", "clean")).strip().lower()
+    if mode not in RECEIPT_FAULT_MODES:
+        raise ValueError(
+            f"Unsupported receipt_fault_mode={mode!r}; "
+            f"expected one of {sorted(RECEIPT_FAULT_MODES)}"
+        )
+    if mode == "clean":
+        return "clean"
+
+    probability = float(fault_cfg.get("receipt_fault_probability", 0.0))
+    allowed = set(
+        fault_cfg.get(
+            "receipt_fault_allowed_policy_modes",
+            ["risk_proxy", "rule_gate", "random", "always"],
+        )
+    )
+    targeted = _row_index_is_targeted(
+        fault_cfg, "receipt_fault_target_indices", row_index
+    )
+    # All four receipt controls require an authorized execution opportunity so
+    # they isolate cross-log disagreement rather than re-test authorization.
+    if policy_mode not in allowed or int(action) != 1:
+        return "clean"
+    if targeted is not None:
+        return mode if targeted else "clean"
+    if probability <= 0.0:
+        return "clean"
+
+    record_id = row.get(
+        "source_record_id", row.get("utterance_id", row_index)
+    )
+    value = stable_hash_to_float(
+        "receipt_fault",
+        mode,
+        seed,
+        policy_mode,
+        record_id,
+        row_index,
+    )
+    return mode if value < probability else "clean"
 
 
 # ---------------------------------------------------------------------------
@@ -876,6 +1044,9 @@ def no_generation_result() -> Dict[str, Any]:
 def execute_generation_stub(
     row: Mapping[str, Any],
     generation_cfg: Optional[Mapping[str, Any]] = None,
+    *,
+    receipt_collector: Optional[DownstreamReceiptCollector] = None,
+    receipt_context: Optional[ReceiptContext] = None,
 ) -> Dict[str, Any]:
     """
     Execute the deterministic downstream service stub.
@@ -917,6 +1088,15 @@ def execute_generation_stub(
     else:
         raise ValueError(f"Unsupported generation_stub.mode: {mode!r}")
 
+    # The downstream component owns receipt emission. The primary replay trace
+    # never constructs or mutates receipt rows.
+    if receipt_collector is not None:
+        if receipt_context is None:
+            raise ValueError(
+                "receipt_context is required when receipt collection is enabled"
+            )
+        receipt_collector.emit(receipt_context)
+
     return {
         "response_json": json.dumps(response, ensure_ascii=False),
         "safety": response["safety"],
@@ -933,6 +1113,8 @@ def process_one_row(
     bc_actions: Optional[Mapping[int, int]] = None,
     live_actions: Optional[Mapping[int, int]] = None,
     live_metrics: Optional[Mapping[int, Mapping[str, Any]]] = None,
+    run_identity: Optional[Mapping[str, Any]] = None,
+    receipt_collector: Optional[DownstreamReceiptCollector] = None,
 ) -> Dict[str, Any]:
     """Process one offline replay decision point and record stage timings."""
     dataset_cfg = cfg.get("dataset", {})
@@ -1018,22 +1200,91 @@ def process_one_row(
         fault_cfg=fault_cfg,
     )
 
-    # Stage 4: observed downstream generation execution.
-    # The controlled fault can force the call while authorization remains false.
+    # Stage 4: observed downstream generation execution. Receipt collection is
+    # optional so the frozen timing study can retain its original execution path.
     gen0 = time.perf_counter()
+    receipts_enabled = receipt_collector is not None and run_identity is not None
+    run_id = str(run_identity.get("run_id", "")) if run_identity else ""
+    replay_point_id = make_replay_point_id(row_index, row_dict) if receipts_enabled else ""
+    correlation_scope_id = (
+        str(run_identity.get("trace_scope_id", run_id)) if run_identity else ""
+    )
+    correlation_id = (
+        make_correlation_id(correlation_scope_id, replay_point_id)
+        if receipts_enabled
+        else ""
+    )
+    downstream_operation = str(
+        cfg.get("generation_stub", {}).get("service_name", "generation_stub")
+    )
+    receipt_fault_mode = (
+        select_receipt_fault_mode(
+            action=action,
+            row=row_dict,
+            row_index=row_index,
+            policy_mode=policy_mode,
+            seed=seed,
+            fault_cfg=fault_cfg,
+        )
+        if receipts_enabled
+        else "clean"
+    )
+    receipt_fault_injected = int(receipt_fault_mode != "clean")
+
     should_execute_generation = bool(authorized_to_generate or unauthorized_invoke_fault)
-    if should_execute_generation:
+    expected_receipt_context = (
+        ReceiptContext(
+            run_id=run_id,
+            replay_point_id=replay_point_id,
+            correlation_id=correlation_id,
+            downstream_operation=downstream_operation,
+        )
+        if receipts_enabled
+        else None
+    )
+
+    if receipt_fault_mode == "false_execution_log":
+        # Primary trace claims execution, but the downstream component is not called.
+        generated = no_generation_result()
+        generation_invoked = 1
+    elif should_execute_generation:
+        actual_context = expected_receipt_context
+        if receipt_fault_mode == "mismatched_correlation_id" and actual_context is not None:
+            actual_context = ReceiptContext(
+                run_id=actual_context.run_id,
+                replay_point_id=actual_context.replay_point_id,
+                correlation_id=hashlib.sha256(
+                    f"mismatch|{actual_context.correlation_id}".encode("utf-8")
+                ).hexdigest()[:32],
+                downstream_operation=actual_context.downstream_operation,
+            )
+
         generated = execute_generation_stub(
             row=row_dict,
             generation_cfg=cfg.get("generation_stub", {}),
+            receipt_collector=receipt_collector,
+            receipt_context=actual_context,
         )
-        generation_invoked = 1
+        if receipt_fault_mode == "duplicate_downstream_call":
+            execute_generation_stub(
+                row=row_dict,
+                generation_cfg=cfg.get("generation_stub", {}),
+                receipt_collector=receipt_collector,
+                receipt_context=actual_context,
+            )
+        generation_invoked = (
+            0 if receipt_fault_mode == "unlogged_downstream_call" else 1
+        )
     else:
         generated = no_generation_result()
         generation_invoked = 0
 
-    # Derive the violation from the observed execution and prior authorization.
-    unauthorized_invocation = int(generation_invoked == 1 and not authorized_to_generate)
+    # This legacy primary-trace flag is retained for backward compatibility.
+    # The receipt validator provides the independent cross-log observation.
+    unauthorized_invocation = authorization_execution_violation(
+        authorized=authorized_to_generate,
+        executed=generation_invoked,
+    )
     gen1 = time.perf_counter()
 
     # Stage 5: logging/result construction.
@@ -1054,9 +1305,14 @@ def process_one_row(
         "action_flip_fault_injected": int(fault_injected),
         "unauthorized_invoke_fault_injected": int(unauthorized_invoke_fault),
         "fault_injected": int(fault_injected) + int(unauthorized_invoke_fault),
+        "run_id": run_id,
+        "replay_point_id": replay_point_id,
+        "correlation_id": correlation_id,
         "authorized_to_generate": int(authorized_to_generate),
         "generation_invoked": int(generation_invoked),
         "unauthorized_invocation": int(unauthorized_invocation),
+        "receipt_fault_mode": receipt_fault_mode,
+        "receipt_fault_injected": int(receipt_fault_injected),
         "response_safety": generated["safety"],
         "response_json": generated["response_json"],
         "state_exists": int(state_exists),
@@ -1096,15 +1352,59 @@ def run_replay(
     seed_everything(seed)
     rows = df.to_dict(orient="records")
 
+    receipt_cfg = cfg.get("execution_receipts", {})
+    receipts_enabled = bool(receipt_cfg.get("enabled", False))
+    run_identity = (
+        build_run_identity(
+            frame=df,
+            cfg=cfg,
+            policy_mode=policy_mode,
+            seed=seed,
+            workers=workers,
+        )
+        if receipts_enabled
+        else None
+    )
+    receipt_collector = DownstreamReceiptCollector() if receipts_enabled else None
+
     mem_before = get_process_memory_mb()
-    start = time.perf_counter()
+
+    # Runtime boundaries for Comment 8 (bc_live comparability):
+    #   1) checkpoint preparation: model/checkpoint loading, state loading,
+    #      batched inference, and construction of the live action map;
+    #   2) replay-only execution: per-record policy-gated replay using the
+    #      already prepared live action map;
+    #   3) post-replay validation: trace reconstruction, receipt
+    #      reconciliation, hashing, and in-memory validation.
+    #
+    # ``total_runtime_seconds`` retains the historical timed-execution
+    # boundary (preparation + replay) so existing evidence remains comparable.
+    # ``end_to_end_runtime_seconds`` adds post-replay validation and is the
+    # preferred total for the dedicated bc_live decomposition study.
+    run_start = time.perf_counter()
 
     live_actions: Optional[Dict[int, int]] = None
     live_metrics: Optional[Dict[int, Dict[str, Any]]] = None
     live_prediction_df: Optional[pd.DataFrame] = None
+    checkpoint_preparation_seconds = 0.0
 
     if policy_mode == "bc_live":
-        live_actions, live_metrics, live_prediction_df = compute_bc_live_actions(df=df, cfg=cfg, seed=seed)
+        # Anchor preparation to run_start so the timed-execution boundary is
+        # exactly preparation + replay, without an unassigned timer gap.
+        preparation_start = run_start
+        live_actions, live_metrics, live_prediction_df = compute_bc_live_actions(
+            df=df,
+            cfg=cfg,
+            seed=seed,
+        )
+        preparation_end = time.perf_counter()
+        checkpoint_preparation_seconds = preparation_end - preparation_start
+        replay_start = preparation_end
+    else:
+        # For non-live policies there is no separate checkpoint-preparation
+        # phase. Anchoring replay_start to run_start preserves an exact
+        # decomposition of the historical timed-execution boundary.
+        replay_start = run_start
 
     if workers <= 1:
         results = [
@@ -1118,6 +1418,8 @@ def run_replay(
                 bc_actions=bc_actions,
                 live_actions=live_actions,
                 live_metrics=live_metrics,
+                run_identity=run_identity,
+                receipt_collector=receipt_collector,
             )
             for i, row in enumerate(rows)
         ]
@@ -1136,40 +1438,255 @@ def run_replay(
                     bc_actions,
                     live_actions,
                     live_metrics,
+                    run_identity,
+                    receipt_collector,
                 ): i
                 for i, row in enumerate(rows)
             }
             for future in as_completed(futures):
                 results.append(future.result())
 
-    end = time.perf_counter()
-    mem_after = get_process_memory_mb()
+    replay_end = time.perf_counter()
+
+    replay_only_runtime_seconds = replay_end - replay_start
+    timed_execution_runtime_seconds = replay_end - run_start
 
     out_df = pd.DataFrame(results).sort_values("row_index").reset_index(drop=True)
     actions = out_df["action"].astype(int).tolist()
-    total_runtime = end - start
     decision_points = len(out_df)
     total_latencies = out_df["total_latency_ms"].astype(float).tolist()
+
+    primary_unauthorized_invocation_count = int(
+        out_df["unauthorized_invocation"].sum()
+    )
+
+    receipt_df = pd.DataFrame()
+    reconciliation_df = pd.DataFrame()
+    receipt_summary: Dict[str, Any] = {
+        "receipt_validation_passed": 1,
+        "authorization_execution_consistent": int(
+            primary_unauthorized_invocation_count == 0
+        ),
+        "orphan_receipts": 0,
+        "missing_receipts": 0,
+        "unlogged_downstream_calls": 0,
+        "duplicate_downstream_calls": 0,
+        "mismatched_correlation_ids": 0,
+        "unauthorized_downstream_calls": primary_unauthorized_invocation_count,
+    }
+    record_trace_hash_value = ""
+    config_bound_trace_hash_value = ""
+    config_manifest_hash_value = ""
+
+    if receipts_enabled:
+        if receipt_collector is None or run_identity is None:
+            raise RuntimeError("Receipt collection was enabled but not initialized")
+        receipt_df = receipt_collector.to_frame()
+        if not validate_receipt_digest_rows(receipt_df):
+            raise RuntimeError("Downstream receipt digest validation failed")
+        reconciliation_df, receipt_summary = reconcile_execution_receipts(
+            out_df, receipt_df
+        )
+        reconciliation_columns = [
+            "replay_point_id",
+            "receipt_count",
+            "matching_receipt_count",
+            "receipt_digest_set",
+            "receipt_state_hash_set",
+            "missing_receipt",
+            "unlogged_downstream_call",
+            "duplicate_downstream_call",
+            "mismatched_correlation_id",
+            "unauthorized_downstream_call",
+            "receipt_consistent",
+        ]
+        out_df = out_df.merge(
+            reconciliation_df[reconciliation_columns],
+            on="replay_point_id",
+            how="left",
+            validate="one_to_one",
+        )
+        record_trace_hash_value = record_bound_trace_hash(
+            out_df, reconciliation_df
+        )
+        config_manifest_hash_value = str(
+            run_identity["config_manifest_hash"]
+        )
+        config_bound_trace_hash_value = config_bound_trace_hash(
+            record_trace_hash_value,
+            config_manifest_hash_value,
+        )
+
+    independent_unauthorized_count = int(
+        receipt_summary["unauthorized_downstream_calls"]
+    )
+    trace_validation = validate_trace(
+        actions=actions,
+        expected_hash=None,
+        observed_rows=decision_points,
+        expected_rows=len(df),
+        unauthorized_invocations=independent_unauthorized_count,
+    )
+    trace_validation["authorization_execution_consistent"] = int(
+        receipt_summary["authorization_execution_consistent"]
+    )
+    trace_validation["validation_passed"] = int(
+        bool(trace_validation["validation_passed"])
+        and bool(receipt_summary["receipt_validation_passed"])
+    )
+
+    validation_end = time.perf_counter()
+    post_replay_validation_seconds = validation_end - replay_end
+    end_to_end_runtime_seconds = validation_end - run_start
+
+    timed_components_seconds = (
+        checkpoint_preparation_seconds + replay_only_runtime_seconds
+    )
+    end_to_end_components_seconds = (
+        checkpoint_preparation_seconds
+        + replay_only_runtime_seconds
+        + post_replay_validation_seconds
+    )
+    timed_decomposition_error_seconds = abs(
+        timed_execution_runtime_seconds - timed_components_seconds
+    )
+    end_to_end_decomposition_error_seconds = abs(
+        end_to_end_runtime_seconds - end_to_end_components_seconds
+    )
+    decomposition_tolerance_seconds = max(
+        1e-9,
+        end_to_end_runtime_seconds * 1e-9,
+    )
+    runtime_decomposition_valid = int(
+        timed_decomposition_error_seconds <= decomposition_tolerance_seconds
+        and end_to_end_decomposition_error_seconds
+        <= decomposition_tolerance_seconds
+    )
+    if runtime_decomposition_valid != 1:
+        raise RuntimeError(
+            "Runtime phase decomposition failed: "
+            f"timed_error={timed_decomposition_error_seconds:.12g}, "
+            f"end_to_end_error={end_to_end_decomposition_error_seconds:.12g}, "
+            f"tolerance={decomposition_tolerance_seconds:.12g}"
+        )
+
+    mem_after = get_process_memory_mb()
 
     summary: Dict[str, Any] = {
         "policy_mode": policy_mode,
         "seed": int(seed),
         "workers": int(workers),
         "decision_points": int(decision_points),
-        "total_runtime_seconds": float(total_runtime),
-        "throughput_points_per_second": float(decision_points / total_runtime) if total_runtime > 0 else 0.0,
+        # Historical timing boundary retained for compatibility with the
+        # finalized 528-row study: checkpoint preparation + replay only.
+        "total_runtime_seconds": float(timed_execution_runtime_seconds),
+        "timed_execution_runtime_seconds": float(
+            timed_execution_runtime_seconds
+        ),
+        # New explicit boundaries used for the bc_live-only Comment 8 study.
+        "end_to_end_runtime_seconds": float(end_to_end_runtime_seconds),
+        "checkpoint_preparation_seconds": float(
+            checkpoint_preparation_seconds
+        ),
+        "replay_only_runtime_seconds": float(
+            replay_only_runtime_seconds
+        ),
+        "post_replay_validation_seconds": float(
+            post_replay_validation_seconds
+        ),
+        "timed_runtime_decomposition_error_seconds": float(
+            timed_decomposition_error_seconds
+        ),
+        "end_to_end_runtime_decomposition_error_seconds": float(
+            end_to_end_decomposition_error_seconds
+        ),
+        "runtime_decomposition_tolerance_seconds": float(
+            decomposition_tolerance_seconds
+        ),
+        "runtime_decomposition_valid": int(runtime_decomposition_valid),
+        "runtime_boundary_definition": (
+            "run_start->validation_end; preparation=model/checkpoint load+"
+            "state load+batched inference+action-map construction; replay_only="
+            "per-record replay using prepared actions; post_replay_validation="
+            "trace reconstruction+receipt reconciliation+hashing+validation"
+        ),
+        "bc_live_total_end_to_end_runtime_seconds": (
+            float(end_to_end_runtime_seconds)
+            if policy_mode == "bc_live"
+            else None
+        ),
+        "bc_live_checkpoint_preparation_seconds": (
+            float(checkpoint_preparation_seconds)
+            if policy_mode == "bc_live"
+            else None
+        ),
+        "bc_live_replay_only_runtime_seconds": (
+            float(replay_only_runtime_seconds)
+            if policy_mode == "bc_live"
+            else None
+        ),
+        "throughput_points_per_second": (
+            float(decision_points / timed_execution_runtime_seconds)
+            if timed_execution_runtime_seconds > 0
+            else 0.0
+        ),
+        "end_to_end_throughput_points_per_second": (
+            float(decision_points / end_to_end_runtime_seconds)
+            if end_to_end_runtime_seconds > 0
+            else 0.0
+        ),
+        "replay_only_throughput_points_per_second": (
+            float(decision_points / replay_only_runtime_seconds)
+            if replay_only_runtime_seconds > 0
+            else 0.0
+        ),
         "mean_latency_ms": statistics.mean(total_latencies) if total_latencies else 0.0,
         "median_latency_ms": statistics.median(total_latencies) if total_latencies else 0.0,
         "p95_latency_ms": float(np.percentile(total_latencies, 95)) if total_latencies else 0.0,
         "intervention_rate": float(out_df["action"].mean()) if decision_points else 0.0,
-        "unauthorized_invocations": int(out_df["unauthorized_invocation"].sum()),
+        "unauthorized_invocations": independent_unauthorized_count,
+        "primary_trace_unauthorized_invocations": primary_unauthorized_invocation_count,
+        "authorization_execution_consistent": trace_validation[
+            "authorization_execution_consistent"
+        ],
+        "execution_receipts_enabled": int(receipts_enabled),
+        "receipt_validation_passed": int(
+            receipt_summary["receipt_validation_passed"]
+        ),
+        "receipt_rows": int(receipt_summary.get("receipt_rows", 0)),
+        "orphan_receipts": int(receipt_summary["orphan_receipts"]),
+        "missing_receipts": int(receipt_summary["missing_receipts"]),
+        "unlogged_downstream_calls": int(
+            receipt_summary["unlogged_downstream_calls"]
+        ),
+        "duplicate_downstream_calls": int(
+            receipt_summary["duplicate_downstream_calls"]
+        ),
+        "mismatched_correlation_ids": int(
+            receipt_summary["mismatched_correlation_ids"]
+        ),
+        "receipt_fault_injected_count": int(
+            out_df["receipt_fault_injected"].sum()
+        ),
+        "record_trace_hash": record_trace_hash_value,
+        "config_manifest_hash": config_manifest_hash_value,
+        "config_bound_trace_hash": config_bound_trace_hash_value,
+        "expected_row_count": trace_validation["expected_rows"],
+        "observed_row_count": trace_validation["observed_rows"],
+        "row_count_match": trace_validation["row_count_match"],
+        "validation_passed": trace_validation["validation_passed"],
         "fault_injected_count": int(out_df["fault_injected"].sum()),
-        "trace_hash": trace_hash(actions),
+        "trace_hash": trace_validation["actual_hash"],
         "memory_before_mb": mem_before,
         "memory_after_mb": mem_after,
         "memory_delta_mb": (mem_after - mem_before) if mem_before is not None and mem_after is not None else None,
         "state_missing_count": int((out_df["state_exists"].astype(int) == 0).sum()),
     }
+
+    if receipts_enabled:
+        out_df.attrs["execution_receipts"] = receipt_df
+        out_df.attrs["receipt_reconciliation"] = reconciliation_df
+        out_df.attrs["run_identity"] = dict(run_identity or {})
 
     return out_df, summary, live_prediction_df
 
@@ -1243,6 +1760,9 @@ def build_policy_cost_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
         "p95_latency_ms": "mean",
         "intervention_rate": "mean",
         "unauthorized_invocations": "mean",
+        "authorization_execution_consistent": "mean",
+        "row_count_match": "mean",
+        "validation_passed": "mean",
         "fault_injected_count": "mean",
         "memory_delta_mb": "mean",
         "state_missing_count": "mean",
@@ -1259,6 +1779,51 @@ def validate_config(cfg: Mapping[str, Any]) -> None:
     dataset_cfg = cfg.get("dataset", {})
     benchmark_cfg = cfg.get("benchmark", {})
     policy_cfg = cfg.get("policy", {})
+    execution_cfg = cfg.get("execution_semantics", {})
+
+    if execution_cfg and not isinstance(execution_cfg, Mapping):
+        raise ValueError("execution_semantics must be a mapping when provided")
+
+    retry_enabled = bool(execution_cfg.get("task_retry_enabled", False))
+    failure_policy = str(
+        execution_cfg.get("task_failure_policy", "fail_fast")
+    ).strip().lower()
+    duplicate_delivery_supported = bool(
+        execution_cfg.get("duplicate_delivery_supported", False)
+    )
+
+    if retry_enabled:
+        raise ValueError(
+            "This benchmark currently assumes task_retry_enabled=false"
+        )
+    if failure_policy != "fail_fast":
+        raise ValueError(
+            "This benchmark currently supports only task_failure_policy='fail_fast'"
+        )
+    if duplicate_delivery_supported:
+        raise ValueError(
+            "This benchmark does not currently support duplicate delivery"
+        )
+
+    receipt_cfg = cfg.get("execution_receipts", {})
+    if receipt_cfg and not isinstance(receipt_cfg, Mapping):
+        raise ValueError("execution_receipts must be a mapping when provided")
+    if bool(receipt_cfg.get("enabled", False)):
+        fault_cfg = cfg.get("fault_injection", {})
+        receipt_mode = str(
+            fault_cfg.get("receipt_fault_mode", "clean")
+        ).strip().lower()
+        if receipt_mode not in RECEIPT_FAULT_MODES:
+            raise ValueError(
+                f"Unsupported fault_injection.receipt_fault_mode={receipt_mode!r}"
+            )
+        receipt_probability = float(
+            fault_cfg.get("receipt_fault_probability", 0.0)
+        )
+        if not (0.0 <= receipt_probability <= 1.0):
+            raise ValueError(
+                "fault_injection.receipt_fault_probability must be in [0, 1]"
+            )
 
     required = [
         (dataset_cfg, "dataset.input_csv"),
@@ -1335,6 +1900,14 @@ def main() -> None:
     benchmark_cfg = cfg["benchmark"]
     policy_cfg = cfg["policy"]
     logging_cfg = cfg.get("logging", {})
+    execution_semantics = cfg.get(
+        "execution_semantics",
+        {
+            "task_retry_enabled": False,
+            "task_failure_policy": "fail_fast",
+            "duplicate_delivery_supported": False,
+        },
+    )
 
     input_csv = dataset_cfg["input_csv"]
     fractions = [float(x) for x in dataset_cfg["fractions"]]
@@ -1343,6 +1916,9 @@ def main() -> None:
     policy_modes = list(benchmark_cfg.get("policy_modes", DEFAULT_POLICY_ORDER))
     output_dir = Path(logging_cfg.get("output_dir", "paper_outputs/fgcs_extended_benchmark"))
     save_traces = bool(logging_cfg.get("save_traces", True))
+    save_execution_receipts = bool(
+        logging_cfg.get("save_execution_receipts", True)
+    )
     save_live_bc_predictions = bool(logging_cfg.get("save_live_bc_predictions", True))
     negative_labels = {normalize_label(x) for x in policy_cfg.get("negative_labels", [])}
 
@@ -1381,6 +1957,7 @@ def main() -> None:
 
         for policy_mode in policy_modes:
             reference_hash_by_seed: Dict[Tuple[float, str, int], str] = {}
+            reference_record_hash_by_seed: Dict[Tuple[float, str, int], str] = {}
             reference_intervention_rate_by_seed: Dict[Tuple[float, str, int], float] = {}
 
             for seed in seeds:
@@ -1421,11 +1998,21 @@ def main() -> None:
                     key = (fraction, policy_mode, seed)
                     if workers == workers_list[0]:
                         reference_hash_by_seed[key] = summary["trace_hash"]
+                        if summary.get("record_trace_hash"):
+                            reference_record_hash_by_seed[key] = str(
+                                summary["record_trace_hash"]
+                            )
                         reference_intervention_rate_by_seed[key] = float(summary["intervention_rate"])
 
                     reference_hash = reference_hash_by_seed.get(key)
+                    reference_record_hash = reference_record_hash_by_seed.get(key)
                     reference_ir = reference_intervention_rate_by_seed.get(key)
                     hash_match = int(summary["trace_hash"] == reference_hash) if reference_hash is not None else None
+                    record_hash_match = (
+                        int(str(summary.get("record_trace_hash", "")) == reference_record_hash)
+                        if reference_record_hash is not None
+                        else None
+                    )
                     intervention_rate_delta = (
                         float(summary["intervention_rate"]) - reference_ir if reference_ir is not None else None
                     )
@@ -1439,19 +2026,79 @@ def main() -> None:
                         "trace_hash": summary["trace_hash"],
                         "reference_hash": reference_hash,
                         "hash_match": hash_match,
+                        "record_trace_hash": summary.get("record_trace_hash", ""),
+                        "reference_record_trace_hash": reference_record_hash,
+                        "record_trace_hash_match": record_hash_match,
+                        "config_manifest_hash": summary.get("config_manifest_hash", ""),
+                        "config_bound_trace_hash": summary.get("config_bound_trace_hash", ""),
                         "intervention_rate": summary["intervention_rate"],
                         "reference_intervention_rate": reference_ir,
                         "intervention_rate_delta": intervention_rate_delta,
                         "unauthorized_invocations": summary["unauthorized_invocations"],
+                        "authorization_execution_consistent": summary[
+                            "authorization_execution_consistent"
+                        ],
+                        "receipt_validation_passed": summary.get(
+                            "receipt_validation_passed", 1
+                        ),
+                        "receipt_fault_injected_count": summary.get(
+                            "receipt_fault_injected_count", 0
+                        ),
+                        "expected_row_count": summary["expected_row_count"],
+                        "observed_row_count": summary["observed_row_count"],
+                        "row_count_match": summary["row_count_match"],
+                        "validation_passed": summary["validation_passed"],
                         "fault_injected_count": summary["fault_injected_count"],
                     })
 
+                    run_token = (
+                        f"{workload_name}_policy_{policy_mode}_seed_{seed}_workers_{workers}"
+                    )
                     if save_traces:
-                        trace_path = (
-                            output_dir
-                            / f"trace_{workload_name}_policy_{policy_mode}_seed_{seed}_workers_{workers}.csv"
-                        )
+                        trace_path = output_dir / f"trace_{run_token}.csv"
                         trace_df.to_csv(trace_path, index=False)
+
+                    if (
+                        save_execution_receipts
+                        and int(summary.get("execution_receipts_enabled", 0)) == 1
+                    ):
+                        receipt_df = trace_df.attrs.get("execution_receipts")
+                        reconciliation_df = trace_df.attrs.get(
+                            "receipt_reconciliation"
+                        )
+                        run_identity = trace_df.attrs.get("run_identity", {})
+                        if isinstance(receipt_df, pd.DataFrame):
+                            receipt_df.to_csv(
+                                output_dir / f"execution_receipts_{run_token}.csv",
+                                index=False,
+                            )
+                        if isinstance(reconciliation_df, pd.DataFrame):
+                            reconciliation_df.to_csv(
+                                output_dir / f"receipt_reconciliation_{run_token}.csv",
+                                index=False,
+                            )
+                        with open(
+                            output_dir / f"trace_manifest_{run_token}.json",
+                            "w",
+                            encoding="utf-8",
+                        ) as handle:
+                            json.dump(
+                                {
+                                    **dict(run_identity),
+                                    "action_hash": summary["trace_hash"],
+                                    "record_trace_hash": summary.get(
+                                        "record_trace_hash", ""
+                                    ),
+                                    "config_bound_trace_hash": summary.get(
+                                        "config_bound_trace_hash", ""
+                                    ),
+                                    "receipt_validation_passed": summary.get(
+                                        "receipt_validation_passed", 0
+                                    ),
+                                },
+                                handle,
+                                indent=2,
+                            )
 
                     if save_live_bc_predictions and live_pred_df is not None and not live_pred_df.empty:
                         live_pred_df = live_pred_df.copy()
@@ -1483,6 +2130,54 @@ def main() -> None:
         pd.concat(live_prediction_frames, ignore_index=True).to_csv(live_bc_path, index=False)
         print(f"[OUT] {live_bc_path}")
 
+    run_manifest = {
+        "input_csv": str(input_csv),
+        "input_rows": int(len(df_full)),
+        "fractions": fractions,
+        "policy_modes": policy_modes,
+        "seeds": seeds,
+        "workers": workers_list,
+        "expected_runs": int(expected_runs),
+        "completed_runs": int(len(summary_df)),
+        "execution_semantics": dict(execution_semantics),
+        "execution_receipts_enabled": bool(
+            cfg.get("execution_receipts", {}).get("enabled", False)
+        ),
+        "validation": {
+            "action_hash": (
+                "SHA-256 over the canonical ordered integer action sequence"
+            ),
+            "record_trace_hash": (
+                "SHA-256 over ordered record identity, action, authorization, "
+                "primary execution state, correlation identity, and reconciled "
+                "receipt state when execution receipts are enabled"
+            ),
+            "config_bound_trace_hash": (
+                "SHA-256 binding the record trace hash to the run configuration "
+                "manifest hash when execution receipts are enabled"
+            ),
+            "authorization_execution_invariant": (
+                "cross-log reconciliation between primary trace and independently "
+                "emitted downstream execution receipts when enabled"
+            ),
+            "row_count_validation": True,
+        },
+        "all_runs_authorization_execution_consistent": bool(
+            summary_df["authorization_execution_consistent"].eq(1).all()
+        ) if not summary_df.empty else False,
+        "all_runs_row_count_match": bool(
+            summary_df["row_count_match"].eq(1).all()
+        ) if not summary_df.empty else False,
+        "all_runs_validation_passed": bool(
+            summary_df["validation_passed"].eq(1).all()
+        ) if not summary_df.empty else False,
+    }
+
+    manifest_path = output_dir / "benchmark_run_manifest.json"
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(run_manifest, f, indent=2)
+
+    print(f"[OUT] {manifest_path}")
     print("[DONE] FGCS extended benchmark complete.")
     print(f"[OUT] {summary_path}")
     print(f"[OUT] {stage_path}")

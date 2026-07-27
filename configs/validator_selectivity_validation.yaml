@@ -1,0 +1,70 @@
+# Targeted validator-selectivity protocol.
+# This experiment is separate from the frozen 360-condition functional matrix,
+# 528-run timing study, and earlier 18-condition execution-integrity experiment.
+
+dataset:
+  input_csv: paper_outputs/replay_input_clean.csv
+  fractions: [1.00]
+  state_root: ""
+
+benchmark:
+  seeds: [1]
+  workers: [1, 4]
+  policy_modes: [risk_proxy, random, always, never]
+
+policy:
+  negative_labels: [anger, angry, disgust, disgusted, fear, fearful, sadness, sad]
+  random_intervention_probability: 0.50
+
+execution_semantics:
+  task_retry_enabled: false
+  task_failure_policy: fail_fast
+  duplicate_delivery_supported: false
+
+execution_receipts:
+  enabled: true
+
+fault_injection:
+  enabled: false
+  action_flip_probability: 0.0
+  unauthorized_invoke_probability: 0.0
+  receipt_fault_mode: clean
+  receipt_fault_probability: 0.0
+  allowed_policy_modes: [risk_proxy, random, never]
+  receipt_fault_allowed_policy_modes: [risk_proxy, random, always]
+
+generation_stub:
+  mode: affective_response
+  service_name: deterministic_generation_stub
+
+selectivity:
+  # The previously completed 18-condition experiment already tests all three
+  # benchmark seeds at 1% intensity. This extension holds the benchmark seed at
+  # 1 while crossing all relevant policy families and both worker settings.
+  seeds: [1]
+  workers: [1, 4]
+  runtime_policy_modes: [risk_proxy, random, never]
+  receipt_policy_modes: [risk_proxy, random, always]
+  injection_seed: 20260724
+  profiles:
+    - name: single_first
+      kind: first
+    - name: single_last
+      kind: last
+    - name: single_seeded
+      kind: single_seeded
+    - name: rate_0_01_percent
+      kind: rate
+      rate: 0.0001
+    - name: rate_0_1_percent
+      kind: rate
+      rate: 0.001
+    - name: rate_1_percent
+      kind: rate
+      rate: 0.01
+
+logging:
+  output_dir: paper_outputs/validator_selectivity_validation
+  save_traces: false
+  save_execution_receipts: false
+  save_live_bc_predictions: false

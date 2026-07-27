@@ -1,0 +1,13 @@
+{
+  "dataset": "MetroPT-3",
+  "source_filename": "MetroPT3(AirCompressor).csv",
+  "source_sha256": "db30ccb4ea402e3c8bf2c99db06e288d4f2a772f6928f9dbe26a920d69793e24",
+  "source_rows": 1516948,
+  "duplicate_check_scope": "complete canonical source data rows excluding header",
+  "duplicate_check_normalization": "remove CR/LF terminator only; preserve all other row bytes",
+  "duplicate_check_digest": "SHA-256 per complete row stored under SQLite UNIQUE constraint",
+  "unique_full_rows": 1516948,
+  "duplicate_full_rows": 0,
+  "first_duplicate_data_row": null,
+  "audit_timestamp_utc": "2026-07-24T04:09:18.104762+00:00"
+}
