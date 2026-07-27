@@ -15,5 +15,5 @@ MetroPT-3 controlled faults,Clean validator applications,54,54,passed
 Cloud validation,Cross-region hash matches,360,360,passed
 Cloud validation,Local-to-cloud hash matches,720,720,passed
 Clean authorization checks,Maximum contradiction count across clean evidence,0,0,passed
-Software validation,Python files compiled,110,110,passed
+Software validation,Python files compiled,109,109,passed
 Software validation,Tests passed,29,29,passed

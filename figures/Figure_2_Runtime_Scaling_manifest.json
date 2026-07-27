@@ -3,7 +3,7 @@
   "input_sha256": "317f9892620d0d48a38730bf8bd6357c1e53731d4bd43119baec1494e4da5a6b",
   "outputs": {
     "figures/Figure_2_Runtime_Scaling.png": "70d4f34c720f54b63b6feed2c76aea175a6232cc4b19d0e845ecdde149911a41",
-    "figures/Figure_2_Runtime_Scaling.pdf": "54b55d9b57f4f74a007d3e020ff86dde9db87eb654292db134829afe89819278"
+    "figures/Figure_2_Runtime_Scaling.pdf": "6c4137b6a92376bbbb2e25df28fc471dc22de4167231dcff847663152393c79c"
   },
   "filter": "workers == 1",
   "expected_rows": 30,

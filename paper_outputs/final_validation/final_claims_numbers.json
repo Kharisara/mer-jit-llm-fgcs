@@ -165,7 +165,7 @@
   "software_validation": {
     "all_python_files_compile": true,
     "all_tests_passed": true,
-    "python_files_compiled": 107,
+    "python_files_compiled": 109,
     "tests_passed": 29
   },
   "timing_study": {

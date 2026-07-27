@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-07-27T04:38:54.177527+00:00",
+  "completed_at_utc": "2026-07-27T11:00:21.080119+00:00",
   "components": {
     "cloud_validation": {
       "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
@@ -21,6 +21,24 @@
       "dataframe_map_replacement_present": true,
       "deprecated_applymap_removed": true,
       "file": "fgcs_fault_validation_framework.py"
+    },
+    "comment12_traceability": {
+      "base_image": "python:3.12-slim",
+      "base_image_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
+      "dependency_lock_hash_matches": true,
+      "environment_manifest_complete": true,
+      "environment_manifest_sha256": "6fab419851ac6ea380bcd583fc79143821270be315f333f6086105bc21f56e22",
+      "figure2_output_hashes_match": true,
+      "figure2_outputs": [
+        "figures/Figure_2_Runtime_Scaling.pdf",
+        "figures/Figure_2_Runtime_Scaling.png"
+      ],
+      "figure2_source": "paper_outputs/replaybench_timing_study/timing_runtime_summary_mixed_7_15.csv",
+      "figure2_source_hash_matches": true,
+      "final_image_digest": "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+      "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+      "python_executable_sha256": "9b0bffb7a259cd2722df454fdfff41ee13665820cff1f578b1d97d31f9ef93d5",
+      "requirements_hash_matches": true
     },
     "metropt3": {
       "all_worker_hashes_match": true,
@@ -183,7 +201,7 @@
         "-q"
       ],
       "exit_code": 0,
-      "output": ".............................                                            [100%]\n29 passed in 41.56s",
+      "output": ".............................                                            [100%]\n29 passed in 42.73s",
       "tests_passed": 29
     },
     "python_compilation": {
@@ -195,6 +213,7 @@
         "check_fgcs_paths.py",
         "check_metropt3_full_row_duplicates.py",
         "check_metropt_timestamps.py",
+        "comment12_artifact_validation.py",
         "compare_cross_region_hashes.py",
         "compute_identifiability_metrics.py",
         "compute_identifiability_sweep.py",
@@ -202,6 +221,7 @@
         "fgcs_fault_validation_framework.py",
         "final_artifact_utils.py",
         "freeze_final_repository.py",
+        "generate_figure2_runtime_scaling.py",
         "generate_final_manuscript_tables.py",
         "make_fgcs_mean_sd_tables.py",
         "mer/__init__.py",
@@ -297,8 +317,8 @@
         "tools/quick_view.py",
         "tools/select_sample_for_cloud.py"
       ],
-      "python_files_compiled": 107,
-      "python_files_discovered": 107
+      "python_files_compiled": 109,
+      "python_files_discovered": 109
     },
     "ray_validation": {
       "all_detection_expectations_met": true,
@@ -315,8 +335,8 @@
     "required_files": {
       "all_present": true,
       "required_configurations": 7,
-      "required_manifests": 10,
-      "required_scripts": 14
+      "required_manifests": 12,
+      "required_scripts": 17
     },
     "timing_study": {
       "all_recorded_validation_flags_pass": true,
@@ -347,7 +367,7 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.0",
-  "started_at_utc": "2026-07-27T04:38:05.770671+00:00",
+  "started_at_utc": "2026-07-27T10:59:31.275142+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,
