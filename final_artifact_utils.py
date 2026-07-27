@@ -123,6 +123,9 @@ DEFAULT_REQUIRED_MANIFESTS = [
     "paper_outputs/secondary_metropt3/preparation_manifest.json",
     "paper_outputs/secondary_metropt3/source_duplicate_row_audit.json",
     "paper_outputs/secondary_metropt3/tables_figures/secondary_validation_summary.json",
+
+    "paper_outputs/environment/execution_environment_manifest.json",
+    "figures/Figure_2_Runtime_Scaling_manifest.json",
 ]
 
 DEFAULT_REQUIRED_SCRIPTS = [
@@ -140,6 +143,10 @@ DEFAULT_REQUIRED_SCRIPTS = [
     "final_artifact_utils.py",
     "apply_final_code_quality_fix.py",
     "freeze_final_repository.py",
+
+    "collect_comment12_environment.ps1",
+    "generate_figure2_runtime_scaling.py",
+    "comment12_artifact_validation.py",
 ]
 
 

@@ -30,6 +30,7 @@ from typing import Any, Callable
 
 import pandas as pd
 
+from comment12_artifact_validation import validate_comment12_artifacts
 from final_artifact_utils import (
     DEFAULT_REQUIRED_CONFIGS,
     DEFAULT_REQUIRED_MANIFESTS,
@@ -298,6 +299,7 @@ def main() -> None:
             cloud_root=cloud_root,
         )),
         ("code_quality", lambda: (validate_code_quality_fix(project_dir), [])),
+        ("comment12_traceability", lambda: validate_comment12_artifacts(project_dir)),
         ("primary_benchmark", lambda: validate_primary_benchmark(project_dir)),
         ("timing_study", lambda: validate_timing_study(project_dir)),
         ("ray_validation", lambda: validate_ray(project_dir)),
