@@ -126,6 +126,8 @@ DEFAULT_REQUIRED_MANIFESTS = [
 
     "paper_outputs/environment/execution_environment_manifest.json",
     "figures/Figure_2_Runtime_Scaling_manifest.json",
+    "paper_outputs/environment/cloud_container_environment.json",
+    "paper_outputs/environment/cloud_environment_comparison.json",
 ]
 
 DEFAULT_REQUIRED_SCRIPTS = [
@@ -147,6 +149,8 @@ DEFAULT_REQUIRED_SCRIPTS = [
     "collect_comment12_environment.ps1",
     "generate_figure2_runtime_scaling.py",
     "comment12_artifact_validation.py",
+    "generate_cloud_environment_comparison.py",
+    "comment13_artifact_validation.py",
 ]
 
 

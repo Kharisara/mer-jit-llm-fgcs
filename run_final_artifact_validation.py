@@ -31,6 +31,7 @@ from typing import Any, Callable
 import pandas as pd
 
 from comment12_artifact_validation import validate_comment12_artifacts
+from comment13_artifact_validation import validate_comment13_artifacts
 from final_artifact_utils import (
     DEFAULT_REQUIRED_CONFIGS,
     DEFAULT_REQUIRED_MANIFESTS,
@@ -162,6 +163,7 @@ def make_claims_numbers(
     primary_faults: dict[str, Any],
     metro: dict[str, Any],
     cloud: dict[str, Any],
+    comment13: dict[str, Any],
     tests: dict[str, Any],
     compilation: dict[str, Any],
 ) -> dict[str, Any]:
@@ -223,6 +225,7 @@ def make_claims_numbers(
                 "max_clean_unauthorized_invocations"
             ],
         },
+        "environment_comparison": comment13,
         "software_validation": {
             "python_files_compiled": compilation["python_files_compiled"],
             "all_python_files_compile": compilation["all_python_files_compile"],
@@ -300,6 +303,7 @@ def main() -> None:
         )),
         ("code_quality", lambda: (validate_code_quality_fix(project_dir), [])),
         ("comment12_traceability", lambda: validate_comment12_artifacts(project_dir)),
+        ("comment13_environment_comparison", lambda: validate_comment13_artifacts(project_dir)),
         ("primary_benchmark", lambda: validate_primary_benchmark(project_dir)),
         ("timing_study", lambda: validate_timing_study(project_dir)),
         ("ray_validation", lambda: validate_ray(project_dir)),
@@ -360,6 +364,7 @@ def main() -> None:
             primary_faults=primary_faults,
             metro=component_results["metropt3"],
             cloud=component_results["cloud_validation"],
+            comment13=component_results["comment13_environment_comparison"],
             tests=tests,
             compilation=compilation,
         )
@@ -417,6 +422,7 @@ def main() -> None:
                 ),
                 "cloud_cross_region_matches": "360/360",
                 "cloud_local_to_cloud_matches": "720/720",
+                "comment13_environment_comparison": True,
                 "clean_authorization_contradictions": 0,
                 "all_python_files_compile": True,
                 "all_tests_pass": True,
