@@ -1,0 +1,55 @@
+{
+  "comparison_csv": {
+    "path": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
+    "row_count": 14,
+    "sha256": "2a0fe66c3f7d3b8968d7b93d02b80dbcd1f5ec6593bad4fca8639718c092a7fb"
+  },
+  "container": {
+    "architecture": "x86_64",
+    "base_image_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
+    "final_image_digest": "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+    "inspected_kernel": "Linux 6.9.12",
+    "inspected_os": "Debian GNU/Linux 13 (trixie)",
+    "locale": "C.UTF-8",
+    "time_zone": "UTC +0000"
+  },
+  "dependency_lock": {
+    "path": "paper_outputs/environment/pip_freeze_lock.txt",
+    "sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88"
+  },
+  "interpretation": "Portability and environment-consistency validation across a native Windows workstation and the same digest-pinned Linux container in two regions of one cloud provider.",
+  "local": {
+    "architecture": "x86_64 (64-bit)",
+    "build": "26200",
+    "cpu": "Intel Core i7-10750H CPU at 2.60 GHz",
+    "locale": "en-GB",
+    "logical_processors": 12,
+    "os": "Microsoft Windows 11 Home",
+    "power_plan": "Balanced",
+    "python_version": "3.12.2",
+    "ram_gib": 15.8,
+    "time_zone": "Sri Lanka Standard Time",
+    "ui_locale": "en-GB",
+    "utc_offset": "+05:30",
+    "version": "10.0.26200"
+  },
+  "schema": "replaybench-pg-cloud-environment-comparison-v1",
+  "source_metadata": {
+    "asia-southeast1": {
+      "path": "cloud_results/cloud360_riskproxy_20260702/asia-southeast1/cloud_run_metadata.json",
+      "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
+      "python_version": "3.12.13 (main, Jun 24 2026, 02:08:01) [GCC 14.2.0]",
+      "region": "asia-southeast1",
+      "return_code": 0,
+      "sha256": "4cb6a461d788ed0ed463e0c0bbc179490721237ce6642e3b56c5947ee3d3736c"
+    },
+    "us-central1": {
+      "path": "cloud_results/cloud360_riskproxy_20260702/us-central1/cloud_run_metadata.json",
+      "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
+      "python_version": "3.12.13 (main, Jun 24 2026, 02:08:01) [GCC 14.2.0]",
+      "region": "us-central1",
+      "return_code": 0,
+      "sha256": "ff8186ab3450f1ba158dcb40a5061e12c2b49da34808b22caea1c14c714c8ffb"
+    }
+  }
+}
