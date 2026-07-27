@@ -99,6 +99,15 @@ $manifestPath = [System.IO.Path]::GetFullPath(
 
 $existingManifest = Get-ExistingEnvironmentManifest -Path $manifestPath
 
+# Capture repository state BEFORE creating or modifying any generated artifact.
+$gitCommit = Invoke-Trimmed { git -C $ProjectRoot rev-parse HEAD }
+if ([string]::IsNullOrWhiteSpace($gitCommit)) {
+    throw 'Could not resolve the current Git commit.'
+}
+
+$gitStatus = Invoke-Trimmed { git -C $ProjectRoot status --porcelain }
+$gitWorktreeDirty = -not [string]::IsNullOrWhiteSpace($gitStatus)
+
 $pythonCommand = Get-Command python -ErrorAction Stop
 $pythonExe = if (-not [string]::IsNullOrWhiteSpace($pythonCommand.Path)) {
     $pythonCommand.Path
@@ -251,14 +260,6 @@ $threadInfo = [ordered]@{
         [System.Convert]::ToBoolean($torchCudaAvailable)
     }
 }
-
-$gitCommit = Invoke-Trimmed { git -C $ProjectRoot rev-parse HEAD }
-if ([string]::IsNullOrWhiteSpace($gitCommit)) {
-    throw 'Could not resolve the current Git commit.'
-}
-
-$gitStatus = Invoke-Trimmed { git -C $ProjectRoot status --porcelain }
-$gitWorktreeDirty = -not [string]::IsNullOrWhiteSpace($gitStatus)
 
 $dockerfilePath = Join-Path $ProjectRoot 'Dockerfile'
 if ([string]::IsNullOrWhiteSpace($BaseImage) -and (Test-Path -LiteralPath $dockerfilePath -PathType Leaf)) {
