@@ -1,0 +1,4 @@
+policy,clean_conditions,workers_tested,external_hash_matches,row_count_matches,max_unauthorized_invocations
+never,6,"1,4",6,6,0
+random,6,"1,4",6,6,0
+risk_proxy,6,"1,4",6,6,0

@@ -1,0 +1,6 @@
+fault_mode,execution_instances,correctly_classified_instances,injected_events,validation_passes,anomaly_detected_instances,false_positive_instances,false_negative_instances
+clean,18,18,0,18,0,0,0
+duplicate_downstream_call,18,18,1238,0,18,0,0
+false_execution_log,18,18,1166,0,18,0,0
+mismatched_correlation_id,18,18,1252,0,18,0,0
+unlogged_downstream_call,18,18,1184,0,18,0,0

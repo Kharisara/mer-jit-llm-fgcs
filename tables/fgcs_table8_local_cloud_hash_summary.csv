@@ -1,0 +1,13 @@
+region,policy_mode,conditions_compared,matching_conditions,max_local_unauthorized,max_cloud_unauthorized,all_match
+asia-southeast1,always,60,60,0,0,True
+asia-southeast1,bc,60,60,0,0,True
+asia-southeast1,bc_live,60,60,0,0,True
+asia-southeast1,never,60,60,0,0,True
+asia-southeast1,random,60,60,0,0,True
+asia-southeast1,risk_proxy,60,60,0,0,True
+us-central1,always,60,60,0,0,True
+us-central1,bc,60,60,0,0,True
+us-central1,bc_live,60,60,0,0,True
+us-central1,never,60,60,0,0,True
+us-central1,random,60,60,0,0,True
+us-central1,risk_proxy,60,60,0,0,True

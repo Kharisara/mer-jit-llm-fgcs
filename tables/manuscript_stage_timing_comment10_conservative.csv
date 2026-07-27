@@ -1,0 +1,4 @@
+measurement,scope,n,median,iqr,unit,timing_basis
+State loading,Five non-checkpoint modes,75,0.779,0.044,ms per point,individually timed with time.perf_counter
+State loading,bc_live,15,0.472,0.029,ms per point,individually timed with time.perf_counter
+BC checkpoint inference,bc_live,15,46.7,3.0,ms per full run,batch timed at batch size 4096 and summed over 11351 points

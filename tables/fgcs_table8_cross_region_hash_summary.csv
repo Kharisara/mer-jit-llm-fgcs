@@ -1,0 +1,7 @@
+policy_mode,asia-southeast1_hash_sample,us-central1_hash_sample,conditions_compared,matching_conditions,all_match,max_unauthorized_invocations
+always,817f0e11762de58b...,817f0e11762de58b...,60,60,True,0
+bc,817f0e11762de58b...,817f0e11762de58b...,60,60,True,0
+bc_live,817f0e11762de58b...,817f0e11762de58b...,60,60,True,0
+never,85b204e18d148f25...,85b204e18d148f25...,60,60,True,0
+random,37845ce378b96aef...,37845ce378b96aef...,60,60,True,0
+risk_proxy,fc28e652a5f6795a...,fc28e652a5f6795a...,60,60,True,0

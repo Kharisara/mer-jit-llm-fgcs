@@ -1,0 +1,7 @@
+policy,paired_repetitions,fastest_worker_1_count,fastest_worker_2_count,fastest_worker_4_count,fastest_worker_8_count,worker_2_faster_than_worker_1_count,worker_4_faster_than_worker_1_count,worker_8_faster_than_worker_1_count
+always,15,0,0,13,2,12,15,15
+bc,15,0,0,12,3,10,15,15
+bc_live,15,14,1,0,0,1,0,0
+never,15,0,1,10,4,12,15,15
+random,15,0,0,14,1,11,15,15
+risk_proxy,15,0,0,13,2,12,15,15

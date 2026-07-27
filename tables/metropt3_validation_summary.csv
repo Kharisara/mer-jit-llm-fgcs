@@ -1,0 +1,11 @@
+panel,item,evidence_unit,conditions_or_runs,validator_applications,unique_action_hashes,all_worker_reconstructions_match,max_clean_unauthorized_invocations,full_workload_mean_intervention_rate,injected_events,detected_runs,detection_rate,false_positive_runs
+clean_deterministic_replay,always,benchmark_conditions,18,,3.0,1.0,0.0,1.0,,,,
+clean_deterministic_replay,never,benchmark_conditions,18,,3.0,1.0,0.0,0.0,,,,
+clean_deterministic_replay,random,benchmark_conditions,18,,9.0,1.0,0.0,0.4975333333333334,,,,
+clean_deterministic_replay,rule_gate,benchmark_conditions,18,,3.0,1.0,0.0,0.16045,,,,
+controlled_fault_detection,Clean false-positive control (18 unique references; 54 validator applications),unique_clean_reference_executions,18,54,,,0.0,,0.0,0.0,,0.0
+controlled_fault_detection,Action flip (1%),independent_fault_runs,18,,,,,,3550.0,18.0,1.0,0.0
+controlled_fault_detection,Unauthorized invocation (1%),independent_fault_runs,18,,,,,,2774.0,18.0,1.0,0.0
+controlled_fault_detection,Saved-action corruption (1%),independent_fault_runs,18,,,,,,3600.0,18.0,1.0,0.0
+controlled_fault_detection,Dropped trace rows (1%),independent_fault_runs,18,,,,,,3600.0,18.0,1.0,0.0
+controlled_fault_detection,Duplicated trace rows (1%),independent_fault_runs,18,,,,,,3600.0,18.0,1.0,0.0

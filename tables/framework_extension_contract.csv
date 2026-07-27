@@ -1,0 +1,8 @@
+extension_point,required_input,required_output,generic_or_workload_specific
+Workload adapter,Source data and preparation configuration,Ordered records with stable source_record_id and optional metadata,Workload-specific preparation; generic canonical schema
+Policy adapter,Canonical record row index seed and policy configuration,Binary action in {0 1},Built-in generic modes or workload-specific policy
+Authorization adapter,Action and optional record context,Boolean authorization,Generic default action==1
+Downstream adapter,Authorized record and execution context,Deterministic payload and optional independent receipt,Generic contract; workload-specific payload semantics
+Trace serializer,Identity action authorization execution receipt and configuration state,Canonical record for hashes and row checks,Generic schema with optional metadata
+Validator,Expected and observed traces receipts and manifest,Structured findings and pass/fail,Generic
+Artifact adapter,Raw traces receipts findings and summaries,CSV JSON manifests checksums and reports,Generic raw outputs; optional workload summarizer

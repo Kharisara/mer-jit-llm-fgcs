@@ -1,0 +1,7 @@
+adaptation_component,files,recorded_change,reuse_boundary
+Canonical workload preparation,1 new Python script,544 inserted lines,Workload-specific
+Secondary orchestration and summarization,2 new Python scripts,87 + 116 inserted lines,Wrappers around common runner and validators
+Experiment configuration,3 new YAML files,41 + 34 + 34 inserted lines,Configuration only
+Generic extension hooks,1 modified common runner,181 changed lines,Reusable rule_gate and generic_service hooks
+Documentation and generated evidence,13 additional files,Remainder of staged diff,Not required by scheduler
+Total staged extension,20 files,+1549 / -23 lines,Includes code configuration documentation and generated evidence

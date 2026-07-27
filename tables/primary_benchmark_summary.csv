@@ -1,0 +1,7 @@
+policy_mode,conditions,unique_action_hashes,all_worker_reconstructions_match,minimum_hash_match,max_clean_unauthorized_invocations,full_workload_decision_points,full_workload_mean_intervention_rate
+always,60,5,True,1,0,11351,1.0
+bc,60,5,True,1,0,11351,1.0
+bc_live,60,5,True,1,0,11351,1.0
+never,60,5,True,1,0,11351,0.0
+random,60,15,True,1,0,11351,0.4996035591577834
+risk_proxy,60,5,True,1,0,11351,0.22984759052065892

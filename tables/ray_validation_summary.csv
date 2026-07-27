@@ -1,0 +1,4 @@
+fault_mode,conditions,injected_events,expected_flagged_runs,detected_flagged_runs,correct_detection_runs,hash_mismatch_runs,row_count_mismatch_runs,authorization_violation_runs,external_reference_hash_matches,all_detection_expectations_met
+clean,18,0,0,0,18,0,0,0,18,True
+action_flip,18,1966,18,18,18,18,0,0,0,True
+dropped_row,18,2034,18,18,18,18,18,0,0,True

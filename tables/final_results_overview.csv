@@ -1,0 +1,19 @@
+component,metric,observed,expected,status
+Primary benchmark,Completed conditions,360,360,passed
+Timing study,Measured timing rows,528,528,passed
+Timing study,Configurations with seven repetitions,24,24,passed
+Timing study,Configurations with fifteen repetitions,24,24,passed
+Ray validation,Clean external hash matches,18,18,passed
+Ray validation,Fault conditions flagged,36,36,passed
+Primary controlled faults,Fault classes with 18/18 detection,5,5,passed
+Primary controlled faults,Unique clean reference executions,18,18,passed
+Primary controlled faults,Clean validator applications,54,54,passed
+MetroPT-3,Clean conditions,72,72,passed
+MetroPT-3 controlled faults,Fault classes with 18/18 detection,5,5,passed
+MetroPT-3 controlled faults,Unique clean reference executions,18,18,passed
+MetroPT-3 controlled faults,Clean validator applications,54,54,passed
+Cloud validation,Cross-region hash matches,360,360,passed
+Cloud validation,Local-to-cloud hash matches,720,720,passed
+Clean authorization checks,Maximum contradiction count across clean evidence,0,0,passed
+Software validation,Python files compiled,99,99,passed
+Software validation,Tests passed,17,17,passed
