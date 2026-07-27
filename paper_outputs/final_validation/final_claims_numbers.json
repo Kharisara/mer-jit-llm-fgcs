@@ -6,6 +6,47 @@
     "local_to_cloud_matched": 720,
     "max_clean_authorization_contradictions": 0
   },
+  "environment_comparison": {
+    "base_image_digest_matches_comment12": true,
+    "cloud_dependency_lock_sha256": "cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603",
+    "cloud_environment": {
+      "architecture": "x86_64",
+      "locale": "C.UTF-8",
+      "memory_gib_per_region": 4,
+      "os": "Debian GNU/Linux 13 (trixie)",
+      "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
+      "python_version": "3.12.13",
+      "regions": [
+        "asia-southeast1",
+        "us-central1"
+      ],
+      "time_zone": "UTC",
+      "utc_offset": "+00:00",
+      "vcpus_per_region": 2
+    },
+    "comparison_complete": true,
+    "comparison_csv": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
+    "comparison_csv_sha256": "7aa90a1ae3ea8441c698cfab93ab6d8c659422260fb8acfdc05a05f7850b3c43",
+    "comparison_json_sha256": "238e7bd5b9b65bad0acce1cc38850f81bf3e979a3743064cf8692762c6e93549",
+    "final_image_digest_matches_comment12": true,
+    "local_cloud_dependency_locks_identical": false,
+    "local_dependency_lock_sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88",
+    "local_environment": {
+      "architecture": "64-bit",
+      "build": "26200",
+      "locale": "en-GB",
+      "os": "Microsoft Windows 11 Home",
+      "python_version": "Python 3.12.2",
+      "time_zone": "Sri Lanka Standard Time",
+      "utc_offset": "05:30:00",
+      "version": "10.0.26200"
+    },
+    "portability_claim_boundary_present": true,
+    "same_cloud_container_image": true,
+    "same_cloud_platform": true,
+    "same_cloud_python_build": true,
+    "same_cloud_resource_configuration": true
+  },
   "metropt3": {
     "clean_conditions": 72,
     "controlled_faults": {
@@ -165,7 +206,7 @@
   "software_validation": {
     "all_python_files_compile": true,
     "all_tests_passed": true,
-    "python_files_compiled": 109,
+    "python_files_compiled": 111,
     "tests_passed": 29
   },
   "timing_study": {

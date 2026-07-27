@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-07-27T11:00:21.080119+00:00",
+  "completed_at_utc": "2026-07-27T12:01:13.274086+00:00",
   "components": {
     "cloud_validation": {
       "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
@@ -27,7 +27,7 @@
       "base_image_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
       "dependency_lock_hash_matches": true,
       "environment_manifest_complete": true,
-      "environment_manifest_sha256": "6fab419851ac6ea380bcd583fc79143821270be315f333f6086105bc21f56e22",
+      "environment_manifest_sha256": "e7d2fa96cce587059edb42c0e058b078ec22bdd22f0daacaf0fe77f075f15457",
       "figure2_output_hashes_match": true,
       "figure2_outputs": [
         "figures/Figure_2_Runtime_Scaling.pdf",
@@ -39,6 +39,47 @@
       "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
       "python_executable_sha256": "9b0bffb7a259cd2722df454fdfff41ee13665820cff1f578b1d97d31f9ef93d5",
       "requirements_hash_matches": true
+    },
+    "comment13_environment_comparison": {
+      "base_image_digest_matches_comment12": true,
+      "cloud_dependency_lock_sha256": "cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603",
+      "cloud_environment": {
+        "architecture": "x86_64",
+        "locale": "C.UTF-8",
+        "memory_gib_per_region": 4,
+        "os": "Debian GNU/Linux 13 (trixie)",
+        "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
+        "python_version": "3.12.13",
+        "regions": [
+          "asia-southeast1",
+          "us-central1"
+        ],
+        "time_zone": "UTC",
+        "utc_offset": "+00:00",
+        "vcpus_per_region": 2
+      },
+      "comparison_complete": true,
+      "comparison_csv": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
+      "comparison_csv_sha256": "7aa90a1ae3ea8441c698cfab93ab6d8c659422260fb8acfdc05a05f7850b3c43",
+      "comparison_json_sha256": "238e7bd5b9b65bad0acce1cc38850f81bf3e979a3743064cf8692762c6e93549",
+      "final_image_digest_matches_comment12": true,
+      "local_cloud_dependency_locks_identical": false,
+      "local_dependency_lock_sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88",
+      "local_environment": {
+        "architecture": "64-bit",
+        "build": "26200",
+        "locale": "en-GB",
+        "os": "Microsoft Windows 11 Home",
+        "python_version": "Python 3.12.2",
+        "time_zone": "Sri Lanka Standard Time",
+        "utc_offset": "05:30:00",
+        "version": "10.0.26200"
+      },
+      "portability_claim_boundary_present": true,
+      "same_cloud_container_image": true,
+      "same_cloud_platform": true,
+      "same_cloud_python_build": true,
+      "same_cloud_resource_configuration": true
     },
     "metropt3": {
       "all_worker_hashes_match": true,
@@ -201,7 +242,7 @@
         "-q"
       ],
       "exit_code": 0,
-      "output": ".............................                                            [100%]\n29 passed in 42.73s",
+      "output": ".............................                                            [100%]\n29 passed in 42.97s",
       "tests_passed": 29
     },
     "python_compilation": {
@@ -214,6 +255,7 @@
         "check_metropt3_full_row_duplicates.py",
         "check_metropt_timestamps.py",
         "comment12_artifact_validation.py",
+        "comment13_artifact_validation.py",
         "compare_cross_region_hashes.py",
         "compute_identifiability_metrics.py",
         "compute_identifiability_sweep.py",
@@ -221,6 +263,7 @@
         "fgcs_fault_validation_framework.py",
         "final_artifact_utils.py",
         "freeze_final_repository.py",
+        "generate_cloud_environment_comparison.py",
         "generate_figure2_runtime_scaling.py",
         "generate_final_manuscript_tables.py",
         "make_fgcs_mean_sd_tables.py",
@@ -317,8 +360,8 @@
         "tools/quick_view.py",
         "tools/select_sample_for_cloud.py"
       ],
-      "python_files_compiled": 109,
-      "python_files_discovered": 109
+      "python_files_compiled": 111,
+      "python_files_discovered": 111
     },
     "ray_validation": {
       "all_detection_expectations_met": true,
@@ -335,8 +378,8 @@
     "required_files": {
       "all_present": true,
       "required_configurations": 7,
-      "required_manifests": 12,
-      "required_scripts": 17
+      "required_manifests": 14,
+      "required_scripts": 19
     },
     "timing_study": {
       "all_recorded_validation_flags_pass": true,
@@ -367,7 +410,7 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.0",
-  "started_at_utc": "2026-07-27T10:59:31.275142+00:00",
+  "started_at_utc": "2026-07-27T12:00:22.397521+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,
@@ -375,6 +418,7 @@
     "clean_authorization_contradictions": 0,
     "cloud_cross_region_matches": "360/360",
     "cloud_local_to_cloud_matches": "720/720",
+    "comment13_environment_comparison": true,
     "fault_clean_validator_applications": 54,
     "fault_clean_validator_workflows": 3,
     "fault_unique_clean_reference_executions": 18,

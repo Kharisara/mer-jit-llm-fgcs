@@ -1,39 +1,78 @@
 {
+  "claim_boundary": "The comparison does not establish multi-cloud portability, distributed-systems performance, autoscaling behaviour, network-failure tolerance, or production reliability.",
   "comparison_csv": {
+    "columns": [
+      "property",
+      "local_workstation",
+      "asia-southeast1",
+      "us-central1"
+    ],
     "path": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
     "row_count": 14,
-    "sha256": "2a0fe66c3f7d3b8968d7b93d02b80dbcd1f5ec6593bad4fca8639718c092a7fb"
+    "sha256": "7aa90a1ae3ea8441c698cfab93ab6d8c659422260fb8acfdc05a05f7850b3c43"
   },
   "container": {
     "architecture": "x86_64",
     "base_image_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
     "final_image_digest": "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
-    "inspected_kernel": "Linux 6.9.12",
-    "inspected_os": "Debian GNU/Linux 13 (trixie)",
+    "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+    "inspection_path": "paper_outputs/environment/cloud_container_environment.json",
+    "inspection_runtime_platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "inspection_sha256": "3c04ec848570994935c5e0338aaeb9f2eee8eb01ce116cd66619347ce7cccc55",
     "locale": "C.UTF-8",
-    "time_zone": "UTC +0000"
+    "os": "Debian GNU/Linux 13 (trixie)",
+    "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
+    "python_version": "3.12.13",
+    "time_zone": "UTC",
+    "utc_offset": "+00:00"
   },
-  "dependency_lock": {
-    "path": "paper_outputs/environment/pip_freeze_lock.txt",
-    "sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88"
+  "dependency_locks": {
+    "cloud_container": {
+      "path": "paper_outputs/environment/cloud_pip_freeze_lock.txt",
+      "sha256": "cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603"
+    },
+    "identical": false,
+    "local": {
+      "path": "paper_outputs/environment/pip_freeze_lock.txt",
+      "sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88"
+    }
   },
   "interpretation": "Portability and environment-consistency validation across a native Windows workstation and the same digest-pinned Linux container in two regions of one cloud provider.",
   "local": {
-    "architecture": "x86_64 (64-bit)",
+    "architecture": "64-bit",
     "build": "26200",
-    "cpu": "Intel Core i7-10750H CPU at 2.60 GHz",
+    "cpu": "Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz",
     "locale": "en-GB",
     "logical_processors": 12,
     "os": "Microsoft Windows 11 Home",
-    "power_plan": "Balanced",
-    "python_version": "3.12.2",
+    "physical_cores": 6,
+    "power_plan": "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)",
+    "python_version": "Python 3.12.2",
     "ram_gib": 15.8,
     "time_zone": "Sri Lanka Standard Time",
     "ui_locale": "en-GB",
-    "utc_offset": "+05:30",
+    "utc_offset": "05:30:00",
     "version": "10.0.26200"
   },
-  "schema": "replaybench-pg-cloud-environment-comparison-v1",
+  "regional_resources": {
+    "asia-southeast1": {
+      "execution_environment": "second-generation",
+      "memory_gib": 4,
+      "retries": 0,
+      "vcpus": 2
+    },
+    "us-central1": {
+      "execution_environment": "second-generation",
+      "memory_gib": 4,
+      "retries": 0,
+      "vcpus": 2
+    }
+  },
+  "schema": "replaybench-pg-cloud-environment-comparison-v2",
+  "source_environment_manifest": {
+    "path": "paper_outputs/environment/execution_environment_manifest.json",
+    "sha256": "e7d2fa96cce587059edb42c0e058b078ec22bdd22f0daacaf0fe77f075f15457"
+  },
   "source_metadata": {
     "asia-southeast1": {
       "path": "cloud_results/cloud360_riskproxy_20260702/asia-southeast1/cloud_run_metadata.json",

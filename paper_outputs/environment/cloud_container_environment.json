@@ -1,0 +1,30 @@
+{
+  "lang": "C.UTF-8",
+  "language": null,
+  "lc_all": null,
+  "locale": "LC_CTYPE=C.UTF-8;LC_NUMERIC=C;LC_TIME=C;LC_COLLATE=C;LC_MONETARY=C;LC_MESSAGES=C;LC_PAPER=C;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=C;LC_IDENTIFICATION=C",
+  "machine": "x86_64",
+  "os_release": {
+    "BUG_REPORT_URL": "https://bugs.debian.org/",
+    "DEBIAN_VERSION_FULL": "13.5",
+    "HOME_URL": "https://www.debian.org/",
+    "ID": "debian",
+    "NAME": "Debian GNU/Linux",
+    "PRETTY_NAME": "Debian GNU/Linux 13 (trixie)",
+    "SUPPORT_URL": "https://www.debian.org/support",
+    "VERSION": "13 (trixie)",
+    "VERSION_CODENAME": "trixie",
+    "VERSION_ID": "13"
+  },
+  "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+  "python_implementation": "CPython",
+  "python_version": "3.12.13",
+  "release": "6.6.114.1-microsoft-standard-WSL2",
+  "system": "Linux",
+  "time_zone_names": [
+    "UTC",
+    "UTC"
+  ],
+  "tz_env": null,
+  "utc_offset_seconds": 0
+}
