@@ -1,0 +1,27 @@
+{
+  "input": "paper_outputs/replaybench_timing_study/timing_runtime_summary_mixed_7_15.csv",
+  "input_sha256": "317f9892620d0d48a38730bf8bd6357c1e53731d4bd43119baec1494e4da5a6b",
+  "outputs": {
+    "figures/Figure_2_Runtime_Scaling.png": "70d4f34c720f54b63b6feed2c76aea175a6232cc4b19d0e845ecdde149911a41",
+    "figures/Figure_2_Runtime_Scaling.pdf": "54b55d9b57f4f74a007d3e020ff86dde9db87eb654292db134829afe89819278"
+  },
+  "filter": "workers == 1",
+  "expected_rows": 30,
+  "policies": [
+    "always",
+    "bc",
+    "bc_live",
+    "never",
+    "random",
+    "risk_proxy"
+  ],
+  "fractions": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "error_bars": "Q1 and Q3 around the median",
+  "repetition_rule": "7 repetitions for fractions 0.10-0.75; 15 for fraction 1.00"
+}

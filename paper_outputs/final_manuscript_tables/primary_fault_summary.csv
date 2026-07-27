@@ -1,0 +1,7 @@
+fault_mode,fault_label,evidence_unit,conditions_or_runs,validator_applications,injected_events,detected_runs,detection_rate,false_positive_runs,detection_channel
+clean_replay,Clean false-positive control (18 unique references; 54 validator applications),unique_clean_reference_executions,18,54,0,0,,0,none
+action_flip_1_percent,Action flip (1%),independent_fault_runs,18,,2048,18,1.0,0,SHA-256 trace mismatch + injected-fault counter
+unauthorized_invoke_1_percent,Unauthorized invocation (1%),independent_fault_runs,18,,1440,18,1.0,0,unauthorized-invocation counter + injected-fault counter
+trace_action_corruption_1_percent,Saved-action corruption (1%),independent_fault_runs,18,,2052,18,1.0,0,SHA-256 action-trace mismatch
+drop_trace_rows_1_percent,Dropped trace rows (1%),independent_fault_runs,18,,2052,18,1.0,0,row-count mismatch + SHA-256 action-trace mismatch
+duplicate_trace_rows_1_percent,Duplicated trace rows (1%),independent_fault_runs,18,,2052,18,1.0,0,row-count mismatch + SHA-256 action-trace mismatch
