@@ -9,15 +9,16 @@
   "metropt3": {
     "clean_conditions": 72,
     "controlled_faults": {
-      "all_fault_classes_detected_18_of_18": true,
-      "clean_comparison_instances": 54,
-      "clean_false_positive_detections": 0,
+      "all_fault_classes_fully_detected": true,
+      "clean_false_positive_flags": 0,
+      "clean_validator_applications": 54,
+      "clean_validator_workflows": 3,
       "fault_classes": 5,
       "faults": {
         "action_flip_1_percent": {
           "detected_runs": 18,
           "false_positive_runs": 0,
-          "injected_events": 3522,
+          "injected_events": 3550,
           "label": "Action flip (1%)",
           "runs": 18
         },
@@ -45,20 +46,37 @@
         "unauthorized_invoke_1_percent": {
           "detected_runs": 18,
           "false_positive_runs": 0,
-          "injected_events": 2762,
+          "injected_events": 2774,
           "label": "Unauthorized invocation (1%)",
           "runs": 18
         }
       },
-      "runs_per_fault_class": 18
+      "runs_per_fault_class": 18,
+      "unique_clean_reference_executions": 18
     },
     "full_workload_mean_intervention_rate_by_policy": {
       "always": 1.0,
       "never": 0.0,
-      "random": 0.50205,
-      "rule_gate": 0.1622
+      "random": 0.4975333333333333,
+      "rule_gate": 0.16045
     },
     "max_clean_authorization_contradictions": 0,
+    "provenance": {
+      "adjacent_duplicate_timestamps": 0,
+      "backward_timestamp_steps": 0,
+      "canonical_archive_sha256": "aab991a970e58210de853bb8078ce0e63abb4d9412fdc5c79792dae3d8e1721a",
+      "canonical_source_filename": "MetroPT3(AirCompressor).csv",
+      "canonical_source_rows": 1516948,
+      "canonical_source_sha256": "db30ccb4ea402e3c8bf2c99db06e288d4f2a772f6928f9dbe26a920d69793e24",
+      "prepared_replay_rows": 20000,
+      "prepared_replay_sha256": "954ce56d39ebd47ac0249f5da39a1fab0d678d58889049c64b2c082123bd860c",
+      "provenance_verified": true,
+      "rule_gate_positive_count": 3209,
+      "rule_gate_positive_rate": 0.16045,
+      "source_duplicate_full_rows": 0,
+      "source_unique_full_rows": 1516948,
+      "timestamp_monotonic_non_decreasing": true
+    },
     "unique_hashes_by_policy": {
       "always": 3,
       "never": 3,
@@ -89,9 +107,10 @@
     }
   },
   "primary_controlled_faults": {
-    "all_fault_classes_detected_18_of_18": true,
-    "clean_comparison_instances": 54,
-    "clean_false_positive_detections": 0,
+    "all_fault_classes_fully_detected": true,
+    "clean_false_positive_flags": 0,
+    "clean_validator_applications": 54,
+    "clean_validator_workflows": 3,
     "fault_classes": 5,
     "faults": {
       "action_flip_1_percent": {
@@ -130,7 +149,8 @@
         "runs": 18
       }
     },
-    "runs_per_fault_class": 18
+    "runs_per_fault_class": 18,
+    "unique_clean_reference_executions": 18
   },
   "ray_validation": {
     "clean_conditions": 18,
@@ -145,8 +165,8 @@
   "software_validation": {
     "all_python_files_compile": true,
     "all_tests_passed": true,
-    "python_files_compiled": 94,
-    "tests_passed": 17
+    "python_files_compiled": 107,
+    "tests_passed": 29
   },
   "timing_study": {
     "configurations": 48,

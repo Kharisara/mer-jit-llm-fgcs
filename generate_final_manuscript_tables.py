@@ -20,8 +20,11 @@ import numpy as np
 import pandas as pd
 
 from final_artifact_utils import (
+    FAULT_CLEAN_VALIDATOR_APPLICATIONS,
     FAULT_LABELS,
     FAULT_ORDER,
+    FAULT_UNIQUE_CLEAN_REFERENCES,
+    FAULT_VALIDATOR_WORKFLOWS,
     ValidationError,
     atomic_write_csv,
     normalize_fault_summary,
@@ -198,24 +201,73 @@ def make_ray_validation_summary(project_dir: Path) -> pd.DataFrame:
 
 
 def manuscript_fault_table(path: Path, role: str) -> pd.DataFrame:
+    """Build an unambiguous fault table with explicit evidence units.
+
+    The combined source summary stores 54 clean validator applications in its
+    ``runs`` field. Those applications reuse 18 unique clean reference
+    executions across three validator workflows. The manuscript table reports
+    18 as the clean execution count and preserves 54 in a separately labelled
+    validator-application column.
+    """
+
     raw = read_csv_required(path, role)
-    frame = normalize_fault_summary(raw, role)
-    frame = frame.copy()
+    frame = normalize_fault_summary(raw, role).copy()
+    clean_mask = frame["fault_mode"].eq("clean_replay")
+
+    observed_clean_applications = int(frame.loc[clean_mask, "runs"].iloc[0])
+    if observed_clean_applications != FAULT_CLEAN_VALIDATOR_APPLICATIONS:
+        raise ValidationError(
+            f"{role} must contain {FAULT_CLEAN_VALIDATOR_APPLICATIONS} clean "
+            f"validator applications; found {observed_clean_applications}"
+        )
+    if (
+        FAULT_UNIQUE_CLEAN_REFERENCES * FAULT_VALIDATOR_WORKFLOWS
+        != FAULT_CLEAN_VALIDATOR_APPLICATIONS
+    ):
+        raise ValidationError("Fault evidence-accounting constants are inconsistent")
+
     frame["fault_label"] = frame["fault_mode"].map(
-        {"clean_replay": "Clean comparison instances", **FAULT_LABELS}
+        {
+            "clean_replay": (
+                "Clean false-positive control "
+                "(18 unique references; 54 validator applications)"
+            ),
+            **FAULT_LABELS,
+        }
     )
-    order_map = {"clean_replay": 0, **{mode: index + 1 for index, mode in enumerate(FAULT_ORDER)}}
+    order_map = {
+        "clean_replay": 0,
+        **{mode: index + 1 for index, mode in enumerate(FAULT_ORDER)},
+    }
     frame["_order"] = frame["fault_mode"].map(order_map)
+
+    conditions_or_runs = frame["runs"].astype("Int64").copy()
+    conditions_or_runs.loc[clean_mask] = FAULT_UNIQUE_CLEAN_REFERENCES
+
+    validator_applications = pd.Series(
+        pd.NA, index=frame.index, dtype="Int64"
+    )
+    validator_applications.loc[clean_mask] = (
+        FAULT_CLEAN_VALIDATOR_APPLICATIONS
+    )
+
+    evidence_unit = pd.Series(
+        "independent_fault_runs", index=frame.index, dtype="string"
+    )
+    evidence_unit.loc[clean_mask] = "unique_clean_reference_executions"
+
     detection_channel = (
         frame["detection_channel"].astype(str)
         if "detection_channel" in frame.columns
-        else ""
+        else pd.Series("", index=frame.index, dtype="string")
     )
     output = pd.DataFrame(
         {
             "fault_mode": frame["fault_mode"],
             "fault_label": frame["fault_label"],
-            "runs": frame["runs"].astype(int),
+            "evidence_unit": evidence_unit,
+            "conditions_or_runs": conditions_or_runs,
+            "validator_applications": validator_applications,
             "injected_events": frame["injected_events"].astype(int),
             "detected_runs": frame["detected_runs"].astype(int),
             "detection_rate": np.where(
@@ -230,11 +282,20 @@ def manuscript_fault_table(path: Path, role: str) -> pd.DataFrame:
     )
     # Detection rate is not applicable to the clean false-positive control.
     output.loc[output["fault_mode"].eq("clean_replay"), "detection_rate"] = np.nan
-    return output.sort_values("_order").drop(columns="_order").reset_index(drop=True)
+    return (
+        output.sort_values("_order")
+        .drop(columns="_order")
+        .reset_index(drop=True)
+    )
 
 
 def make_metropt3_validation_summary(project_dir: Path) -> pd.DataFrame:
-    base = project_dir / "paper_outputs" / "secondary_metropt3" / "tables_figures"
+    base = (
+        project_dir
+        / "paper_outputs"
+        / "secondary_metropt3"
+        / "tables_figures"
+    )
     clean = read_csv_required(
         base / "secondary_policy_determinism_summary.csv",
         "MetroPT-3 policy summary",
@@ -243,11 +304,22 @@ def make_metropt3_validation_summary(project_dir: Path) -> pd.DataFrame:
         {
             "panel": "clean_deterministic_replay",
             "item": clean["policy_mode"].astype(str),
-            "conditions_or_runs": numeric(clean["conditions"], "Metro conditions").astype(int),
-            "unique_action_hashes": numeric(clean["unique_hashes"], "Metro unique hashes").astype(int),
-            "all_worker_reconstructions_match": clean["all_worker_matches"].astype(bool),
+            "evidence_unit": "benchmark_conditions",
+            "conditions_or_runs": numeric(
+                clean["conditions"], "Metro conditions"
+            ).astype(int),
+            "validator_applications": pd.Series(
+                pd.NA, index=clean.index, dtype="Int64"
+            ),
+            "unique_action_hashes": numeric(
+                clean["unique_hashes"], "Metro unique hashes"
+            ).astype(int),
+            "all_worker_reconstructions_match": clean[
+                "all_worker_matches"
+            ].astype(bool),
             "max_clean_unauthorized_invocations": numeric(
-                clean["max_unauthorized_invocations"], "Metro max unauthorized"
+                clean["max_unauthorized_invocations"],
+                "Metro max unauthorized",
             ).astype(int),
             "full_workload_mean_intervention_rate": numeric(
                 clean["full_workload_mean_intervention_rate"],
@@ -268,7 +340,9 @@ def make_metropt3_validation_summary(project_dir: Path) -> pd.DataFrame:
         {
             "panel": "controlled_fault_detection",
             "item": faults["fault_label"],
-            "conditions_or_runs": faults["runs"],
+            "evidence_unit": faults["evidence_unit"],
+            "conditions_or_runs": faults["conditions_or_runs"],
+            "validator_applications": faults["validator_applications"],
             "unique_action_hashes": np.nan,
             "all_worker_reconstructions_match": np.nan,
             "max_clean_unauthorized_invocations": np.where(
@@ -370,6 +444,22 @@ def make_final_results_overview(claims: dict[str, Any]) -> pd.DataFrame:
             "status": "passed",
         },
         {
+            "component": "Primary controlled faults",
+            "metric": "Unique clean reference executions",
+            "observed": primary_faults[
+                "unique_clean_reference_executions"
+            ],
+            "expected": FAULT_UNIQUE_CLEAN_REFERENCES,
+            "status": "passed",
+        },
+        {
+            "component": "Primary controlled faults",
+            "metric": "Clean validator applications",
+            "observed": primary_faults["clean_validator_applications"],
+            "expected": FAULT_CLEAN_VALIDATOR_APPLICATIONS,
+            "status": "passed",
+        },
+        {
             "component": "MetroPT-3",
             "metric": "Clean conditions",
             "observed": claims["metropt3"]["clean_conditions"],
@@ -381,6 +471,22 @@ def make_final_results_overview(claims: dict[str, Any]) -> pd.DataFrame:
             "metric": "Fault classes with 18/18 detection",
             "observed": metro_faults["fault_classes"],
             "expected": 5,
+            "status": "passed",
+        },
+        {
+            "component": "MetroPT-3 controlled faults",
+            "metric": "Unique clean reference executions",
+            "observed": metro_faults[
+                "unique_clean_reference_executions"
+            ],
+            "expected": FAULT_UNIQUE_CLEAN_REFERENCES,
+            "status": "passed",
+        },
+        {
+            "component": "MetroPT-3 controlled faults",
+            "metric": "Clean validator applications",
+            "observed": metro_faults["clean_validator_applications"],
+            "expected": FAULT_CLEAN_VALIDATOR_APPLICATIONS,
             "status": "passed",
         },
         {

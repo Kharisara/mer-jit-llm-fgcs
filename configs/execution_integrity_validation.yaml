@@ -1,0 +1,46 @@
+# Independent downstream-receipt and record-bound trace validation.
+# Matrix per receipt/corruption mode:
+#   3 policies x 3 seeds x 2 workers = 18 unique executions/validations.
+
+dataset:
+  input_csv: paper_outputs/replay_input_clean.csv
+  fractions: [1.00]
+  state_root: ""
+
+benchmark:
+  seeds: [1, 2, 3]
+  workers: [1, 4]
+  policy_modes: [risk_proxy, random, always]
+
+policy:
+  negative_labels: [anger, angry, disgust, disgusted, fear, fearful, sadness, sad]
+  random_intervention_probability: 0.50
+
+execution_semantics:
+  task_retry_enabled: false
+  task_failure_policy: fail_fast
+  duplicate_delivery_supported: false
+
+execution_receipts:
+  enabled: true
+
+execution_integrity:
+  receipt_fault_probability: 0.01
+
+fault_injection:
+  enabled: false
+  action_flip_probability: 0.0
+  unauthorized_invoke_probability: 0.0
+  receipt_fault_mode: clean
+  receipt_fault_probability: 0.0
+  receipt_fault_allowed_policy_modes: [risk_proxy, random, always]
+
+generation_stub:
+  mode: affective_response
+  service_name: deterministic_generation_stub
+
+logging:
+  output_dir: paper_outputs/execution_integrity_validation
+  save_traces: true
+  save_execution_receipts: true
+  save_live_bc_predictions: false

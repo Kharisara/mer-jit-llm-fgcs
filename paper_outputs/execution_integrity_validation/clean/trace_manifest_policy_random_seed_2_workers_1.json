@@ -1,0 +1,25 @@
+{
+  "run_id": "rbpg-77407e8460df04a807d9e6b7",
+  "trace_scope_id": "rbpg-trace-e65c0417c6f7aca9158e8501",
+  "trace_scope_hash": "e65c0417c6f7aca9158e8501393e01238276d56e40aebaba02ac1ee60105fc04",
+  "config_manifest_hash": "77407e8460df04a807d9e6b7af093dcac3af570c4227a8b2601fd3148c7e9e1d",
+  "config_manifest": {
+    "schema_version": "replaybench-pg-integrity-v1",
+    "workload_hash": "fcf40b22ad48ec4af4d4b9bbf05bc927f9195e1607cedffeb3487d92d5affd82",
+    "workload_rows": 11351,
+    "input_file_sha256": "9b2dff24e0197227e2a0b9b651c7a61576bc700e89a5a882260a4c27cf3ce75a",
+    "policy_mode": "random",
+    "seed": 2,
+    "workers": 1,
+    "code_commit": "384003561538505b50303c118b6f452d1a47fea5",
+    "checkpoint_sha256": "",
+    "bc_action_sha256": "",
+    "generation_mode": "affective_response",
+    "downstream_operation": "deterministic_generation_stub",
+    "task_retry_enabled": false,
+    "task_failure_policy": "fail_fast"
+  },
+  "action_hash": "8faaf9cedc9a094533bba5d17d70e9265456c139b4c987b6ba61a414de5e1f32",
+  "record_trace_hash": "e5645bc290a1e9b5d7855103ca822d5f11634b6310320610456942fa10e4e3d2",
+  "config_bound_trace_hash": "df8116ce7619e353168ed1bb3d5fa5fffe9a8f5679ade7e6d30d9c93d9eb4978"
+}

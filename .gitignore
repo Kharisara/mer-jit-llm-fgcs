@@ -5,35 +5,42 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
 .env
+.env.*
 .venv/
 venv/
 ENV/
 env/
 
 # ------------------------------
-# DATASETS (DO NOT COMMIT)
+# SECRETS / CREDENTIALS
 # ------------------------------
-data/
+*.key
+*service-account*.json
+credentials*.json
+
+# ------------------------------
+# RAW DATASETS — DO NOT COMMIT
+# ------------------------------
+data/raw/
+data/MetroPT3*
+data/metropt3_uci_canonical*
 dataset/
 datasets/
 raw_data/
 processed_data/
 
-# Common dataset files
-*.csv
-*.tsv
-*.jsonl
-*.zip
-*.gz
-*.tar
+MetroPT3(AirCompressor).csv
+metropt3_dataset.zip
+
+# Large raw media
 *.mp4
 *.wav
 *.m4a
 *.flac
 *.jpg
 *.jpeg
-*.png
 
 # ------------------------------
 # MODEL WEIGHTS & CHECKPOINTS
@@ -43,25 +50,49 @@ processed_data/
 *.bin
 *.ckpt
 *.safetensors
-
-# Checkpoint folders
 checkpoints/
 checkpoints_*/
 checkpoint_*/
-logs/
-runs/
 
 # ------------------------------
-# EXPERIMENT OUTPUTS
+# LOCAL TRAINING / RUNTIME OUTPUTS
 # ------------------------------
+logs/
+runs/
 output/
 outputs/
 results/
 tensorboard/
 events.out.tfevents.*
 
+trajectories/
+state_cache/
+reward_logs/
+
+# Large local state artifacts
+*.npy
+*.npz
+*.pkl
+*.p
+
 # ------------------------------
-# IDE / EDITOR STUFF
+# TEMPORARY REVIEWER WORKSPACES
+# ------------------------------
+MetroPT3_Provenance_Audit/
+MetroPT_Canonical_Sync/
+paper_outputs/secondary_metropt3_noncanonical_backup/
+paper_outputs/validator_selectivity_validation_smoke/
+
+# Historical local backup
+run_fgcs_extended_benchmark.pre_comment8.py
+
+# Local archive bundles
+paper_outputs.zip
+Execution_Integrity_Results*.zip
+checkpoints.zip
+
+# ------------------------------
+# IDE / EDITOR
 # ------------------------------
 .vscode/
 .idea/
@@ -74,22 +105,15 @@ events.out.tfevents.*
 Thumbs.db
 
 # ------------------------------
-# JITAI / RL TRAINING ARTIFACTS
-# ------------------------------
-trajectories/
-state_cache/
-reward_logs/
-
-# ------------------------------
-# MER-JIT MULTIMODAL STATE FILES
-# ------------------------------
-*.npy
-*.npz
-*.pkl
-*.p
-*.pt
-
-# ------------------------------
-# OTHER
+# LOG FILES
 # ------------------------------
 *.log
+
+# Reviewer-working and local archive bundles
+Comment8_*.zip
+Comment_7_Evidence.zip
+MetroPT_Canonical_Sync.zip
+ReplayBench_PG_Source.zip
+Validator_Selectivity_Full_Results.zip
+paper_outputs/*.zip
+paper_outputs/validator_selectivity_validation_smoke.zip

@@ -34,6 +34,10 @@ from final_artifact_utils import (
     DEFAULT_REQUIRED_CONFIGS,
     DEFAULT_REQUIRED_MANIFESTS,
     DEFAULT_REQUIRED_SCRIPTS,
+    FAULT_CLEAN_VALIDATOR_APPLICATIONS,
+    FAULT_RUNS_PER_CLASS,
+    FAULT_UNIQUE_CLEAN_REFERENCES,
+    FAULT_VALIDATOR_WORKFLOWS,
     ValidationError,
     atomic_write_csv,
     atomic_write_json,
@@ -206,6 +210,7 @@ def make_claims_numbers(
             "full_workload_mean_intervention_rate_by_policy": metro[
                 "full_workload_mean_intervention_rate_by_policy"
             ],
+            "provenance": metro["provenance"],
             "controlled_faults": metro["fault_validation"],
         },
         "cloud_validation": {
@@ -303,7 +308,12 @@ def main() -> None:
             / "fgcs_tables_figures"
             / "fgcs_table_rq7_fault_detection_combined.csv",
             component="primary_faults",
-            expected_clean_instances=54,
+            expected_clean_validator_applications=(
+                FAULT_CLEAN_VALIDATOR_APPLICATIONS
+            ),
+            expected_unique_clean_references=FAULT_UNIQUE_CLEAN_REFERENCES,
+            expected_validator_workflows=FAULT_VALIDATOR_WORKFLOWS,
+            expected_runs_per_fault_class=FAULT_RUNS_PER_CLASS,
         )),
         ("metropt3", lambda: validate_metropt3(project_dir)),
         ("cloud_validation", lambda: discover_cloud_evidence(
@@ -390,8 +400,19 @@ def main() -> None:
                 "ray_clean_external_hash_matches": "18/18",
                 "ray_fault_conditions_flagged": "36/36",
                 "metropt3_clean_conditions": 72,
+                "metropt3_canonical_source_rows": 1_516_948,
+                "metropt3_prepared_replay_rows": 20_000,
+                "metropt3_unique_full_source_rows": 1_516_948,
+                "metropt3_duplicate_full_source_rows": 0,
                 "primary_fault_classes": "5 classes, 18/18 each",
                 "metropt3_fault_classes": "5 classes, 18/18 each",
+                "fault_unique_clean_reference_executions": (
+                    FAULT_UNIQUE_CLEAN_REFERENCES
+                ),
+                "fault_clean_validator_workflows": FAULT_VALIDATOR_WORKFLOWS,
+                "fault_clean_validator_applications": (
+                    FAULT_CLEAN_VALIDATOR_APPLICATIONS
+                ),
                 "cloud_cross_region_matches": "360/360",
                 "cloud_local_to_cloud_matches": "720/720",
                 "clean_authorization_contradictions": 0,

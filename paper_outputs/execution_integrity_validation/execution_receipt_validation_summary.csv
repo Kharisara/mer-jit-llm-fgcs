@@ -1,0 +1,6 @@
+fault_mode,runs,detected_runs,injected_events,receipt_validation_passes
+clean,18,18,0,18
+duplicate_downstream_call,18,18,1238,0
+false_execution_log,18,18,1166,0
+mismatched_correlation_id,18,18,1252,0
+unlogged_downstream_call,18,18,1184,0

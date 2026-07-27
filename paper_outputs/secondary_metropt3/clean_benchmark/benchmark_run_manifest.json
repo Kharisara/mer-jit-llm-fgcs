@@ -1,0 +1,39 @@
+{
+  "input_csv": "paper_outputs/secondary_metropt3/replay_input_metropt3.csv",
+  "input_rows": 20000,
+  "fractions": [
+    0.25,
+    0.5,
+    1.0
+  ],
+  "policy_modes": [
+    "rule_gate",
+    "random",
+    "always",
+    "never"
+  ],
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "workers": [
+    1,
+    4
+  ],
+  "expected_runs": 72,
+  "completed_runs": 72,
+  "execution_semantics": {
+    "task_retry_enabled": false,
+    "task_failure_policy": "fail_fast",
+    "duplicate_delivery_supported": false
+  },
+  "validation": {
+    "action_hash": "SHA-256 over the canonical ordered integer action sequence",
+    "authorization_execution_invariant": "violation when downstream execution=1 and prior authorization=0",
+    "row_count_validation": true
+  },
+  "all_runs_authorization_execution_consistent": true,
+  "all_runs_row_count_match": true,
+  "all_runs_validation_passed": true
+}

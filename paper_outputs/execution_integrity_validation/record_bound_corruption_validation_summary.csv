@@ -1,0 +1,6 @@
+corruption_mode,runs,detected_runs
+authorization_field_corruption,18,18
+configuration_label_corruption,18,18
+execution_field_corruption,18,18
+replay_id_action_reassignment,18,18
+row_reordering,18,18

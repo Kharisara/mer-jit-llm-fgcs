@@ -1,0 +1,72 @@
+{
+  "decision_points": 11351,
+  "event_level_false_negatives": 0,
+  "event_level_false_positives": 0,
+  "event_level_precision": 1.0,
+  "event_level_recall": 1.0,
+  "event_level_true_positives": 3240,
+  "experiment": "validator_selectivity_and_non_circular_fault_evaluation",
+  "independent_benign_negative_control_executions": 24,
+  "independent_positive_fault_executions": 216,
+  "injection_seed_base": 20260724,
+  "posthoc_validator_applications": 258,
+  "posthoc_validator_failures": 0,
+  "profiles": [
+    {
+      "kind": "first",
+      "name": "single_first"
+    },
+    {
+      "kind": "last",
+      "name": "single_last"
+    },
+    {
+      "kind": "single_seeded",
+      "name": "single_seeded"
+    },
+    {
+      "kind": "rate",
+      "name": "rate_0_01_percent",
+      "rate": 0.0001
+    },
+    {
+      "kind": "rate",
+      "name": "rate_0_1_percent",
+      "rate": 0.001
+    },
+    {
+      "kind": "rate",
+      "name": "rate_1_percent",
+      "rate": 0.01
+    }
+  ],
+  "receipt_policy_modes": [
+    "risk_proxy",
+    "random",
+    "always"
+  ],
+  "run_level_false_negative_rate": 0.0,
+  "run_level_false_negatives": 0,
+  "run_level_false_positive_rate": 0.0,
+  "run_level_false_positives": 0,
+  "run_level_true_negatives": 24,
+  "run_level_true_positives": 216,
+  "runtime_policy_modes": [
+    "risk_proxy",
+    "random",
+    "never"
+  ],
+  "seeds": [
+    1
+  ],
+  "smoke_mode": false,
+  "terminology": {
+    "execution_instance": "A fresh call to the replay executor.",
+    "validator_application": "A post-execution corruption applied to a clean reference; not an additional replay execution."
+  },
+  "unique_clean_reference_executions": 8,
+  "workers": [
+    1,
+    4
+  ]
+}

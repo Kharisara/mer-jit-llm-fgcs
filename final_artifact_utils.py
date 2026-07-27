@@ -63,6 +63,29 @@ METRO_POLICIES = {"rule_gate", "random", "always", "never"}
 METRO_SEEDS = {1, 2, 3}
 METRO_WORKERS = {1, 4}
 
+# Controlled-fault evidence accounting. Each of the three validator workflows
+# reuses the same 18 clean reference executions, yielding 54 validator
+# applications. These quantities must never be reported as 54 independent runs.
+FAULT_UNIQUE_CLEAN_REFERENCES = 18
+FAULT_VALIDATOR_WORKFLOWS = 3
+FAULT_CLEAN_VALIDATOR_APPLICATIONS = (
+    FAULT_UNIQUE_CLEAN_REFERENCES * FAULT_VALIDATOR_WORKFLOWS
+)
+FAULT_RUNS_PER_CLASS = 18
+
+# Canonical MetroPT-3 provenance frozen for the Array revision.
+METRO_CANONICAL_SOURCE_FILENAME = "MetroPT3(AirCompressor).csv"
+METRO_CANONICAL_SOURCE_ROWS = 1_516_948
+METRO_CANONICAL_SOURCE_SHA256 = (
+    "db30ccb4ea402e3c8bf2c99db06e288d4f2a772f6928f9dbe26a920d69793e24"
+)
+METRO_CANONICAL_ARCHIVE_SHA256 = (
+    "aab991a970e58210de853bb8078ce0e63abb4d9412fdc5c79792dae3d8e1721a"
+)
+METRO_PREPARED_REPLAY_ROWS = 20_000
+METRO_RULE_GATE_POSITIVE_COUNT = 3_209
+METRO_RULE_GATE_POSITIVE_RATE = 0.16045
+
 FAULT_ORDER = [
     "action_flip_1_percent",
     "unauthorized_invoke_1_percent",
@@ -98,6 +121,7 @@ DEFAULT_REQUIRED_MANIFESTS = [
     "paper_outputs/ray_comparison/ray_comparison_effective_config.json",
     "paper_outputs/array_revision_validation.json",
     "paper_outputs/secondary_metropt3/preparation_manifest.json",
+    "paper_outputs/secondary_metropt3/source_duplicate_row_audit.json",
     "paper_outputs/secondary_metropt3/tables_figures/secondary_validation_summary.json",
 ]
 
@@ -108,6 +132,7 @@ DEFAULT_REQUIRED_SCRIPTS = [
     "run_ray_comparison.py",
     "run_array_revision_validation.py",
     "run_secondary_metropt3_validation.py",
+    "check_metropt3_full_row_duplicates.py",
     "summarize_secondary_workload_results.py",
     "fgcs_fault_validation_framework.py",
     "generate_final_manuscript_tables.py",
@@ -791,13 +816,46 @@ def validate_fault_summary(
     project_dir: Path,
     path: Path,
     component: str,
-    expected_clean_instances: int = 54,
+    expected_clean_validator_applications: int = FAULT_CLEAN_VALIDATOR_APPLICATIONS,
+    expected_unique_clean_references: int = FAULT_UNIQUE_CLEAN_REFERENCES,
+    expected_validator_workflows: int = FAULT_VALIDATOR_WORKFLOWS,
+    expected_runs_per_fault_class: int = FAULT_RUNS_PER_CLASS,
 ) -> tuple[dict[str, Any], list[EvidenceFile], pd.DataFrame]:
+    """Validate the frozen five-class fault summary without pseudoreplication.
+
+    The raw combined summary stores the clean false-positive control in its
+    ``runs`` field as validator applications. The same 18 independently
+    executed clean references are reused by three validator workflows, so the
+    expected raw count is 54 applications, not 54 independent executions.
+    """
+
+    if expected_unique_clean_references <= 0:
+        raise ValidationError("Expected unique clean references must be positive")
+    if expected_validator_workflows <= 0:
+        raise ValidationError("Expected validator workflows must be positive")
+    if expected_runs_per_fault_class <= 0:
+        raise ValidationError("Expected runs per fault class must be positive")
+    expected_from_design = (
+        expected_unique_clean_references * expected_validator_workflows
+    )
+    if expected_clean_validator_applications != expected_from_design:
+        raise ValidationError(
+            f"{component} clean-accounting parameters are inconsistent: "
+            f"{expected_unique_clean_references} unique references x "
+            f"{expected_validator_workflows} validator workflows = "
+            f"{expected_from_design}, not "
+            f"{expected_clean_validator_applications}"
+        )
+
     raw = read_csv_required(path, f"{component} combined fault summary")
     frame = normalize_fault_summary(raw, f"{component} fault summary")
     if frame["fault_mode"].duplicated().any():
-        duplicated = frame.loc[frame["fault_mode"].duplicated(False), "fault_mode"].tolist()
-        raise ValidationError(f"{component} fault summary has duplicate modes: {duplicated}")
+        duplicated = frame.loc[
+            frame["fault_mode"].duplicated(False), "fault_mode"
+        ].tolist()
+        raise ValidationError(
+            f"{component} fault summary has duplicate modes: {duplicated}"
+        )
 
     modes = set(frame["fault_mode"])
     expected_modes = {"clean_replay", *FAULT_ORDER}
@@ -808,57 +866,345 @@ def validate_fault_summary(
         )
 
     clean = frame.loc[frame["fault_mode"].eq("clean_replay")].iloc[0]
-    if int(clean["runs"]) != expected_clean_instances:
+    clean_applications = int(clean["runs"])
+    if clean_applications != expected_clean_validator_applications:
         raise ValidationError(
-            f"{component} clean comparison instances must equal {expected_clean_instances}; "
-            f"found {int(clean['runs'])}"
+            f"{component} clean validator applications must equal "
+            f"{expected_clean_validator_applications}; found "
+            f"{clean_applications}"
         )
     if int(clean["detected_runs"]) != 0 or int(clean["false_positive_runs"]) != 0:
-        raise ValidationError(f"{component} clean comparisons contain a false positive")
+        raise ValidationError(
+            f"{component} clean validator applications contain a false positive"
+        )
     if int(clean["injected_events"]) != 0:
-        raise ValidationError(f"{component} clean row reports injected events")
+        raise ValidationError(
+            f"{component} clean validator-application row reports injected events"
+        )
 
     fault_rows = frame.loc[frame["fault_mode"].isin(FAULT_ORDER)].copy()
     for mode in FAULT_ORDER:
         row = fault_rows.loc[fault_rows["fault_mode"].eq(mode)].iloc[0]
-        if int(row["runs"]) != 18:
-            raise ValidationError(f"{component} {mode} must contain 18 runs")
-        if int(row["detected_runs"]) != 18:
-            raise ValidationError(f"{component} {mode} must detect 18/18 runs")
+        if int(row["runs"]) != expected_runs_per_fault_class:
+            raise ValidationError(
+                f"{component} {mode} must contain "
+                f"{expected_runs_per_fault_class} runs"
+            )
+        if int(row["detected_runs"]) != expected_runs_per_fault_class:
+            raise ValidationError(
+                f"{component} {mode} must detect "
+                f"{expected_runs_per_fault_class}/{expected_runs_per_fault_class} runs"
+            )
         if int(row["false_positive_runs"]) != 0:
             raise ValidationError(f"{component} {mode} reports false positives")
         if int(row["injected_events"]) <= 0:
-            raise ValidationError(f"{component} {mode} reports zero injected events")
+            raise ValidationError(
+                f"{component} {mode} reports zero injected events"
+            )
         rate = row["detection_rate_numeric"]
-        if not pd.isna(rate) and not math.isclose(float(rate), 1.0, rel_tol=0.0, abs_tol=1e-9):
-            raise ValidationError(f"{component} {mode} detection rate is not 1.0")
+        if not pd.isna(rate) and not math.isclose(
+            float(rate), 1.0, rel_tol=0.0, abs_tol=1e-9
+        ):
+            raise ValidationError(
+                f"{component} {mode} detection rate is not 1.0"
+            )
 
     results = {
-        "clean_comparison_instances": int(clean["runs"]),
-        "clean_false_positive_detections": int(clean["false_positive_runs"]),
-        "fault_classes": 5,
-        "runs_per_fault_class": 18,
-        "all_fault_classes_detected_18_of_18": True,
+        "unique_clean_reference_executions": int(
+            expected_unique_clean_references
+        ),
+        "clean_validator_workflows": int(expected_validator_workflows),
+        "clean_validator_applications": int(clean_applications),
+        "clean_false_positive_flags": int(clean["false_positive_runs"]),
+        "fault_classes": int(len(FAULT_ORDER)),
+        "runs_per_fault_class": int(expected_runs_per_fault_class),
+        "all_fault_classes_fully_detected": True,
         "faults": {
             mode: {
                 "label": FAULT_LABELS[mode],
-                "runs": 18,
-                "detected_runs": 18,
+                "runs": int(expected_runs_per_fault_class),
+                "detected_runs": int(expected_runs_per_fault_class),
                 "injected_events": int(
-                    fault_rows.loc[fault_rows["fault_mode"].eq(mode), "injected_events"].iloc[0]
+                    fault_rows.loc[
+                        fault_rows["fault_mode"].eq(mode), "injected_events"
+                    ].iloc[0]
                 ),
                 "false_positive_runs": 0,
             }
             for mode in FAULT_ORDER
         },
     }
-    inventory = [evidence_file(project_dir, component, "combined_fault_summary", path)]
+    inventory = [
+        evidence_file(
+            project_dir, component, "combined_fault_summary", path
+        )
+    ]
     return results, inventory, frame
 
 
 # ---------------------------------------------------------------------------
 # MetroPT-3 validation
 # ---------------------------------------------------------------------------
+
+
+def _required_int(mapping: Mapping[str, Any], key: str, role: str) -> int:
+    if key not in mapping:
+        raise ValidationError(f"{role} is missing required field: {key}")
+    try:
+        return int(mapping[key])
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(
+            f"{role} field {key} is not an integer: {mapping[key]!r}"
+        ) from exc
+
+
+def _required_float(mapping: Mapping[str, Any], key: str, role: str) -> float:
+    if key not in mapping:
+        raise ValidationError(f"{role} is missing required field: {key}")
+    try:
+        return float(mapping[key])
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(
+            f"{role} field {key} is not numeric: {mapping[key]!r}"
+        ) from exc
+
+
+def _require_true(mapping: Mapping[str, Any], key: str, role: str) -> None:
+    if key not in mapping or _bool_token(mapping[key]) is not True:
+        raise ValidationError(f"{role} field {key} must be true")
+
+
+def validate_metropt3_provenance(
+    project_dir: Path,
+    base: Path,
+) -> tuple[dict[str, Any], list[EvidenceFile]]:
+    """Validate canonical source identity, sampling, and duplicate audit."""
+
+    manifest_path = base / "preparation_manifest.json"
+    duplicate_audit_path = base / "source_duplicate_row_audit.json"
+    manifest = read_json_required(
+        manifest_path, "MetroPT-3 preparation manifest"
+    )
+    audit = read_json_required(
+        duplicate_audit_path, "MetroPT-3 full-row duplicate audit"
+    )
+    if not isinstance(manifest, Mapping):
+        raise ValidationError("MetroPT-3 preparation manifest must be a JSON object")
+    if not isinstance(audit, Mapping):
+        raise ValidationError("MetroPT-3 duplicate audit must be a JSON object")
+
+    if str(manifest.get("dataset")) != "MetroPT-3":
+        raise ValidationError("MetroPT-3 preparation manifest has the wrong dataset")
+    if str(manifest.get("source_filename")) != METRO_CANONICAL_SOURCE_FILENAME:
+        raise ValidationError(
+            "MetroPT-3 source filename is not the canonical UCI filename"
+        )
+    if (
+        str(manifest.get("expected_source_filename"))
+        != METRO_CANONICAL_SOURCE_FILENAME
+    ):
+        raise ValidationError(
+            "MetroPT-3 expected source filename differs from the canonical filename"
+        )
+    source_rows = _required_int(
+        manifest, "source_rows", "MetroPT-3 preparation manifest"
+    )
+    expected_rows = _required_int(
+        manifest, "expected_source_rows", "MetroPT-3 preparation manifest"
+    )
+    if source_rows != METRO_CANONICAL_SOURCE_ROWS or expected_rows != source_rows:
+        raise ValidationError(
+            "MetroPT-3 canonical row count must equal "
+            f"{METRO_CANONICAL_SOURCE_ROWS}; observed source={source_rows}, "
+            f"expected={expected_rows}"
+        )
+    source_sha = str(manifest.get("source_sha256", "")).lower()
+    expected_sha = str(manifest.get("expected_source_sha256", "")).lower()
+    if (
+        source_sha != METRO_CANONICAL_SOURCE_SHA256
+        or expected_sha != METRO_CANONICAL_SOURCE_SHA256
+    ):
+        raise ValidationError("MetroPT-3 canonical source SHA-256 mismatch")
+
+    archive = manifest.get("archive")
+    if not isinstance(archive, Mapping):
+        raise ValidationError(
+            "MetroPT-3 preparation manifest is missing archive metadata"
+        )
+    if str(archive.get("archive_sha256", "")).lower() != METRO_CANONICAL_ARCHIVE_SHA256:
+        raise ValidationError("MetroPT-3 canonical archive SHA-256 mismatch")
+
+    for flag in [
+        "filename_verified",
+        "row_count_verified",
+        "hash_verified",
+        "provenance_verified",
+        "timestamp_monotonic_non_decreasing",
+    ]:
+        _require_true(manifest, flag, "MetroPT-3 preparation manifest")
+
+    if _required_int(
+        manifest,
+        "adjacent_duplicate_timestamps",
+        "MetroPT-3 preparation manifest",
+    ) != 0:
+        raise ValidationError("MetroPT-3 source contains adjacent duplicate timestamps")
+    if _required_int(
+        manifest, "backward_timestamp_steps", "MetroPT-3 preparation manifest"
+    ) != 0:
+        raise ValidationError("MetroPT-3 source timestamps move backward")
+
+    effective_sample_size = _required_int(
+        manifest, "effective_sample_size", "MetroPT-3 preparation manifest"
+    )
+    sample_rows = _required_int(
+        manifest, "sample_rows", "MetroPT-3 preparation manifest"
+    )
+    if (
+        effective_sample_size != METRO_PREPARED_REPLAY_ROWS
+        or sample_rows != METRO_PREPARED_REPLAY_ROWS
+    ):
+        raise ValidationError(
+            "MetroPT-3 prepared replay input must contain "
+            f"{METRO_PREPARED_REPLAY_ROWS} rows"
+        )
+    if _required_int(
+        manifest,
+        "selected_source_row_position_min",
+        "MetroPT-3 preparation manifest",
+    ) != 0:
+        raise ValidationError("MetroPT-3 deterministic sample must start at row 0")
+    if _required_int(
+        manifest,
+        "selected_source_row_position_max",
+        "MetroPT-3 preparation manifest",
+    ) != METRO_CANONICAL_SOURCE_ROWS - 1:
+        raise ValidationError(
+            "MetroPT-3 deterministic sample must include the final source row"
+        )
+
+    gate_positive_count = _required_int(
+        manifest,
+        "default_rule_gate_positive_count",
+        "MetroPT-3 preparation manifest",
+    )
+    gate_positive_rate = _required_float(
+        manifest,
+        "default_rule_gate_positive_rate",
+        "MetroPT-3 preparation manifest",
+    )
+    if gate_positive_count != METRO_RULE_GATE_POSITIVE_COUNT:
+        raise ValidationError(
+            "MetroPT-3 canonical rule-gate positive count must equal "
+            f"{METRO_RULE_GATE_POSITIVE_COUNT}; found {gate_positive_count}"
+        )
+    if not math.isclose(
+        gate_positive_rate,
+        METRO_RULE_GATE_POSITIVE_RATE,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise ValidationError(
+            "MetroPT-3 canonical rule-gate positive rate must equal "
+            f"{METRO_RULE_GATE_POSITIVE_RATE}; found {gate_positive_rate}"
+        )
+
+    audit_source_rows = _required_int(
+        audit, "source_rows", "MetroPT-3 duplicate audit"
+    )
+    audit_unique_rows = _required_int(
+        audit, "unique_full_rows", "MetroPT-3 duplicate audit"
+    )
+    audit_duplicate_rows = _required_int(
+        audit, "duplicate_full_rows", "MetroPT-3 duplicate audit"
+    )
+    if str(audit.get("source_filename")) != METRO_CANONICAL_SOURCE_FILENAME:
+        raise ValidationError("MetroPT-3 duplicate audit has the wrong filename")
+    if str(audit.get("source_sha256", "")).lower() != METRO_CANONICAL_SOURCE_SHA256:
+        raise ValidationError("MetroPT-3 duplicate audit source SHA-256 mismatch")
+    if (
+        audit_source_rows != METRO_CANONICAL_SOURCE_ROWS
+        or audit_unique_rows != METRO_CANONICAL_SOURCE_ROWS
+        or audit_duplicate_rows != 0
+        or audit.get("first_duplicate_data_row") is not None
+    ):
+        raise ValidationError(
+            "MetroPT-3 full-row duplicate audit must report "
+            f"{METRO_CANONICAL_SOURCE_ROWS} unique rows and zero duplicates"
+        )
+
+    manifest_duplicate_fields = {
+        "source_unique_full_rows": METRO_CANONICAL_SOURCE_ROWS,
+        "source_duplicate_full_rows": 0,
+    }
+    for key, expected in manifest_duplicate_fields.items():
+        if _required_int(
+            manifest, key, "MetroPT-3 preparation manifest"
+        ) != expected:
+            raise ValidationError(
+                f"MetroPT-3 preparation manifest field {key} must equal {expected}"
+            )
+    if manifest.get("source_first_duplicate_data_row") is not None:
+        raise ValidationError(
+            "MetroPT-3 preparation manifest reports a duplicate source row"
+        )
+
+    output_value = str(manifest.get("output_csv", "")).replace("\\", "/")
+    if not output_value:
+        raise ValidationError(
+            "MetroPT-3 preparation manifest is missing output_csv"
+        )
+    output_path = Path(output_value)
+    if not output_path.is_absolute():
+        output_path = project_dir / output_path
+    replay_input = read_csv_required(
+        output_path, "MetroPT-3 prepared replay input"
+    )
+    if len(replay_input) != METRO_PREPARED_REPLAY_ROWS:
+        raise ValidationError(
+            "MetroPT-3 prepared replay CSV row count differs from the manifest"
+        )
+    expected_output_sha = str(manifest.get("output_sha256", "")).lower()
+    if len(expected_output_sha) != 64 or sha256_file(output_path) != expected_output_sha:
+        raise ValidationError("MetroPT-3 prepared replay CSV SHA-256 mismatch")
+
+    results = {
+        "canonical_source_filename": METRO_CANONICAL_SOURCE_FILENAME,
+        "canonical_source_rows": int(METRO_CANONICAL_SOURCE_ROWS),
+        "canonical_source_sha256": METRO_CANONICAL_SOURCE_SHA256,
+        "canonical_archive_sha256": METRO_CANONICAL_ARCHIVE_SHA256,
+        "prepared_replay_rows": int(METRO_PREPARED_REPLAY_ROWS),
+        "prepared_replay_sha256": expected_output_sha,
+        "source_unique_full_rows": int(audit_unique_rows),
+        "source_duplicate_full_rows": int(audit_duplicate_rows),
+        "rule_gate_positive_count": int(gate_positive_count),
+        "rule_gate_positive_rate": float(gate_positive_rate),
+        "timestamp_monotonic_non_decreasing": True,
+        "adjacent_duplicate_timestamps": 0,
+        "backward_timestamp_steps": 0,
+        "provenance_verified": True,
+    }
+    inventory = [
+        evidence_file(
+            project_dir,
+            "metropt3_provenance",
+            "preparation_manifest",
+            manifest_path,
+        ),
+        evidence_file(
+            project_dir,
+            "metropt3_provenance",
+            "full_row_duplicate_audit",
+            duplicate_audit_path,
+        ),
+        evidence_file(
+            project_dir,
+            "metropt3_provenance",
+            "prepared_replay_input",
+            output_path,
+        ),
+    ]
+    return results, inventory
 
 
 def validate_metropt3(project_dir: Path) -> tuple[dict[str, Any], list[EvidenceFile]]:
@@ -868,6 +1214,11 @@ def validate_metropt3(project_dir: Path) -> tuple[dict[str, Any], list[EvidenceF
     det_path = clean_base / "determinism_hash_results.csv"
     fault_path = base / "tables_figures" / "fgcs_table_rq7_fault_detection_combined.csv"
     policy_summary_path = base / "tables_figures" / "secondary_policy_determinism_summary.csv"
+    secondary_summary_path = base / "tables_figures" / "secondary_validation_summary.json"
+
+    provenance_results, provenance_inventory = validate_metropt3_provenance(
+        project_dir, base
+    )
 
     scaling = read_csv_required(scaling_path, "MetroPT-3 clean scaling output")
     det = read_csv_required(det_path, "MetroPT-3 clean determinism output")
@@ -951,8 +1302,78 @@ def validate_metropt3(project_dir: Path) -> tuple[dict[str, Any], list[EvidenceF
         project_dir,
         fault_path,
         component="metropt3_faults",
-        expected_clean_instances=54,
+        expected_clean_validator_applications=FAULT_CLEAN_VALIDATOR_APPLICATIONS,
+        expected_unique_clean_references=FAULT_UNIQUE_CLEAN_REFERENCES,
+        expected_validator_workflows=FAULT_VALIDATOR_WORKFLOWS,
+        expected_runs_per_fault_class=FAULT_RUNS_PER_CLASS,
     )
+
+    secondary_summary = read_json_required(
+        secondary_summary_path, "MetroPT-3 secondary validation summary"
+    )
+    if not isinstance(secondary_summary, Mapping):
+        raise ValidationError(
+            "MetroPT-3 secondary validation summary must be a JSON object"
+        )
+    if _required_int(
+        secondary_summary,
+        "clean_conditions",
+        "MetroPT-3 secondary validation summary",
+    ) != 72:
+        raise ValidationError(
+            "MetroPT-3 secondary validation summary must report 72 clean conditions"
+        )
+    summary_faults = secondary_summary.get("fault_classes")
+    if not isinstance(summary_faults, list) or len(summary_faults) != len(FAULT_ORDER):
+        raise ValidationError(
+            "MetroPT-3 secondary validation summary must contain five fault classes"
+        )
+    summary_by_mode = {
+        _canonical_fault_mode(row.get("fault_mode")): row
+        for row in summary_faults
+        if isinstance(row, Mapping)
+    }
+    if set(summary_by_mode) != set(FAULT_ORDER):
+        raise ValidationError(
+            "MetroPT-3 secondary validation summary fault modes are incomplete"
+        )
+    for mode in FAULT_ORDER:
+        row = summary_by_mode[mode]
+        if _required_int(
+            row, "runs", f"MetroPT-3 secondary summary {mode}"
+        ) != FAULT_RUNS_PER_CLASS:
+            raise ValidationError(
+                f"MetroPT-3 secondary summary {mode} must report "
+                f"{FAULT_RUNS_PER_CLASS} runs"
+            )
+        if _required_int(
+            row, "detected_runs", f"MetroPT-3 secondary summary {mode}"
+        ) != FAULT_RUNS_PER_CLASS:
+            raise ValidationError(
+                f"MetroPT-3 secondary summary {mode} must report full detection"
+            )
+        injected_key = "faults_or_corruptions_injected_total"
+        injected = _required_int(
+            row, injected_key, f"MetroPT-3 secondary summary {mode}"
+        )
+        expected_injected = int(fault_results["faults"][mode]["injected_events"])
+        if injected != expected_injected:
+            raise ValidationError(
+                f"MetroPT-3 secondary summary {mode} injected-event total "
+                f"differs from the combined fault summary"
+            )
+        if _required_int(
+            row, "false_positive_runs", f"MetroPT-3 secondary summary {mode}"
+        ) != 0:
+            raise ValidationError(
+                f"MetroPT-3 secondary summary {mode} reports false positives"
+            )
+    if _bool_token(
+        secondary_summary.get("all_five_fault_classes_fully_detected")
+    ) is not True:
+        raise ValidationError(
+            "MetroPT-3 secondary validation summary does not report full detection"
+        )
 
     full = scaling.loc[np.isclose(scaling["dataset_fraction"], 1.0)]
     intervention = full.groupby("policy_mode")["intervention_rate"].mean().to_dict()
@@ -967,12 +1388,20 @@ def validate_metropt3(project_dir: Path) -> tuple[dict[str, Any], list[EvidenceF
         "full_workload_mean_intervention_rate_by_policy": {
             str(k): float(v) for k, v in intervention.items()
         },
+        "provenance": provenance_results,
         "fault_validation": fault_results,
     }
     inventory = [
+        *provenance_inventory,
         evidence_file(project_dir, "metropt3", "clean_scaling_runtime", scaling_path),
         evidence_file(project_dir, "metropt3", "clean_determinism", det_path),
         evidence_file(project_dir, "metropt3", "policy_summary", policy_summary_path),
+        evidence_file(
+            project_dir,
+            "metropt3",
+            "secondary_validation_summary",
+            secondary_summary_path,
+        ),
         *fault_inventory,
     ]
     return results, inventory
