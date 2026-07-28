@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-07-28T06:25:46.927092+00:00",
+  "completed_at_utc": "2026-07-28T06:47:02.317230+00:00",
   "components": {
     "cloud_validation": {
       "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
@@ -242,7 +242,7 @@
         "-q"
       ],
       "exit_code": 0,
-      "output": ".............................                                            [100%]\n29 passed in 92.79s (0:01:32)",
+      "output": ".............................                                            [100%]\n29 passed in 46.29s",
       "tests_passed": 29
     },
     "python_compilation": {
@@ -412,7 +412,7 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.0",
-  "started_at_utc": "2026-07-28T06:23:41.139240+00:00",
+  "started_at_utc": "2026-07-28T06:46:06.285258+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,
