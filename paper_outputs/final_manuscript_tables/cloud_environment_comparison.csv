@@ -6,7 +6,7 @@ cpu_architecture,64-bit,x86_64,x86_64
 compute_resources,Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz; 6 physical cores; 12 logical processors,2 allocated vCPU; provider host CPU model not controlled,2 allocated vCPU; provider host CPU model not controlled
 memory,15.8 GiB installed RAM,4 GiB allocated memory,4 GiB allocated memory
 python_version,Python 3.12.2,"3.12.13 (main, Jun 24 2026, 02:08:01) [GCC 14.2.0]","3.12.13 (main, Jun 24 2026, 02:08:01) [GCC 14.2.0]"
-dependency_lock_sha256,c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88,cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603,cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603
+dependency_lock_sha256,effb2ed70573394069493c3d46a1d9867aaee41269f70c84b9c880a3cd9fae6b,cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603,cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603
 container_base_image,Not applicable,python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de,python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
 final_container_image,Not applicable,asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc,asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc
 locale,en-GB (UI en-GB),C.UTF-8,C.UTF-8

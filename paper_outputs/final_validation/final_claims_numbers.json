@@ -26,11 +26,11 @@
     },
     "comparison_complete": true,
     "comparison_csv": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
-    "comparison_csv_sha256": "7aa90a1ae3ea8441c698cfab93ab6d8c659422260fb8acfdc05a05f7850b3c43",
-    "comparison_json_sha256": "e8e8c7154d9e8a0b7f0b303a26869e8e7eb36e4e50963a24e07d940450dde142",
+    "comparison_csv_sha256": "5c8ce17a8672a7e71a4cb8ff8f66cf1898909672114ae2073c6210ae1e21ff6d",
+    "comparison_json_sha256": "8ff56ffc32c2bd2d940516b78c1e62e172e18f1df707cb7aacd90205faa215d1",
     "final_image_digest_matches_comment12": true,
     "local_cloud_dependency_locks_identical": false,
-    "local_dependency_lock_sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88",
+    "local_dependency_lock_sha256": "effb2ed70573394069493c3d46a1d9867aaee41269f70c84b9c880a3cd9fae6b",
     "local_environment": {
       "architecture": "64-bit",
       "build": "26200",
@@ -206,7 +206,7 @@
   "software_validation": {
     "all_python_files_compile": true,
     "all_tests_passed": true,
-    "python_files_compiled": 113,
+    "python_files_compiled": 114,
     "tests_passed": 29
   },
   "timing_study": {

@@ -9,7 +9,7 @@
     ],
     "path": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
     "row_count": 14,
-    "sha256": "7aa90a1ae3ea8441c698cfab93ab6d8c659422260fb8acfdc05a05f7850b3c43"
+    "sha256": "5c8ce17a8672a7e71a4cb8ff8f66cf1898909672114ae2073c6210ae1e21ff6d"
   },
   "container": {
     "architecture": "x86_64",
@@ -34,7 +34,7 @@
     "identical": false,
     "local": {
       "path": "paper_outputs/environment/pip_freeze_lock.txt",
-      "sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88"
+      "sha256": "effb2ed70573394069493c3d46a1d9867aaee41269f70c84b9c880a3cd9fae6b"
     }
   },
   "interpretation": "Portability and environment-consistency validation across a native Windows workstation and the same digest-pinned Linux container in two regions of one cloud provider.",
