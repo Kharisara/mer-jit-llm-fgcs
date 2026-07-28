@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-07-27T12:01:13.274086+00:00",
+  "completed_at_utc": "2026-07-28T06:25:46.927092+00:00",
   "components": {
     "cloud_validation": {
       "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
@@ -236,13 +236,13 @@
     "pytest": {
       "all_tests_passed": true,
       "command": [
-        "D:\\Project final\\mer-jit-llm-fgcs\\.venv\\Scripts\\python.exe",
+        "D:\\Project final\\mer-jit-llm-fgcs\\venv\\Scripts\\python.exe",
         "-m",
         "pytest",
         "-q"
       ],
       "exit_code": 0,
-      "output": ".............................                                            [100%]\n29 passed in 42.97s",
+      "output": ".............................                                            [100%]\n29 passed in 92.79s (0:01:32)",
       "tests_passed": 29
     },
     "python_compilation": {
@@ -322,6 +322,7 @@
         "run_full_reproduction.py",
         "run_ipd_demo.py",
         "run_ray_comparison.py",
+        "run_replaybench_extended_benchmark.py",
         "run_replaybench_timing_study.py",
         "run_secondary_metropt3_validation.py",
         "run_validator_selectivity_validation.py",
@@ -358,10 +359,11 @@
         "tools/merge_simulations.py",
         "tools/openai_smoke_check.py",
         "tools/quick_view.py",
-        "tools/select_sample_for_cloud.py"
+        "tools/select_sample_for_cloud.py",
+        "validate_submission_package.py"
       ],
-      "python_files_compiled": 111,
-      "python_files_discovered": 111
+      "python_files_compiled": 113,
+      "python_files_discovered": 113
     },
     "ray_validation": {
       "all_detection_expectations_met": true,
@@ -410,7 +412,7 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.0",
-  "started_at_utc": "2026-07-27T12:00:22.397521+00:00",
+  "started_at_utc": "2026-07-28T06:23:41.139240+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,

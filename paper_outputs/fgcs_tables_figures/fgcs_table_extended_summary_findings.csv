@@ -1,0 +1,8 @@
+Finding,Observed value,Interpretation
+Maximum amplified replay workload,"1,000,000 decision points",The benchmark scales beyond the original MELD-derived workload.
+Deterministic trace consistency,Minimum hash_match = 1,Replay traces remained identical across worker configurations.
+Unauthorized invocation under normal replay,Maximum unauthorized invocations = 0,The invocation gate preserved non-intervention behavior.
+Fault-injection detection,Minimum detection recall = 1.00,Injected unauthorized invocations were detected completely.
+Full-workload throughput range,Maximum throughput = 139454454.18 points/s,Replay throughput is measurable at 1M scale.
+Full-workload runtime range,0.0072–0.0798 seconds,Runtime varies by policy mode and worker configuration.
+Trace verification overhead,Mean overhead at max workload = 18.0235%,Trace hashing adds bounded verification overhead.

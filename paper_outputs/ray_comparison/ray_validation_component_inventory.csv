@@ -1,0 +1,10 @@
+component,ray_role_in_evaluated_implementation,application_logic_required,implementation
+Distributed task execution,Distributed execution substrate,No,"ray.remote, ray.get, Ray CPU scheduling"
+Indexed ordered reconstruction,No task-specific primitive used,Yes,Stable row_index returned by tasks and sorted after completion
+Policy-action generation,No task-specific primitive used,Yes,Shared ReplayBench-PG base_action_for_row
+Canonical action-sequence hashing,No task-specific primitive used,Yes,Shared ReplayBench-PG canonical_action_hash
+Authorization-execution consistency invariant,No task-specific primitive used,Yes,Separate authorization and execution fields plus shared invariant
+Action-flip fault injection,No task-specific primitive used,Yes,Shared ReplayBench-PG maybe_fault_inject
+Dropped-row fault injection,No task-specific primitive used,Yes,Deterministic post-hoc row removal
+Row-count validation,No task-specific primitive used,Yes,Shared ReplayBench-PG validate_trace
+Reproducibility artifacts,No task-specific primitive used,Yes,"CSV summaries, trace files, effective config, and JSON manifest"

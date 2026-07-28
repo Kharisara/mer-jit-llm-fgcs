@@ -1,0 +1,9 @@
+Capability,MLflow,Airflow,Ray,Generic test frameworks,Proposed framework
+Policy-gated AI replay,Partial,No,Partial,No,Yes
+Multimodal replay workload support,No,No,Partial,No,Yes
+Invocation-control validation,No,No,No,Partial,Yes
+Unauthorized-generation detection,No,No,No,Partial,Yes
+Deterministic action-trace hashing,No,No,Partial,Partial,Yes
+Policy-ablation replay modes,No,No,Partial,No,Yes
+Stage-level pipeline latency profiling,Partial,Partial,Partial,No,Yes
+Reproducibility manifest generation,Partial,No,No,No,Yes

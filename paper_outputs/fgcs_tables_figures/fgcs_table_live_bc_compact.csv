@@ -1,0 +1,9 @@
+metric,value
+Live BC prediction rows,354132.0
+Live BC intervention rate,1.0
+Live BC action=0 count,0.0
+Live BC action=1 count,354132.0
+state_loading_ms mean,0.471163
+state_loading_ms max,44.8126
+policy_inference_ms mean,0.005216
+policy_inference_ms max,0.343525

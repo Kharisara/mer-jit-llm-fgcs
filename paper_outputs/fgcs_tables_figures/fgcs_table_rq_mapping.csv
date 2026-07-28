@@ -1,0 +1,6 @@
+Research Question,Focus,Evaluation Evidence,Main Metric
+RQ1,Deterministic replay consistency,Extended determinism table; trace hash results,"Hash match across workload sizes, policies, seeds, and workers"
+RQ2,Invocation-control fault detection,Fault-injection detection table,Detection recall for injected unauthorized invocations
+RQ3,Workload-scale performance,Extended scalability results,Runtime and throughput from real workload to 1M replay points
+RQ4,Worker-level execution behavior,Worker-level runtime and throughput results,Throughput variation and consistency across worker settings
+RQ5,Stage-level execution cost,Trace overhead and replay timing results,"Policy action time, gating time, aggregation time, hash overhead"
