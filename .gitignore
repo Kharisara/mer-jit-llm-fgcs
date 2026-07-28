@@ -117,3 +117,10 @@ ReplayBench_PG_Source.zip
 Validator_Selectivity_Full_Results.zip
 paper_outputs/*.zip
 paper_outputs/validator_selectivity_validation_smoke.zip
+
+# ------------------------------
+# LOCAL FINAL-SUBMISSION WORKSPACE
+# ------------------------------
+evidence/
+final_manuscript_update_evidence.zip
+myenv/
