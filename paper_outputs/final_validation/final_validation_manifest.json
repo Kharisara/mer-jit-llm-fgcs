@@ -1,6 +1,13 @@
 {
-  "completed_at_utc": "2026-07-28T09:29:39.158834+00:00",
-  "components": {
+  "completed_at_utc": "2026-07-28T12:10:14.606934+00:00",
+  "error": "The complete pytest suite failed.\nExit code: 1\nOutput:\nC:\\Python312\\python.exe: No module named pytest\n",
+  "error_type": "ValidationError",
+  "failed_component": "pytest",
+  "schema_version": "1.0",
+  "started_at_utc": "2026-07-28T12:08:33.759327+00:00",
+  "status": "failed",
+  "traceback": "Traceback (most recent call last):\n  File \"D:\\Project final\\mer-jit-llm-fgcs\\run_final_artifact_validation.py\", line 355, in main\n    tests = run_all_tests(project_dir)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project final\\mer-jit-llm-fgcs\\run_final_artifact_validation.py\", line 108, in run_all_tests\n    raise ValidationError(\nfinal_artifact_utils.ValidationError: The complete pytest suite failed.\nExit code: 1\nOutput:\nC:\\Python312\\python.exe: No module named pytest\n\n",
+  "validated_components_before_failure": {
     "cloud_validation": {
       "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
       "cross_region": {
@@ -233,18 +240,6 @@
       "runs_per_fault_class": 18,
       "unique_clean_reference_executions": 18
     },
-    "pytest": {
-      "all_tests_passed": true,
-      "command": [
-        "D:\\Project final\\mer-jit-llm-fgcs\\.venv\\Scripts\\python.exe",
-        "-m",
-        "pytest",
-        "-q"
-      ],
-      "exit_code": 0,
-      "output": ".............................                                            [100%]\n29 passed in 75.12s (0:01:15)",
-      "tests_passed": 29
-    },
     "python_compilation": {
       "all_python_files_compile": true,
       "compiled_files": [
@@ -403,41 +398,5 @@
       "unique_configurations": 48,
       "worker_speedup_rows": 24
     }
-  },
-  "output_dir": "paper_outputs/final_validation",
-  "outputs": {
-    "claims_numbers": "paper_outputs/final_validation/final_claims_numbers.json",
-    "inventory": "paper_outputs/final_validation/final_results_inventory.csv",
-    "manifest": "paper_outputs/final_validation/final_validation_manifest.json",
-    "sha256_manifest": "paper_outputs/final_validation/file_sha256_manifest.csv"
-  },
-  "project_dir": "D:/Project final/mer-jit-llm-fgcs",
-  "schema_version": "1.0",
-  "started_at_utc": "2026-07-28T09:26:43.082255+00:00",
-  "status": "passed",
-  "strict_requirements": {
-    "all_python_files_compile": true,
-    "all_tests_pass": true,
-    "clean_authorization_contradictions": 0,
-    "cloud_cross_region_matches": "360/360",
-    "cloud_local_to_cloud_matches": "720/720",
-    "comment13_environment_comparison": true,
-    "fault_clean_validator_applications": 54,
-    "fault_clean_validator_workflows": 3,
-    "fault_unique_clean_reference_executions": 18,
-    "metropt3_canonical_source_rows": 1516948,
-    "metropt3_clean_conditions": 72,
-    "metropt3_duplicate_full_source_rows": 0,
-    "metropt3_fault_classes": "5 classes, 18/18 each",
-    "metropt3_prepared_replay_rows": 20000,
-    "metropt3_unique_full_source_rows": 1516948,
-    "primary_benchmark_conditions": 360,
-    "primary_fault_classes": "5 classes, 18/18 each",
-    "ray_clean_external_hash_matches": "18/18",
-    "ray_conditions": 54,
-    "ray_fault_conditions_flagged": "36/36",
-    "timing_configurations_x_15": 24,
-    "timing_configurations_x_7": 24,
-    "timing_rows": 528
   }
 }
