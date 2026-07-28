@@ -1,1 +1,4 @@
 requirements.txt text eol=lf
+paper_outputs/environment/pip_freeze_lock.txt text eol=lf
+paper_outputs/environment/execution_environment_manifest.json text eol=lf
+paper_outputs/environment/cloud_environment_comparison.json text eol=lf

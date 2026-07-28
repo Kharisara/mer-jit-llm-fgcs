@@ -35,7 +35,7 @@
     "executable_sha256": "9b0bffb7a259cd2722df454fdfff41ee13665820cff1f578b1d97d31f9ef93d5",
     "requirements_txt_sha256": "8b346229b020243300ca1c66239b62ff0fe7041881d677da59b30d3a50643b0e",
     "pip_freeze_lock": "paper_outputs/environment/pip_freeze_lock.txt",
-    "pip_freeze_lock_sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88"
+    "pip_freeze_lock_sha256": "effb2ed70573394069493c3d46a1d9867aaee41269f70c84b9c880a3cd9fae6b"
   },
   "threads": {
     "logical_cpu_count": 12,
