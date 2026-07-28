@@ -1,13 +1,6 @@
 {
-  "completed_at_utc": "2026-07-28T07:05:33.739082+00:00",
-  "error": "The complete pytest suite failed.\nExit code: 1\nOutput:\nC:\\Python312\\python.exe: No module named pytest\n",
-  "error_type": "ValidationError",
-  "failed_component": "pytest",
-  "schema_version": "1.0",
-  "started_at_utc": "2026-07-28T07:05:26.685380+00:00",
-  "status": "failed",
-  "traceback": "Traceback (most recent call last):\n  File \"D:\\Project final\\mer-jit-llm-fgcs\\run_final_artifact_validation.py\", line 355, in main\n    tests = run_all_tests(project_dir)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project final\\mer-jit-llm-fgcs\\run_final_artifact_validation.py\", line 108, in run_all_tests\n    raise ValidationError(\nfinal_artifact_utils.ValidationError: The complete pytest suite failed.\nExit code: 1\nOutput:\nC:\\Python312\\python.exe: No module named pytest\n\n",
-  "validated_components_before_failure": {
+  "completed_at_utc": "2026-07-28T08:08:33.930623+00:00",
+  "components": {
     "cloud_validation": {
       "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
       "cross_region": {
@@ -34,7 +27,7 @@
       "base_image_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
       "dependency_lock_hash_matches": true,
       "environment_manifest_complete": true,
-      "environment_manifest_sha256": "e7d2fa96cce587059edb42c0e058b078ec22bdd22f0daacaf0fe77f075f15457",
+      "environment_manifest_sha256": "9f66668c79ddff82d5e0aa70d3dcbd96f209a49f4284614340e5540bf4db5707",
       "figure2_output_hashes_match": true,
       "figure2_outputs": [
         "figures/Figure_2_Runtime_Scaling.pdf",
@@ -68,7 +61,7 @@
       "comparison_complete": true,
       "comparison_csv": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
       "comparison_csv_sha256": "7aa90a1ae3ea8441c698cfab93ab6d8c659422260fb8acfdc05a05f7850b3c43",
-      "comparison_json_sha256": "238e7bd5b9b65bad0acce1cc38850f81bf3e979a3743064cf8692762c6e93549",
+      "comparison_json_sha256": "e8e8c7154d9e8a0b7f0b303a26869e8e7eb36e4e50963a24e07d940450dde142",
       "final_image_digest_matches_comment12": true,
       "local_cloud_dependency_locks_identical": false,
       "local_dependency_lock_sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88",
@@ -240,6 +233,18 @@
       "runs_per_fault_class": 18,
       "unique_clean_reference_executions": 18
     },
+    "pytest": {
+      "all_tests_passed": true,
+      "command": [
+        "D:\\Project final\\mer-jit-llm-fgcs\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "output": ".............................                                            [100%]\n29 passed in 94.23s (0:01:34)",
+      "tests_passed": 29
+    },
     "python_compilation": {
       "all_python_files_compile": true,
       "compiled_files": [
@@ -397,5 +402,41 @@
       "unique_configurations": 48,
       "worker_speedup_rows": 24
     }
+  },
+  "output_dir": "paper_outputs/final_validation",
+  "outputs": {
+    "claims_numbers": "paper_outputs/final_validation/final_claims_numbers.json",
+    "inventory": "paper_outputs/final_validation/final_results_inventory.csv",
+    "manifest": "paper_outputs/final_validation/final_validation_manifest.json",
+    "sha256_manifest": "paper_outputs/final_validation/file_sha256_manifest.csv"
+  },
+  "project_dir": "D:/Project final/mer-jit-llm-fgcs",
+  "schema_version": "1.0",
+  "started_at_utc": "2026-07-28T08:06:48.176327+00:00",
+  "status": "passed",
+  "strict_requirements": {
+    "all_python_files_compile": true,
+    "all_tests_pass": true,
+    "clean_authorization_contradictions": 0,
+    "cloud_cross_region_matches": "360/360",
+    "cloud_local_to_cloud_matches": "720/720",
+    "comment13_environment_comparison": true,
+    "fault_clean_validator_applications": 54,
+    "fault_clean_validator_workflows": 3,
+    "fault_unique_clean_reference_executions": 18,
+    "metropt3_canonical_source_rows": 1516948,
+    "metropt3_clean_conditions": 72,
+    "metropt3_duplicate_full_source_rows": 0,
+    "metropt3_fault_classes": "5 classes, 18/18 each",
+    "metropt3_prepared_replay_rows": 20000,
+    "metropt3_unique_full_source_rows": 1516948,
+    "primary_benchmark_conditions": 360,
+    "primary_fault_classes": "5 classes, 18/18 each",
+    "ray_clean_external_hash_matches": "18/18",
+    "ray_conditions": 54,
+    "ray_fault_conditions_flagged": "36/36",
+    "timing_configurations_x_15": 24,
+    "timing_configurations_x_7": 24,
+    "timing_rows": 528
   }
 }

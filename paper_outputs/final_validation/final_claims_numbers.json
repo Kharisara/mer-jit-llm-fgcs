@@ -27,7 +27,7 @@
     "comparison_complete": true,
     "comparison_csv": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
     "comparison_csv_sha256": "7aa90a1ae3ea8441c698cfab93ab6d8c659422260fb8acfdc05a05f7850b3c43",
-    "comparison_json_sha256": "238e7bd5b9b65bad0acce1cc38850f81bf3e979a3743064cf8692762c6e93549",
+    "comparison_json_sha256": "e8e8c7154d9e8a0b7f0b303a26869e8e7eb36e4e50963a24e07d940450dde142",
     "final_image_digest_matches_comment12": true,
     "local_cloud_dependency_locks_identical": false,
     "local_dependency_lock_sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88",

@@ -1,63 +1,63 @@
 {
-    "captured_at_utc":  "2026-07-27T11:57:47.0554532Z",
-    "git_commit":  "3db59686828f6deaf6900d796956e871e77508c7",
-    "git_worktree_dirty_at_capture":  false,
-    "local":  {
-                  "os_caption":  "Microsoft Windows 11 Home",
-                  "os_version":  "10.0.26200",
-                  "os_build_number":  "26200",
-                  "os_architecture":  "64-bit",
-                  "cpu_name":  "Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz",
-                  "cpu_manufacturer":  "GenuineIntel",
-                  "physical_cores":  6,
-                  "logical_processors":  12,
-                  "installed_ram_bytes":  16963534848,
-                  "installed_ram_gib":  15.8,
-                  "storage_devices":  [
-                                          {
-                                              "friendly_name":  "WDC WD10SPZX-08Z10",
-                                              "media_type":  "HDD",
-                                              "bus_type":  "RAID",
-                                              "size_bytes":  1000204886016
-                                          },
-                                          {
-                                              "friendly_name":  "SKHynix_HFS512GD9TNG-L3A0B",
-                                              "media_type":  "SSD",
-                                              "bus_type":  "RAID",
-                                              "size_bytes":  512110190592
-                                          }
-                                      ],
-                  "active_power_scheme":  "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)"
-              },
-    "python":  {
-                   "version":  "Python 3.12.2",
-                   "executable":  "D:\\Project final\\mer-jit-llm-fgcs\\.venv\\Scripts\\python.exe",
-                   "executable_sha256":  "9b0bffb7a259cd2722df454fdfff41ee13665820cff1f578b1d97d31f9ef93d5",
-                   "requirements_txt_sha256":  "f200539b74b39e9567a78e729074cf9a9b69d9cf9e775bae6b86b0dbd1b7567e",
-                   "pip_freeze_lock":  "paper_outputs/environment/pip_freeze_lock.txt",
-                   "pip_freeze_lock_sha256":  "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88"
-               },
-    "threads":  {
-                    "logical_cpu_count":  12,
-                    "environment":  {
-                                        "OMP_NUM_THREADS":  null,
-                                        "MKL_NUM_THREADS":  null,
-                                        "OPENBLAS_NUM_THREADS":  null,
-                                        "NUMEXPR_NUM_THREADS":  null,
-                                        "PYTHONHASHSEED":  null
-                                    },
-                    "torch_num_threads":  6,
-                    "torch_num_interop_threads":  6,
-                    "torch_version":  "2.9.1+cpu",
-                    "torch_cuda_available":  false
-                },
-    "container":  {
-                      "dockerfile_base_image":  "python:3.12-slim",
-                      "docker_daemon_available":  true,
-                      "base_image_repo_digest":  "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
-                      "base_image_digest_source":  "docker_pull_and_inspect",
-                      "final_image_uri":  "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
-                      "final_image_digest":  "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
-                      "final_image_digest_source":  "pinned_uri"
-                  }
+  "captured_at_utc": "2026-07-27T11:57:47.0554532Z",
+  "git_commit": "3db59686828f6deaf6900d796956e871e77508c7",
+  "git_worktree_dirty_at_capture": false,
+  "local": {
+    "os_caption": "Microsoft Windows 11 Home",
+    "os_version": "10.0.26200",
+    "os_build_number": "26200",
+    "os_architecture": "64-bit",
+    "cpu_name": "Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz",
+    "cpu_manufacturer": "GenuineIntel",
+    "physical_cores": 6,
+    "logical_processors": 12,
+    "installed_ram_bytes": 16963534848,
+    "installed_ram_gib": 15.8,
+    "storage_devices": [
+      {
+        "friendly_name": "WDC WD10SPZX-08Z10",
+        "media_type": "HDD",
+        "bus_type": "RAID",
+        "size_bytes": 1000204886016
+      },
+      {
+        "friendly_name": "SKHynix_HFS512GD9TNG-L3A0B",
+        "media_type": "SSD",
+        "bus_type": "RAID",
+        "size_bytes": 512110190592
+      }
+    ],
+    "active_power_scheme": "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)"
+  },
+  "python": {
+    "version": "Python 3.12.2",
+    "executable": "D:\\Project final\\mer-jit-llm-fgcs\\.venv\\Scripts\\python.exe",
+    "executable_sha256": "9b0bffb7a259cd2722df454fdfff41ee13665820cff1f578b1d97d31f9ef93d5",
+    "requirements_txt_sha256": "8b346229b020243300ca1c66239b62ff0fe7041881d677da59b30d3a50643b0e",
+    "pip_freeze_lock": "paper_outputs/environment/pip_freeze_lock.txt",
+    "pip_freeze_lock_sha256": "c17a8082c9f796b30a7712a0939526701298ae3d8738bb8886879f5019762f88"
+  },
+  "threads": {
+    "logical_cpu_count": 12,
+    "environment": {
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "PYTHONHASHSEED": null
+    },
+    "torch_num_threads": 6,
+    "torch_num_interop_threads": 6,
+    "torch_version": "2.9.1+cpu",
+    "torch_cuda_available": false
+  },
+  "container": {
+    "dockerfile_base_image": "python:3.12-slim",
+    "docker_daemon_available": true,
+    "base_image_repo_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
+    "base_image_digest_source": "docker_pull_and_inspect",
+    "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+    "final_image_digest": "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+    "final_image_digest_source": "pinned_uri"
+  }
 }

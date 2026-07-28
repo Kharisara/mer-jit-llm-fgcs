@@ -71,7 +71,7 @@
   "schema": "replaybench-pg-cloud-environment-comparison-v2",
   "source_environment_manifest": {
     "path": "paper_outputs/environment/execution_environment_manifest.json",
-    "sha256": "e7d2fa96cce587059edb42c0e058b078ec22bdd22f0daacaf0fe77f075f15457"
+    "sha256": "9f66668c79ddff82d5e0aa70d3dcbd96f209a49f4284614340e5540bf4db5707"
   },
   "source_metadata": {
     "asia-southeast1": {
