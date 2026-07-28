@@ -7,3 +7,5 @@ cloud_results/cloud360_riskproxy_20260702/us-central1/cloud_run_metadata.json te
 paper_outputs/environment/cloud_pip_freeze_lock.txt -text
 paper_outputs/environment/** -text
 cloud_results/cloud360_riskproxy_20260702/** -text
+paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv -text
+tables/cloud_environment_comparison.csv -text
