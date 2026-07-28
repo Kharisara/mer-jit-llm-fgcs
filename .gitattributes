@@ -9,3 +9,4 @@ paper_outputs/environment/** -text
 cloud_results/cloud360_riskproxy_20260702/** -text
 paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv -text
 tables/cloud_environment_comparison.csv -text
+paper_outputs/replaybench_timing_study/timing_runtime_summary_mixed_7_15.csv -text
