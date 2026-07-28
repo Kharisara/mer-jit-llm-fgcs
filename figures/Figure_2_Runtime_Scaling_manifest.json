@@ -2,8 +2,8 @@
   "input": "paper_outputs/replaybench_timing_study/timing_runtime_summary_mixed_7_15.csv",
   "input_sha256": "317f9892620d0d48a38730bf8bd6357c1e53731d4bd43119baec1494e4da5a6b",
   "outputs": {
-    "figures/Figure_2_Runtime_Scaling.png": "70d4f34c720f54b63b6feed2c76aea175a6232cc4b19d0e845ecdde149911a41",
-    "figures/Figure_2_Runtime_Scaling.pdf": "6c4137b6a92376bbbb2e25df28fc471dc22de4167231dcff847663152393c79c"
+    "figures/Figure_2_Runtime_Scaling.png": "e65569105eb881b293b8e47dac0ad2ac2f4872e30940cc99df2928513a232b92",
+    "figures/Figure_2_Runtime_Scaling.pdf": "736d6e5ead927d27f870acfcf4ab67f29465b1d90e8ba38537602777187ed85a"
   },
   "filter": "workers == 1",
   "expected_rows": 30,
