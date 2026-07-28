@@ -5,3 +5,5 @@ paper_outputs/environment/cloud_environment_comparison.json text eol=lf
 cloud_results/cloud360_riskproxy_20260702/asia-southeast1/cloud_run_metadata.json text eol=lf
 cloud_results/cloud360_riskproxy_20260702/us-central1/cloud_run_metadata.json text eol=lf
 paper_outputs/environment/cloud_pip_freeze_lock.txt -text
+paper_outputs/environment/** -text
+cloud_results/cloud360_riskproxy_20260702/** -text
