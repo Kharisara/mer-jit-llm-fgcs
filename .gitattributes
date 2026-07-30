@@ -11,3 +11,10 @@ paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv -text
 tables/cloud_environment_comparison.csv -text
 paper_outputs/replaybench_timing_study/timing_runtime_summary_mixed_7_15.csv -text
 paper_outputs/secondary_metropt3/replay_input_metropt3.csv -text
+paper_outputs/final_validation/final_validation_manifest.json text eol=lf
+paper_outputs/final_validation/final_claims_numbers.json text eol=lf
+paper_outputs/final_validation/final_results_inventory.csv text eol=lf
+paper_outputs/final_validation/file_sha256_manifest.csv text eol=lf
+run_final_artifact_validation.py text eol=lf
+.gitattributes text eol=lf
+final_artifact_utils.py text eol=lf

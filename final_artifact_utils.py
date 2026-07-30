@@ -345,20 +345,26 @@ def json_safe(value: Any) -> Any:
 
 
 def atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    """Write deterministic UTF-8 JSON using LF line endings on every OS."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(path.suffix + ".tmp")
-    temp.write_text(
-        json.dumps(json_safe(payload), indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    content = json.dumps(json_safe(payload), indent=2, sort_keys=True) + "\n"
+    temp.write_bytes(content.encode("utf-8"))
     temp.replace(path)
 
 
 def atomic_write_csv(path: Path, frame: pd.DataFrame) -> None:
+    """Write deterministic UTF-8 CSV using LF line endings on every OS."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(path.suffix + ".tmp")
-    frame.to_csv(temp, index=False, lineterminator="\n")
-    temp.replace(path)
+
+    content = frame.to_csv(
+        index=False,
+        lineterminator="\n",
+    )
+
+    # Direct byte writing avoids Windows WinError 5 when replacing an
+    # existing tracked output file through Path.replace().
+    path.write_bytes(content.encode("utf-8"))
 
 
 # ---------------------------------------------------------------------------

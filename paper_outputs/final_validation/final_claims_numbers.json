@@ -1,4 +1,22 @@
 {
+  "bc_live_runtime_decomposition": {
+    "all_runtime_decompositions_valid": true,
+    "all_trace_hashes_stable": true,
+    "configurations_x_15_repetitions": 4,
+    "configurations_x_7_repetitions": 4,
+    "full_workload_one_worker": {
+      "checkpoint_preparation_seconds_median": 5.834816300000057,
+      "checkpoint_preparation_share_median": 0.96935646918786,
+      "end_to_end_runtime_seconds_median": 6.02168359999996,
+      "post_replay_validation_seconds_median": 0.0543502000000444,
+      "post_replay_validation_share_median": 0.0088922656098291,
+      "replay_only_runtime_seconds_median": 0.1272856999999021,
+      "replay_only_share_median": 0.0217512652023107
+    },
+    "max_authorization_contradictions": 0,
+    "measured_executions": 88,
+    "unique_configurations": 8
+  },
   "cloud_validation": {
     "cross_region_compared": 360,
     "cross_region_matched": 360,
@@ -46,6 +64,40 @@
     "same_cloud_platform": true,
     "same_cloud_python_build": true,
     "same_cloud_resource_configuration": true
+  },
+  "execution_integrity_validation": {
+    "all_expected_outcomes_met": true,
+    "clean_downstream_receipts_reconciled": 117786,
+    "clean_false_positive_executions": 0,
+    "clean_receipt_execution_instances": 18,
+    "receipt_execution_instances": 90,
+    "receipt_fault_execution_instances": 72,
+    "receipt_fault_false_negative_executions": 0,
+    "receipt_faults": {
+      "duplicate_downstream_call": {
+        "correctly_classified": 18,
+        "execution_instances": 18,
+        "injected_events": 1238
+      },
+      "false_execution_log": {
+        "correctly_classified": 18,
+        "execution_instances": 18,
+        "injected_events": 1166
+      },
+      "mismatched_correlation_id": {
+        "correctly_classified": 18,
+        "execution_instances": 18,
+        "injected_events": 1252
+      },
+      "unlogged_downstream_call": {
+        "correctly_classified": 18,
+        "execution_instances": 18,
+        "injected_events": 1184
+      }
+    },
+    "record_configuration_corruption_applications": 90,
+    "record_configuration_corruption_applications_detected": 90,
+    "semantic_receipt_digests_recomputed": 589002
   },
   "metropt3": {
     "clean_conditions": 72,
@@ -202,11 +254,11 @@
     "fault_conditions_flagged": 36,
     "max_authorization_contradictions": 0
   },
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "software_validation": {
     "all_python_files_compile": true,
     "all_tests_passed": true,
-    "python_files_compiled": 114,
+    "python_files_compiled": 110,
     "tests_passed": 29
   },
   "timing_study": {
@@ -215,5 +267,25 @@
     "configurations_x_7_repetitions": 24,
     "measured_rows": 528,
     "paired_worker_speedup_rows": 24
+  },
+  "validator_selectivity_validation": {
+    "all_expected_outcomes_met": true,
+    "event_level_false_negatives": 0,
+    "event_level_false_positives": 0,
+    "event_level_precision": 1.0,
+    "event_level_recall": 1.0,
+    "event_level_true_positives": 3240,
+    "independent_benign_negative_control_executions": 24,
+    "independent_positive_fault_executions": 216,
+    "posthoc_trace_applications": 108,
+    "posthoc_validator_applications": 258,
+    "posthoc_validator_failures": 0,
+    "record_configuration_applications": 150,
+    "run_level_false_negatives": 0,
+    "run_level_false_positives": 0,
+    "run_level_true_negatives": 24,
+    "run_level_true_positives": 216,
+    "supported_runtime_events": 3240,
+    "unique_clean_reference_executions": 8
   }
 }
