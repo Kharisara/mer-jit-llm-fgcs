@@ -177,6 +177,27 @@
       "rule_gate": 3
     }
   },
+  "phase1_label_independent_validation": {
+    "benign_control_units": 24,
+    "clean_reference_units": 18,
+    "findings_frozen_before_scoring": true,
+    "full_detected_positive_units": 228,
+    "full_false_positive_units": 0,
+    "generic_validator_findings": 270,
+    "ground_truth_fields_absent_from_findings": true,
+    "ground_truth_records": 270,
+    "label_independent_localized_events": 4906,
+    "localization_false_negatives": 0,
+    "localization_false_positives": 0,
+    "negative_control_units": 42,
+    "positive_control_units": 228,
+    "primary_detected_positive_units": 84,
+    "primary_invariants_recomputed": true,
+    "receipt_execution_instances": 90,
+    "schema_version": "replaybench-pg-phase1-validation-v1",
+    "status": "passed",
+    "validator_inputs_label_independent": true
+  },
   "primary_benchmark": {
     "conditions_completed": 360,
     "conditions_expected": 360,
@@ -258,8 +279,8 @@
   "software_validation": {
     "all_python_files_compile": true,
     "all_tests_passed": true,
-    "python_files_compiled": 110,
-    "tests_passed": 29
+    "python_files_compiled": 114,
+    "tests_passed": 36
   },
   "timing_study": {
     "configurations": 48,
@@ -270,13 +291,12 @@
   },
   "validator_selectivity_validation": {
     "all_expected_outcomes_met": true,
-    "event_level_false_negatives": 0,
-    "event_level_false_positives": 0,
-    "event_level_precision": 1.0,
-    "event_level_recall": 1.0,
-    "event_level_true_positives": 3240,
+    "authoritative_label_independent_component": "phase1_label_independent_validation",
     "independent_benign_negative_control_executions": 24,
     "independent_positive_fault_executions": 216,
+    "label_independent_localization_claim_superseded": true,
+    "legacy_event_accounting_matches_injection_manifest": true,
+    "legacy_ground_truth_aware_runtime_events": 3240,
     "posthoc_trace_applications": 108,
     "posthoc_validator_applications": 258,
     "posthoc_validator_failures": 0,
@@ -285,7 +305,6 @@
     "run_level_false_positives": 0,
     "run_level_true_negatives": 24,
     "run_level_true_positives": 216,
-    "supported_runtime_events": 3240,
     "unique_clean_reference_executions": 8
   }
 }

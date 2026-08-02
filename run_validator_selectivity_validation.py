@@ -13,6 +13,12 @@ The protocol is intentionally separate from the frozen functional and timing stu
 
 from __future__ import annotations
 
+# NOTE (v2.5.9 correction): this historical runner retains the original
+# ground-truth-aware scoring outputs for reproducibility. It is not the
+# authoritative source for label-independent detection or event localization.
+# Use run_phase1_label_independent_validation.py followed by
+# score_phase1_label_independent_validation.py for the corrected evaluation.
+
 import argparse
 import copy
 import hashlib

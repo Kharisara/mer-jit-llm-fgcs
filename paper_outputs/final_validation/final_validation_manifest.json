@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-07-30T16:45:48.923344+00:00",
+  "completed_at_utc": "2026-08-02T16:15:56.717857+00:00",
   "components": {
     "bc_live_runtime_decomposition": {
       "all_runtime_decompositions_valid": true,
@@ -213,6 +213,27 @@
         "rule_gate": 3
       }
     },
+    "phase1_label_independent_validation": {
+      "benign_control_units": 24,
+      "clean_reference_units": 18,
+      "findings_frozen_before_scoring": true,
+      "full_detected_positive_units": 228,
+      "full_false_positive_units": 0,
+      "generic_validator_findings": 270,
+      "ground_truth_fields_absent_from_findings": true,
+      "ground_truth_records": 270,
+      "label_independent_localized_events": 4906,
+      "localization_false_negatives": 0,
+      "localization_false_positives": 0,
+      "negative_control_units": 42,
+      "positive_control_units": 228,
+      "primary_detected_positive_units": 84,
+      "primary_invariants_recomputed": true,
+      "receipt_execution_instances": 90,
+      "schema_version": "replaybench-pg-phase1-validation-v1",
+      "status": "passed",
+      "validator_inputs_label_independent": true
+    },
     "primary_benchmark": {
       "all_worker_hashes_match": true,
       "condition_matrix_complete": true,
@@ -294,8 +315,8 @@
         "-q"
       ],
       "exit_code": 0,
-      "output": ".............................                                            [100%]\n29 passed in 42.22s",
-      "tests_passed": 29
+      "output": "....................................                                     [100%]\n36 passed in 44.17s",
+      "tests_passed": 36
     },
     "python_compilation": {
       "all_python_files_compile": true,
@@ -358,6 +379,7 @@
         "mer/video_encoder.py",
         "reorganize_meld_frames.py",
         "replaybench/__init__.py",
+        "replaybench/generic_validator.py",
         "replaybench/integrity.py",
         "replaybench/validation.py",
         "robustness_experiment.py",
@@ -370,11 +392,13 @@
         "run_final_artifact_validation.py",
         "run_full_reproduction.py",
         "run_ipd_demo.py",
+        "run_phase1_label_independent_validation.py",
         "run_ray_comparison.py",
         "run_replaybench_extended_benchmark.py",
         "run_replaybench_timing_study.py",
         "run_secondary_metropt3_validation.py",
         "run_validator_selectivity_validation.py",
+        "score_phase1_label_independent_validation.py",
         "scripts/extract_meld_audio.py",
         "scripts/extract_meld_frames.py",
         "scripts/mer_noise_stress.py",
@@ -393,6 +417,7 @@
         "tests/test_array_revision_validation.py",
         "tests/test_execution_integrity.py",
         "tests/test_final_artifact_utils.py",
+        "tests/test_generic_validator.py",
         "tests/test_timing_statistics.py",
         "tests/test_validation.py",
         "tests/test_validator_selectivity.py",
@@ -411,8 +436,8 @@
         "tools/select_sample_for_cloud.py",
         "validate_submission_package.py"
       ],
-      "python_files_compiled": 110,
-      "python_files_discovered": 110
+      "python_files_compiled": 114,
+      "python_files_discovered": 114
     },
     "ray_validation": {
       "all_detection_expectations_met": true,
@@ -430,7 +455,7 @@
       "all_present": true,
       "required_configurations": 9,
       "required_manifests": 14,
-      "required_scripts": 22
+      "required_scripts": 25
     },
     "timing_study": {
       "all_recorded_validation_flags_pass": true,
@@ -453,13 +478,12 @@
     },
     "validator_selectivity_validation": {
       "all_expected_outcomes_met": true,
-      "event_level_false_negatives": 0,
-      "event_level_false_positives": 0,
-      "event_level_precision": 1.0,
-      "event_level_recall": 1.0,
-      "event_level_true_positives": 3240,
+      "authoritative_label_independent_component": "phase1_label_independent_validation",
       "independent_benign_negative_control_executions": 24,
       "independent_positive_fault_executions": 216,
+      "label_independent_localization_claim_superseded": true,
+      "legacy_event_accounting_matches_injection_manifest": true,
+      "legacy_ground_truth_aware_runtime_events": 3240,
       "posthoc_trace_applications": 108,
       "posthoc_validator_applications": 258,
       "posthoc_validator_failures": 0,
@@ -468,7 +492,6 @@
       "run_level_false_positives": 0,
       "run_level_true_negatives": 24,
       "run_level_true_positives": 216,
-      "supported_runtime_events": 3240,
       "unique_clean_reference_executions": 8
     }
   },
@@ -481,7 +504,7 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.1",
-  "started_at_utc": "2026-07-30T16:44:59.168715+00:00",
+  "started_at_utc": "2026-08-02T16:15:04.667161+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,
@@ -498,12 +521,21 @@
     "fault_clean_validator_applications": 54,
     "fault_clean_validator_workflows": 3,
     "fault_unique_clean_reference_executions": 18,
+    "legacy_validator_selectivity_ground_truth_aware_events": 3240,
     "metropt3_canonical_source_rows": 1516948,
     "metropt3_clean_conditions": 72,
     "metropt3_duplicate_full_source_rows": 0,
     "metropt3_fault_classes": "5 classes, 18/18 each",
     "metropt3_prepared_replay_rows": 20000,
     "metropt3_unique_full_source_rows": 1516948,
+    "phase1_full_detected_positive_units": 228,
+    "phase1_generic_validator_findings": 270,
+    "phase1_label_independent_localized_events": 4906,
+    "phase1_localization_false_negatives": 0,
+    "phase1_localization_false_positives": 0,
+    "phase1_negative_control_units": 42,
+    "phase1_positive_control_units": 228,
+    "phase1_primary_detected_positive_units": 84,
     "primary_benchmark_conditions": 360,
     "primary_fault_classes": "5 classes, 18/18 each",
     "ray_clean_external_hash_matches": "18/18",
@@ -513,7 +545,6 @@
     "timing_configurations_x_7": 24,
     "timing_rows": 528,
     "validator_selectivity_benign_executions": 24,
-    "validator_selectivity_localized_events": 3240,
     "validator_selectivity_posthoc_applications": 258,
     "validator_selectivity_runtime_fault_executions": 216
   }

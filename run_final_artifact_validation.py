@@ -1084,12 +1084,12 @@ def validate_validator_selectivity_validation(
         "independent_positive_fault_executions": 216,
         "run_level_true_positives": 216,
         "run_level_false_negatives": 0,
-        "supported_runtime_events": 3_240,
-        "event_level_true_positives": 3_240,
-        "event_level_false_positives": 0,
-        "event_level_false_negatives": 0,
-        "event_level_precision": 1.0,
-        "event_level_recall": 1.0,
+        "legacy_ground_truth_aware_runtime_events": 3_240,
+        "legacy_event_accounting_matches_injection_manifest": True,
+        "label_independent_localization_claim_superseded": True,
+        "authoritative_label_independent_component": (
+            "phase1_label_independent_validation"
+        ),
         "posthoc_trace_applications": 108,
         "record_configuration_applications": 150,
         "posthoc_validator_applications": 258,
@@ -1102,12 +1102,311 @@ def validate_validator_selectivity_validation(
     ]
     return results, inventory
 
+
+def validate_phase1_label_independent_validation(
+    project_dir: Path,
+) -> tuple[dict[str, Any], list[Any]]:
+    base = project_dir / "paper_outputs" / "phase1_label_independent_validation"
+    names = [
+        "generic_validator_findings.jsonl",
+        "ground_truth_manifest.jsonl",
+        "validator_input_separation_audit.csv",
+        "per_evidence_scored_results.csv",
+        "event_localization_results.csv",
+        "baseline_comparison_by_fault_class.csv",
+        "phase1_validation_manifest.json",
+    ]
+    paths = {name: base / name for name in names}
+    for name, path in paths.items():
+        if not path.is_file():
+            raise ValidationError(f"Missing Phase-1 label-independent evidence: {path}")
+
+    def read_jsonl(path: Path) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        with path.open("r", encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                if not line.strip():
+                    continue
+                try:
+                    value = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ValidationError(
+                        f"Invalid JSONL in {path} at line {line_number}: {exc}"
+                    ) from exc
+                if not isinstance(value, dict):
+                    raise ValidationError(
+                        f"JSONL row in {path} at line {line_number} is not an object"
+                    )
+                rows.append(value)
+        return rows
+
+    findings_rows = read_jsonl(paths["generic_validator_findings.jsonl"])
+    truth_rows = read_jsonl(paths["ground_truth_manifest.jsonl"])
+    if len(findings_rows) != 270 or len(truth_rows) != 270:
+        raise ValidationError(
+            "Phase-1 findings and ground truth must each contain 270 records"
+        )
+    finding_ids = [str(row.get("evidence_id", "")) for row in findings_rows]
+    truth_ids = [str(row.get("evidence_id", "")) for row in truth_rows]
+    if len(set(finding_ids)) != 270 or len(set(truth_ids)) != 270:
+        raise ValidationError("Phase-1 evidence IDs must be unique")
+    if set(finding_ids) != set(truth_ids):
+        raise ValidationError("Phase-1 findings and ground truth do not align one-to-one")
+
+    forbidden_finding_fields = {
+        "fault_mode",
+        "positive_control",
+        "target_replay_point_ids",
+        "target_count",
+        "injection_seed",
+        "target_indices_json",
+        "target_indices_sha256",
+        "expected_trigger",
+        "was_injected",
+        "receipt_fault_mode",
+        "receipt_fault_injected",
+        "action_flip_fault_injected",
+        "unauthorized_invoke_fault_injected",
+    }
+    leaked = sorted(
+        {
+            field
+            for row in findings_rows
+            for field in forbidden_finding_fields.intersection(row.keys())
+        }
+    )
+    if leaked:
+        raise ValidationError(
+            f"Generic validator findings leak ground-truth fields: {leaked}"
+        )
+
+    audit = read_csv_required(
+        paths["validator_input_separation_audit.csv"],
+        "Phase-1 validator-input separation audit",
+    )
+    require_columns(
+        audit,
+        [
+            "evidence_id",
+            "forbidden_columns_in_validator_input",
+            "validator_input_label_independent",
+        ],
+        "Phase-1 validator-input separation audit",
+    )
+    if len(audit) != 270:
+        raise ValidationError("Phase-1 input-separation audit must contain 270 rows")
+    assert_all_one(
+        audit["validator_input_label_independent"],
+        "Phase-1 label-independent validator inputs",
+    )
+    forbidden_values = audit["forbidden_columns_in_validator_input"].fillna("").astype(str)
+    if forbidden_values.str.strip().ne("").any():
+        raise ValidationError("A Phase-1 validator input retained a forbidden field")
+
+    scored = read_csv_required(
+        paths["per_evidence_scored_results.csv"],
+        "Phase-1 per-evidence scored results",
+    )
+    require_columns(
+        scored,
+        [
+            "evidence_id",
+            "fault_mode",
+            "positive_control",
+            "source_kind",
+            "primary_validator_triggered",
+            "full_validator_triggered",
+            "primary_correct",
+            "full_correct",
+            "event_localization_supported",
+            "event_true_positives",
+            "event_false_positives",
+            "event_false_negatives",
+        ],
+        "Phase-1 per-evidence scored results",
+    )
+    if len(scored) != 270:
+        raise ValidationError("Phase-1 scored results must contain 270 evidence units")
+    assert_no_duplicates(scored, ["evidence_id"], "Phase-1 scored results")
+    positive = scored.loc[numeric(scored["positive_control"], "positive control").eq(1)]
+    negative = scored.loc[numeric(scored["positive_control"], "positive control").eq(0)]
+    if len(positive) != 228 or len(negative) != 42:
+        raise ValidationError(
+            f"Phase-1 expected 228 positive and 42 negative units; "
+            f"found {len(positive)} and {len(negative)}"
+        )
+    if int(numeric(positive["full_validator_triggered"], "full positive detection").sum()) != 228:
+        raise ValidationError("Full validator did not flag all 228 positive units")
+    if int(numeric(negative["full_validator_triggered"], "full negative detection").sum()) != 0:
+        raise ValidationError("Full validator flagged a clean or benign unit")
+    if int(numeric(positive["primary_validator_triggered"], "primary positive detection").sum()) != 84:
+        raise ValidationError("Primary validator detection total must equal 84/228")
+    assert_all_one(positive["full_correct"], "Phase-1 full positive classifications")
+    assert_all_one(negative["full_correct"], "Phase-1 full negative classifications")
+
+    clean_units = scored["fault_mode"].astype(str).eq("clean")
+    benign_units = scored["source_kind"].astype(str).eq("post_execution_benign_control")
+    receipt_units = scored["source_kind"].astype(str).eq("frozen_receipt_execution")
+    if int(clean_units.sum()) != 18 or int(benign_units.sum()) != 24:
+        raise ValidationError("Phase-1 clean/benign accounting must equal 18 and 24")
+    if int(receipt_units.sum()) != 90:
+        raise ValidationError("Phase-1 receipt execution accounting must equal 90")
+
+    localization = read_csv_required(
+        paths["event_localization_results.csv"],
+        "Phase-1 event-localization results",
+    )
+    require_columns(
+        localization,
+        [
+            "evidence_id",
+            "event_localization_supported",
+            "event_true_positives",
+            "event_false_positives",
+            "event_false_negatives",
+        ],
+        "Phase-1 event-localization results",
+    )
+    if len(localization) != 270:
+        raise ValidationError("Phase-1 localization output must contain 270 rows")
+    supported = localization.loc[
+        numeric(
+            localization["event_localization_supported"],
+            "localization support",
+        ).eq(1)
+    ]
+    localized_events = int(
+        numeric(supported["event_true_positives"], "localized true positives").sum()
+    )
+    localization_fp = int(
+        numeric(supported["event_false_positives"], "localized false positives").sum()
+    )
+    localization_fn = int(
+        numeric(supported["event_false_negatives"], "localized false negatives").sum()
+    )
+    if localized_events != 4_906 or localization_fp != 0 or localization_fn != 0:
+        raise ValidationError(
+            "Phase-1 label-independent localization must equal "
+            "4,906 TP, 0 FP, and 0 FN"
+        )
+
+    comparison = read_csv_required(
+        paths["baseline_comparison_by_fault_class.csv"],
+        "Phase-1 baseline comparison",
+    )
+    require_columns(
+        comparison,
+        [
+            "fault_mode",
+            "evidence_units",
+            "primary_detected",
+            "full_detected",
+        ],
+        "Phase-1 baseline comparison",
+    )
+    expected_modes = {
+        "clean",
+        "saved_action_corruption",
+        "dropped_rows",
+        "duplicated_rows",
+        "logged_unauthorized_invocation",
+        "unlogged_downstream_call",
+        "false_execution_log",
+        "duplicate_downstream_call",
+        "mismatched_correlation_id",
+        "row_reordering",
+        "replay_id_action_reassignment",
+        "authorization_field_corruption",
+        "execution_field_corruption",
+        "configuration_label_corruption",
+        "timing_fields_changed",
+        "metadata_column_order_changed",
+        "permitted_logging_format_changed",
+        "completion_order_changed_then_reconstructed",
+    }
+    if set(comparison["fault_mode"].astype(str)) != expected_modes:
+        raise ValidationError("Phase-1 comparison fault/control modes are incomplete")
+
+    manifest = read_json_required(
+        paths["phase1_validation_manifest.json"],
+        "Phase-1 validation manifest",
+    )
+    expected_manifest_values = {
+        "status": "passed",
+        "generic_validator_findings": 270,
+        "ground_truth_records": 270,
+        "receipt_execution_instances": 90,
+        "clean_reference_units": 18,
+        "benign_control_units": 24,
+        "negative_control_units": 42,
+        "positive_control_units": 228,
+        "primary_detected_positive_units": 84,
+        "full_detected_positive_units": 228,
+        "full_false_positive_units": 0,
+        "label_independent_localized_events": 4_906,
+        "localization_false_positives": 0,
+        "localization_false_negatives": 0,
+    }
+    for key, expected in expected_manifest_values.items():
+        if manifest.get(key) != expected:
+            raise ValidationError(
+                f"Phase-1 manifest {key} must equal {expected!r}; "
+                f"found {manifest.get(key)!r}"
+            )
+    file_entries = manifest.get("files")
+    if not isinstance(file_entries, dict):
+        raise ValidationError("Phase-1 manifest files entry must be an object")
+    for name, metadata in file_entries.items():
+        path = base / name
+        if not path.is_file():
+            raise ValidationError(f"Phase-1 manifest references a missing file: {path}")
+        if not isinstance(metadata, dict):
+            raise ValidationError(f"Invalid Phase-1 file metadata for {name}")
+        if int(metadata.get("bytes", -1)) != path.stat().st_size:
+            raise ValidationError(f"Phase-1 byte count mismatch for {name}")
+        if str(metadata.get("sha256", "")) != sha256_file(path):
+            raise ValidationError(f"Phase-1 SHA-256 mismatch for {name}")
+
+    results = {
+        "schema_version": manifest.get("schema_version"),
+        "status": "passed",
+        "generic_validator_findings": 270,
+        "ground_truth_records": 270,
+        "receipt_execution_instances": 90,
+        "clean_reference_units": 18,
+        "benign_control_units": 24,
+        "negative_control_units": 42,
+        "positive_control_units": 228,
+        "primary_detected_positive_units": 84,
+        "full_detected_positive_units": 228,
+        "full_false_positive_units": 0,
+        "label_independent_localized_events": localized_events,
+        "localization_false_positives": localization_fp,
+        "localization_false_negatives": localization_fn,
+        "ground_truth_fields_absent_from_findings": True,
+        "validator_inputs_label_independent": True,
+        "primary_invariants_recomputed": True,
+        "findings_frozen_before_scoring": True,
+    }
+    inventory = [
+        evidence_file(
+            project_dir,
+            "phase1_label_independent_validation",
+            name,
+            path,
+        )
+        for name, path in paths.items()
+    ]
+    return results, inventory
+
+
 def make_claims_numbers(
     primary: dict[str, Any],
     timing: dict[str, Any],
     bc_live_decomposition: dict[str, Any],
     execution_integrity: dict[str, Any],
     validator_selectivity: dict[str, Any],
+    phase1_label_independent: dict[str, Any],
     ray: dict[str, Any],
     primary_faults: dict[str, Any],
     metro: dict[str, Any],
@@ -1144,6 +1443,7 @@ def make_claims_numbers(
         "bc_live_runtime_decomposition": bc_live_decomposition,
         "execution_integrity_validation": execution_integrity,
         "validator_selectivity_validation": validator_selectivity,
+        "phase1_label_independent_validation": phase1_label_independent,
         "ray_validation": {
             "conditions": ray["conditions"],
             "clean_conditions": ray["clean_conditions"],
@@ -1259,6 +1559,9 @@ def main() -> None:
                 "run_bc_live_runtime_decomposition.py",
                 "run_execution_integrity_validation.py",
                 "run_validator_selectivity_validation.py",
+                "run_phase1_label_independent_validation.py",
+                "score_phase1_label_independent_validation.py",
+                "replaybench/generic_validator.py",
             ],
             cloud_root=cloud_root,
         )),
@@ -1279,6 +1582,10 @@ def main() -> None:
         (
             "validator_selectivity_validation",
             lambda: validate_validator_selectivity_validation(project_dir),
+        ),
+        (
+            "phase1_label_independent_validation",
+            lambda: validate_phase1_label_independent_validation(project_dir),
         ),
         ("primary_controlled_faults", lambda: validate_fault_summary(
             project_dir,
@@ -1342,6 +1649,9 @@ def main() -> None:
             validator_selectivity=component_results[
                 "validator_selectivity_validation"
             ],
+            phase1_label_independent=component_results[
+                "phase1_label_independent_validation"
+            ],
             ray=component_results["ray_validation"],
             primary_faults=primary_faults,
             metro=component_results["metropt3"],
@@ -1392,8 +1702,16 @@ def main() -> None:
                 "execution_integrity_record_config_applications": 90,
                 "validator_selectivity_benign_executions": 24,
                 "validator_selectivity_runtime_fault_executions": 216,
-                "validator_selectivity_localized_events": 3240,
+                "legacy_validator_selectivity_ground_truth_aware_events": 3240,
                 "validator_selectivity_posthoc_applications": 258,
+                "phase1_generic_validator_findings": 270,
+                "phase1_positive_control_units": 228,
+                "phase1_negative_control_units": 42,
+                "phase1_primary_detected_positive_units": 84,
+                "phase1_full_detected_positive_units": 228,
+                "phase1_label_independent_localized_events": 4906,
+                "phase1_localization_false_positives": 0,
+                "phase1_localization_false_negatives": 0,
                 "ray_conditions": 54,
                 "ray_clean_external_hash_matches": "18/18",
                 "ray_fault_conditions_flagged": "36/36",

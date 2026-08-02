@@ -1,0 +1,52 @@
+{
+  "benign_control_units": 24,
+  "clean_reference_units": 18,
+  "files": {
+    "baseline_comparison_by_fault_class.csv": {
+      "bytes": 1600,
+      "sha256": "5db7c3f2b702f739a252ddea8f0d8dde15beab4745c4a7537d27acc5e94398ed"
+    },
+    "event_localization_results.csv": {
+      "bytes": 196504,
+      "sha256": "38880f8caa0eb833e281d53eec5529fecb5e0128b703443ae7df43ba23a0501b"
+    },
+    "generic_validator_findings.jsonl": {
+      "bytes": 638174,
+      "sha256": "5028dfc494b1d0799307368924ae5d0cfd29b77b702fac9785cf3743300ca316"
+    },
+    "ground_truth_manifest.jsonl": {
+      "bytes": 175748,
+      "sha256": "8e0a32fc7ce70ad5d3841148ba3b9dc3f9af6190e1799b1619e7b26b2ef915f8"
+    },
+    "per_evidence_scored_results.csv": {
+      "bytes": 576103,
+      "sha256": "6ac3e48b3bb11436a1154f439019e6e3f5cfff10e31ee5c5a855e5c808b02903"
+    },
+    "validator_input_separation_audit.csv": {
+      "bytes": 47132,
+      "sha256": "149852cc561af0d82eccbbba282ff143f51cf7e25673b8cca8eca0ef810c9d2c"
+    }
+  },
+  "forbidden_trace_columns": [
+    "action_before_fault",
+    "action_flip_fault_injected",
+    "fault_injected",
+    "receipt_fault_injected",
+    "receipt_fault_mode",
+    "unauthorized_invoke_fault_injected"
+  ],
+  "full_detected_positive_units": 228,
+  "full_false_positive_units": 0,
+  "generic_validator_findings": 270,
+  "ground_truth_records": 270,
+  "label_independent_localized_events": 4906,
+  "localization_false_negatives": 0,
+  "localization_false_positives": 0,
+  "method": "Generic findings were frozen before a one-to-one post-hoc join with a separate ground-truth manifest.",
+  "negative_control_units": 42,
+  "positive_control_units": 228,
+  "primary_detected_positive_units": 84,
+  "receipt_execution_instances": 90,
+  "schema_version": "replaybench-pg-phase1-validation-v1",
+  "status": "passed"
+}

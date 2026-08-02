@@ -8,6 +8,12 @@ applies five post-execution integrity corruptions to the 18 clean references.
 
 from __future__ import annotations
 
+# NOTE (v2.5.9 correction): this historical runner retains the original
+# mode-aware summary fields for reproducibility. The authoritative
+# label-independent validation and primary-vs-full comparison are produced by
+# run_phase1_label_independent_validation.py and
+# score_phase1_label_independent_validation.py.
+
 import argparse
 import copy
 import json
