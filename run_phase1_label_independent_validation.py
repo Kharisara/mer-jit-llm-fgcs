@@ -73,14 +73,14 @@ def parse_args() -> argparse.Namespace:
 
 def _json_dump(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
         json.dump(value, handle, indent=2, sort_keys=True, default=str)
         handle.write("\n")
 
 
 def _jsonl_dump(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
         for row in rows:
             handle.write(json.dumps(row, sort_keys=True, default=str) + "\n")
 
@@ -454,9 +454,21 @@ def main() -> None:
     truth_path = output_dir / "ground_truth_manifest.jsonl"
     _jsonl_dump(findings_path, findings_rows)
     _jsonl_dump(truth_path, truth_rows)
-    audit_df.to_csv(output_dir / "validator_input_separation_audit.csv", index=False)
+    audit_df.to_csv(output_dir / "validator_input_separation_audit.csv", index=False, lineterminator="\n")
 
-    scored = findings_df.merge(truth_df, on=["evidence_id", "evidence_unit_type", "policy_mode", "seed", "workers", "source_kind"], validate="one_to_one")
+    scored = findings_df.merge(
+        truth_df,
+        on=[
+            "evidence_id",
+            "evidence_unit_type",
+            "policy_mode",
+            "seed",
+            "workers",
+            "source_kind",
+        ],
+        validate="one_to_one",
+        suffixes=("_finding", "_truth"),
+    )
     scored["expected_trigger"] = scored["positive_control"].astype(int)
     scored["primary_correct"] = (
         scored["primary_validator_triggered"].astype(int).eq(scored["expected_trigger"])
@@ -488,8 +500,9 @@ def main() -> None:
     localization_df = pd.DataFrame(localization_rows)
     scored = scored.merge(localization_df.drop(columns=["fault_mode"]), on="evidence_id", validate="one_to_one")
 
-    scored.to_csv(output_dir / "per_evidence_scored_results.csv", index=False)
-    localization_df.to_csv(output_dir / "event_localization_results.csv", index=False)
+    scored = scored.reindex(sorted(scored.columns), axis=1)
+    scored.to_csv(output_dir / "per_evidence_scored_results.csv", index=False, lineterminator="\n")
+    localization_df.to_csv(output_dir / "event_localization_results.csv", index=False, lineterminator="\n")
 
     positive = scored.loc[scored["positive_control"].astype(int).eq(1)].copy()
     benign = scored.loc[scored["positive_control"].astype(int).eq(0)].copy()
@@ -510,7 +523,7 @@ def main() -> None:
         .sort_values(["positive_control", "fault_mode"], ascending=[False, True])
         .reset_index(drop=True)
     )
-    comparison.to_csv(output_dir / "baseline_comparison_by_fault_class.csv", index=False)
+    comparison.to_csv(output_dir / "baseline_comparison_by_fault_class.csv", index=False, lineterminator="\n")
 
     if not audit_df["validator_input_label_independent"].astype(int).eq(1).all():
         raise RuntimeError("A validator input retained forbidden fault-label fields")
@@ -531,7 +544,10 @@ def main() -> None:
     summary = {
         "schema_version": "replaybench-pg-phase1-validation-v1",
         "status": "passed",
-        "method": "findings are frozen before a one-to-one post-hoc join with separate ground truth",
+        "method": (
+            "Generic findings were frozen before a one-to-one post-hoc join "
+            "with a separate ground-truth manifest."
+        ),
         "generic_validator_findings": int(len(findings_df)),
         "ground_truth_records": int(len(truth_df)),
         "receipt_execution_instances": int((truth_df["source_kind"] == "frozen_receipt_execution").sum()),

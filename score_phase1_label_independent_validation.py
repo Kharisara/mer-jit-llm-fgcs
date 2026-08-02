@@ -172,9 +172,10 @@ def main() -> None:
     if int(localized["event_false_negatives"].sum()) != 0:
         raise RuntimeError("Event localization missed injected identifiers")
 
-    scored.to_csv(output_dir / "per_evidence_scored_results.csv", index=False)
-    localization_df.to_csv(output_dir / "event_localization_results.csv", index=False)
-    comparison.to_csv(output_dir / "baseline_comparison_by_fault_class.csv", index=False)
+    scored = scored.reindex(sorted(scored.columns), axis=1)
+    scored.to_csv(output_dir / "per_evidence_scored_results.csv", index=False, lineterminator="\n")
+    localization_df.to_csv(output_dir / "event_localization_results.csv", index=False, lineterminator="\n")
+    comparison.to_csv(output_dir / "baseline_comparison_by_fault_class.csv", index=False, lineterminator="\n")
 
     clean_units = int(truth_df["fault_mode"].astype(str).eq("clean").sum())
     benign_control_units = int(
@@ -227,6 +228,7 @@ def main() -> None:
     manifest_path.write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
 

@@ -3,28 +3,28 @@
   "clean_reference_units": 18,
   "files": {
     "baseline_comparison_by_fault_class.csv": {
-      "bytes": 1600,
-      "sha256": "5db7c3f2b702f739a252ddea8f0d8dde15beab4745c4a7537d27acc5e94398ed"
+      "bytes": 1581,
+      "sha256": "63cfcb8084821e1f4ae4c579279f3d77c5297c0621898f6b887f2e39ec47b61b"
     },
     "event_localization_results.csv": {
-      "bytes": 196504,
-      "sha256": "38880f8caa0eb833e281d53eec5529fecb5e0128b703443ae7df43ba23a0501b"
+      "bytes": 196233,
+      "sha256": "d4b7712caadc1945ea97966daeb1ef77150d9d557346ef3ad033594f16dae492"
     },
     "generic_validator_findings.jsonl": {
-      "bytes": 638174,
-      "sha256": "5028dfc494b1d0799307368924ae5d0cfd29b77b702fac9785cf3743300ca316"
+      "bytes": 637904,
+      "sha256": "452a9d5aa7336526491e94ac48008482dc521ec18dbab4e471e1c1e416c0009d"
     },
     "ground_truth_manifest.jsonl": {
-      "bytes": 175748,
-      "sha256": "8e0a32fc7ce70ad5d3841148ba3b9dc3f9af6190e1799b1619e7b26b2ef915f8"
+      "bytes": 175478,
+      "sha256": "1dbc7d495df0cb89fc3fbf2489a816e3d4387a64a04d894ba6b9a3a98a02fdd4"
     },
     "per_evidence_scored_results.csv": {
-      "bytes": 576103,
-      "sha256": "6ac3e48b3bb11436a1154f439019e6e3f5cfff10e31ee5c5a855e5c808b02903"
+      "bytes": 575832,
+      "sha256": "a7b8da5920824b088db1a0f37e09d3b5855feb64a75d6675104558bf5c972076"
     },
     "validator_input_separation_audit.csv": {
-      "bytes": 47132,
-      "sha256": "149852cc561af0d82eccbbba282ff143f51cf7e25673b8cca8eca0ef810c9d2c"
+      "bytes": 46861,
+      "sha256": "4a30cf507fa7f9aace97f6d94352b670a074fd77be50a81d07f3d083eb02c7e9"
     }
   },
   "forbidden_trace_columns": [

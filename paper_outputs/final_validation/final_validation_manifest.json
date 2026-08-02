@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-08-02T16:15:56.717857+00:00",
+  "completed_at_utc": "2026-08-02T17:28:18.420894+00:00",
   "components": {
     "bc_live_runtime_decomposition": {
       "all_runtime_decompositions_valid": true,
@@ -315,7 +315,7 @@
         "-q"
       ],
       "exit_code": 0,
-      "output": "....................................                                     [100%]\n36 passed in 44.17s",
+      "output": "....................................                                     [100%]\n36 passed in 41.23s",
       "tests_passed": 36
     },
     "python_compilation": {
@@ -504,7 +504,7 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.1",
-  "started_at_utc": "2026-08-02T16:15:04.667161+00:00",
+  "started_at_utc": "2026-08-02T17:27:29.467350+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,
