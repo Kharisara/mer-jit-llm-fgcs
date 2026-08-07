@@ -1615,13 +1615,13 @@ def run_replay(
         "seed": int(seed),
         "workers": int(workers),
         "decision_points": int(decision_points),
-        # Historical timing boundary retained for compatibility with the
-        # finalized 528-row study: checkpoint preparation + replay only.
+        # Timed execution boundary: optional pre-replay preparation + replay.
+        # Active v2.6.0 policies require no checkpoint preparation.
         "total_runtime_seconds": float(timed_execution_runtime_seconds),
         "timed_execution_runtime_seconds": float(
             timed_execution_runtime_seconds
         ),
-        # New explicit boundaries used for the bc_live-only Comment 8 study.
+        # Explicit runtime boundaries retained for reproducible decomposition.
         "end_to_end_runtime_seconds": float(end_to_end_runtime_seconds),
         "checkpoint_preparation_seconds": float(
             checkpoint_preparation_seconds
@@ -1647,21 +1647,6 @@ def run_replay(
             "state load+batched inference+action-map construction; replay_only="
             "per-record replay using prepared actions; post_replay_validation="
             "trace reconstruction+receipt reconciliation+hashing+validation"
-        ),
-        "bc_live_total_end_to_end_runtime_seconds": (
-            float(end_to_end_runtime_seconds)
-            if policy_mode == "bc_live"
-            else None
-        ),
-        "bc_live_checkpoint_preparation_seconds": (
-            float(checkpoint_preparation_seconds)
-            if policy_mode == "bc_live"
-            else None
-        ),
-        "bc_live_replay_only_runtime_seconds": (
-            float(replay_only_runtime_seconds)
-            if policy_mode == "bc_live"
-            else None
         ),
         "throughput_points_per_second": (
             float(decision_points / timed_execution_runtime_seconds)
