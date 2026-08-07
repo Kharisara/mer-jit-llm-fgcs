@@ -21,7 +21,7 @@ from replaybench.integrity import (
 )
 from replaybench.validation import canonical_action_hash
 
-SCHEMA_VERSION = "replaybench-pg-generic-validator-v1"
+SCHEMA_VERSION = "replaybench-pg-generic-validator-v2"
 
 # These fields disclose how a fault was produced or directly mark injected rows.
 FORBIDDEN_TRACE_COLUMNS = frozenset(
@@ -56,6 +56,8 @@ DERIVED_TRACE_COLUMNS = frozenset(
 REQUIRED_TRACE_COLUMNS = frozenset(
     {
         "run_id",
+        "configuration_id",
+        "execution_instance_id",
         "replay_point_id",
         "correlation_id",
         "action",
@@ -80,111 +82,67 @@ def _reconcile_execution_receipts_fast(
     """Vectorized equivalent of the application receipt reconciliation."""
     trace = trace_df.copy(deep=True).reset_index(drop=True)
     receipts = receipt_df.copy(deep=True).reset_index(drop=True)
+    key_columns = ["configuration_id", "execution_instance_id", "replay_point_id"]
     if receipts.empty:
-        receipts = pd.DataFrame(
-            columns=[
-                "run_id", "replay_point_id", "correlation_id",
-                "receipt_digest", "downstream_operation",
-                "attempt_index", "execution_status",
-            ]
-        )
-    for column in ("run_id", "replay_point_id", "correlation_id"):
+        receipts = pd.DataFrame(columns=[
+            "run_id", *key_columns, "correlation_id", "receipt_digest",
+            "downstream_operation", "attempt_index", "execution_status",
+        ])
+    for column in ("run_id", *key_columns, "correlation_id"):
         trace[column] = trace[column].astype(str)
         receipts[column] = receipts[column].astype(str)
 
     if not receipts.empty:
         receipts = receipts.copy()
         receipts["_state_hash"] = [
-            sha256_json(
-                {
-                    "replay_point_id": str(row.get("replay_point_id", "")),
-                    "downstream_operation": str(row.get("downstream_operation", "")),
-                    "attempt_index": int(row.get("attempt_index", 0)),
-                    "execution_status": str(row.get("execution_status", "")),
-                }
-            )
+            sha256_json({
+                "replay_point_id": str(row.get("replay_point_id", "")),
+                "downstream_operation": str(row.get("downstream_operation", "")),
+                "attempt_index": int(row.get("attempt_index", 0)),
+                "execution_status": str(row.get("execution_status", "")),
+            })
             for row in receipts.to_dict(orient="records")
         ]
         point = (
-            receipts.groupby(["run_id", "replay_point_id"], sort=False)
+            receipts.groupby(key_columns, sort=False)
             .agg(
                 receipt_count=("replay_point_id", "size"),
-                receipt_digest_set=(
-                    "receipt_digest",
-                    lambda values: "|".join(sorted(map(str, values))),
-                ),
-                receipt_state_hash_set=(
-                    "_state_hash",
-                    lambda values: "|".join(sorted(map(str, values))),
-                ),
+                receipt_digest_set=("receipt_digest", lambda values: "|".join(sorted(map(str, values)))),
+                receipt_state_hash_set=("_state_hash", lambda values: "|".join(sorted(map(str, values)))),
             )
             .reset_index()
         )
         matching = (
-            receipts.groupby(["run_id", "replay_point_id", "correlation_id"], sort=False)
-            .size()
-            .rename("matching_receipt_count")
-            .reset_index()
+            receipts.groupby([*key_columns, "correlation_id"], sort=False)
+            .size().rename("matching_receipt_count").reset_index()
         )
     else:
-        point = pd.DataFrame(
-            columns=[
-                "run_id", "replay_point_id", "receipt_count",
-                "receipt_digest_set", "receipt_state_hash_set",
-            ]
-        )
-        matching = pd.DataFrame(
-            columns=[
-                "run_id", "replay_point_id", "correlation_id",
-                "matching_receipt_count",
-            ]
-        )
+        point = pd.DataFrame(columns=[*key_columns, "receipt_count", "receipt_digest_set", "receipt_state_hash_set"])
+        matching = pd.DataFrame(columns=[*key_columns, "correlation_id", "matching_receipt_count"])
 
-    details = trace[[
-        "run_id", "replay_point_id", "correlation_id",
-        "authorized_to_generate", "generation_invoked",
-    ]].copy()
+    details = trace[["run_id", *key_columns, "correlation_id", "authorized_to_generate", "generation_invoked"]].copy()
     details.insert(0, "trace_position", range(len(details)))
-    details = details.merge(point, on=["run_id", "replay_point_id"], how="left")
-    details = details.merge(
-        matching,
-        on=["run_id", "replay_point_id", "correlation_id"],
-        how="left",
-    )
+    details = details.merge(point, on=key_columns, how="left")
+    details = details.merge(matching, on=[*key_columns, "correlation_id"], how="left")
     for column in ("receipt_count", "matching_receipt_count"):
         details[column] = pd.to_numeric(details[column], errors="coerce").fillna(0).astype(int)
     for column in ("receipt_digest_set", "receipt_state_hash_set"):
         details[column] = details[column].fillna("").astype(str)
     details["authorized_to_generate"] = details["authorized_to_generate"].astype(int)
     details["primary_logged_execution"] = details.pop("generation_invoked").astype(int)
-    details["missing_receipt"] = (
-        details["primary_logged_execution"].eq(1)
-        & details["matching_receipt_count"].eq(0)
-    ).astype(int)
-    details["unlogged_downstream_call"] = (
-        details["primary_logged_execution"].eq(0)
-        & details["receipt_count"].gt(0)
-    ).astype(int)
+    details["missing_receipt"] = (details["primary_logged_execution"].eq(1) & details["matching_receipt_count"].eq(0)).astype(int)
+    details["unlogged_downstream_call"] = (details["primary_logged_execution"].eq(0) & details["receipt_count"].gt(0)).astype(int)
     details["duplicate_downstream_call"] = details["receipt_count"].gt(1).astype(int)
-    details["mismatched_correlation_id"] = (
-        details["receipt_count"] > details["matching_receipt_count"]
-    ).astype(int)
-    details["unauthorized_downstream_call"] = (
-        details["authorized_to_generate"].eq(0)
-        & details["receipt_count"].gt(0)
-    ).astype(int)
-    anomaly_columns = [
-        "missing_receipt", "unlogged_downstream_call",
-        "duplicate_downstream_call", "mismatched_correlation_id",
-        "unauthorized_downstream_call",
-    ]
+    details["mismatched_correlation_id"] = (details["receipt_count"] > details["matching_receipt_count"]).astype(int)
+    details["unauthorized_downstream_call"] = (details["authorized_to_generate"].eq(0) & details["receipt_count"].gt(0)).astype(int)
+    anomaly_columns = ["missing_receipt", "unlogged_downstream_call", "duplicate_downstream_call", "mismatched_correlation_id", "unauthorized_downstream_call"]
     details["receipt_consistent"] = details[anomaly_columns].sum(axis=1).eq(0).astype(int)
 
-    trace_point_ids = set(trace["replay_point_id"].astype(str))
-    orphan_receipts = int((~receipts["replay_point_id"].isin(trace_point_ids)).sum())
+    trace_keys = set(zip(*(trace[c].astype(str) for c in key_columns)))
+    receipt_keys = list(zip(*(receipts[c].astype(str) for c in key_columns)))
+    orphan_receipts = int(sum(key not in trace_keys for key in receipt_keys))
     summary = {
-        "trace_rows": int(len(trace)),
-        "receipt_rows": int(len(receipts)),
+        "trace_rows": int(len(trace)), "receipt_rows": int(len(receipts)),
         "orphan_receipts": orphan_receipts,
         "missing_receipts": int(details["missing_receipt"].sum()),
         "unlogged_downstream_calls": int(details["unlogged_downstream_call"].sum()),
@@ -192,10 +150,7 @@ def _reconcile_execution_receipts_fast(
         "mismatched_correlation_ids": int(details["mismatched_correlation_id"].sum()),
         "unauthorized_downstream_calls": int(details["unauthorized_downstream_call"].sum()),
     }
-    summary["receipt_validation_passed"] = int(
-        orphan_receipts == 0
-        and all(summary[key] == 0 for key in RECEIPT_ANOMALY_KEYS[1:])
-    )
+    summary["receipt_validation_passed"] = int(orphan_receipts == 0 and all(summary[key] == 0 for key in RECEIPT_ANOMALY_KEYS[1:]))
     summary["authorization_execution_consistent"] = summary["receipt_validation_passed"]
     return details, summary
 

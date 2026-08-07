@@ -20,7 +20,9 @@ def _trace() -> pd.DataFrame:
             {
                 "row_index": 0,
                 "source_record_id": "r0",
-                "run_id": "run",
+                "run_id": "cfg",
+                "configuration_id": "cfg",
+                "execution_instance_id": "exec-1",
                 "replay_point_id": "0:r0",
                 "correlation_id": "c0",
                 "action": 0,
@@ -32,7 +34,9 @@ def _trace() -> pd.DataFrame:
             {
                 "row_index": 1,
                 "source_record_id": "r1",
-                "run_id": "run",
+                "run_id": "cfg",
+                "configuration_id": "cfg",
+                "execution_instance_id": "exec-1",
                 "replay_point_id": "1:r1",
                 "correlation_id": "c1",
                 "action": 1,
@@ -49,7 +53,9 @@ def _receipts() -> pd.DataFrame:
     collector = DownstreamReceiptCollector()
     collector.emit(
         ReceiptContext(
-            run_id="run",
+            run_id="cfg",
+            configuration_id="cfg",
+            execution_instance_id="exec-1",
             replay_point_id="1:r1",
             correlation_id="c1",
             downstream_operation="stub",
@@ -60,7 +66,7 @@ def _receipts() -> pd.DataFrame:
 
 def _manifest() -> dict[str, object]:
     return {
-        "schema_version": "replaybench-pg-integrity-v1",
+        "schema_version": "replaybench-pg-integrity-v2",
         "policy_mode": "demo",
         "seed": 1,
         "workers": 1,
@@ -184,6 +190,8 @@ def test_fast_receipt_reconciliation_matches_reference_implementation() -> None:
     detail_columns = [
         "trace_position",
         "run_id",
+        "configuration_id",
+        "execution_instance_id",
         "replay_point_id",
         "correlation_id",
         "authorized_to_generate",

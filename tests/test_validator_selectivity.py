@@ -32,6 +32,7 @@ def _frame() -> pd.DataFrame:
             "utterance_id": [f"u{i}" for i in range(20)],
             "source_record_id": [f"s{i}" for i in range(20)],
             "label": ["sadness" if i % 2 == 0 else "joy" for i in range(20)],
+            "diagnostic_action": [1 if i % 2 == 0 else 0 for i in range(20)],
             "state_path": [""] * 20,
         }
     )
@@ -41,8 +42,8 @@ def _base_config() -> dict[str, object]:
     return {
         "dataset": {"input_csv": "not-used.csv", "state_root": ""},
         "policy": {
+            "diagnostic_action_column": "diagnostic_action",
             "random_intervention_probability": 0.5,
-            "negative_labels": ["sadness"],
         },
         "execution_receipts": {"enabled": True},
         "fault_injection": {
@@ -65,7 +66,7 @@ def _run(cfg: dict[str, object], policy: str = "risk_proxy"):
         df=_frame(),
         cfg=cfg,
         policy_mode=policy,
-        negative_labels={"sadness"},
+        negative_labels=set(),
         seed=1,
         workers=1,
         bc_actions=None,

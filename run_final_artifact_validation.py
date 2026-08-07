@@ -2,7 +2,7 @@
 """Master final validator for the frozen ReplayBench-PG evidence package.
 
 The validator does not rerun experiments. It validates the completed primary,
-common timing, bc_live phase-decomposition, execution-integrity,
+common timing, execution-integrity,
 validator-selectivity, Ray, MetroPT-3, controlled-fault, and cloud outputs;
 compiles every repository Python file; runs the complete pytest suite; and emits
 a machine-readable final validation package.
@@ -205,258 +205,6 @@ def _require_manifest_int(
         raise ValidationError(
             f"{role} field {key} must equal {expected}; found {observed}"
         )
-
-
-def validate_bc_live_runtime_decomposition(
-    project_dir: Path,
-) -> tuple[dict[str, Any], list[Any]]:
-    base = _resolve_evidence_base(
-        project_dir,
-        ["paper_outputs/bc_live_runtime_decomposition"],
-        [
-            "bc_live_runtime_decomposition_raw.csv",
-            "bc_live_runtime_decomposition_summary.csv",
-            "bc_live_runtime_decomposition_manifest.json",
-        ],
-        "bc_live runtime-decomposition",
-    )
-    raw_path = base / "bc_live_runtime_decomposition_raw.csv"
-    summary_path = base / "bc_live_runtime_decomposition_summary.csv"
-    manifest_path = base / "bc_live_runtime_decomposition_manifest.json"
-
-    raw = read_csv_required(raw_path, "bc_live runtime-decomposition raw output")
-    require_columns(
-        raw,
-        [
-            "dataset_fraction",
-            "decision_points",
-            "policy_mode",
-            "policy_seed",
-            "workers",
-            "repetition",
-            "end_to_end_runtime_seconds",
-            "checkpoint_preparation_seconds",
-            "replay_only_runtime_seconds",
-            "post_replay_validation_seconds",
-            "timed_execution_runtime_seconds",
-            "runtime_decomposition_tolerance_seconds",
-            "runtime_decomposition_valid",
-            "trace_hash",
-            "reference_hash",
-            "hash_match",
-            "unauthorized_invocations",
-            "authorization_execution_consistent",
-            "row_count_match",
-            "validation_passed",
-            "fault_injected_count",
-        ],
-        "bc_live runtime-decomposition raw output",
-    )
-    if len(raw) != 88:
-        raise ValidationError(
-            f"bc_live decomposition must contain 88 measured rows; found {len(raw)}"
-        )
-
-    raw = raw.copy()
-    raw["dataset_fraction"] = numeric(
-        raw["dataset_fraction"], "bc_live decomposition fraction"
-    ).round(6)
-    raw["workers"] = numeric(raw["workers"], "bc_live decomposition workers").astype(int)
-    raw["policy_seed"] = numeric(
-        raw["policy_seed"], "bc_live decomposition policy seed"
-    ).astype(int)
-    raw["repetition"] = numeric(
-        raw["repetition"], "bc_live decomposition repetition"
-    ).astype(int)
-    raw["policy_mode"] = raw["policy_mode"].astype(str)
-
-    if set(raw["policy_mode"]) != {"bc_live"}:
-        raise ValidationError("bc_live decomposition contains a non-bc_live policy")
-    if set(raw["policy_seed"]) != {1}:
-        raise ValidationError("bc_live decomposition must use policy seed 1")
-    assert_no_duplicates(
-        raw,
-        ["dataset_fraction", "workers", "repetition"],
-        "bc_live decomposition repetitions",
-    )
-
-    group_sizes = raw.groupby(["dataset_fraction", "workers"]).size().to_dict()
-    expected_groups = {
-        (0.10, 1): 7,
-        (0.25, 1): 7,
-        (0.50, 1): 7,
-        (0.75, 1): 7,
-        (1.00, 1): 15,
-        (1.00, 2): 15,
-        (1.00, 4): 15,
-        (1.00, 8): 15,
-    }
-    normalized_groups = {
-        (round(float(fraction), 6), int(workers)): int(count)
-        for (fraction, workers), count in group_sizes.items()
-    }
-    if normalized_groups != expected_groups:
-        raise ValidationError(
-            "Unexpected bc_live decomposition mixed-repetition design: "
-            f"{normalized_groups}"
-        )
-
-    for column in [
-        "runtime_decomposition_valid",
-        "hash_match",
-        "authorization_execution_consistent",
-        "row_count_match",
-        "validation_passed",
-    ]:
-        assert_all_one(raw[column], f"bc_live decomposition {column}")
-    for column in ["unauthorized_invocations", "fault_injected_count"]:
-        assert_all_zero(raw[column], f"bc_live decomposition {column}")
-
-    for column in [
-        "end_to_end_runtime_seconds",
-        "checkpoint_preparation_seconds",
-        "replay_only_runtime_seconds",
-        "post_replay_validation_seconds",
-        "timed_execution_runtime_seconds",
-    ]:
-        values = numeric(raw[column], f"bc_live decomposition {column}")
-        if values.le(0).any():
-            raise ValidationError(f"bc_live decomposition {column} must be positive")
-
-    end_to_end = numeric(raw["end_to_end_runtime_seconds"], "bc_live end-to-end")
-    components = (
-        numeric(raw["checkpoint_preparation_seconds"], "bc_live preparation")
-        + numeric(raw["replay_only_runtime_seconds"], "bc_live replay-only")
-        + numeric(raw["post_replay_validation_seconds"], "bc_live validation")
-    )
-    tolerance = numeric(
-        raw["runtime_decomposition_tolerance_seconds"],
-        "bc_live decomposition tolerance",
-    )
-    if (end_to_end.sub(components).abs() > tolerance.add(1e-12)).any():
-        raise ValidationError("bc_live end-to-end phase decomposition is inconsistent")
-
-    unstable = raw.groupby(["dataset_fraction", "workers"])["trace_hash"].nunique()
-    if unstable.ne(1).any():
-        raise ValidationError("bc_live decomposition trace hashes are unstable")
-    if not raw["trace_hash"].astype(str).eq(raw["reference_hash"].astype(str)).all():
-        raise ValidationError("bc_live decomposition trace/reference hashes differ")
-
-    summary = read_csv_required(summary_path, "bc_live runtime-decomposition summary")
-    require_columns(
-        summary,
-        [
-            "dataset_fraction",
-            "workers",
-            "measured_repetitions",
-            "unique_trace_hashes",
-            "all_runtime_decompositions_valid",
-            "end_to_end_runtime_seconds_median",
-            "checkpoint_preparation_seconds_median",
-            "replay_only_runtime_seconds_median",
-            "post_replay_validation_seconds_median",
-            "checkpoint_preparation_share_median",
-            "replay_only_share_median",
-            "post_replay_validation_share_median",
-        ],
-        "bc_live runtime-decomposition summary",
-    )
-    if len(summary) != 8:
-        raise ValidationError(
-            f"bc_live decomposition summary must contain 8 rows; found {len(summary)}"
-        )
-    summary = summary.copy()
-    summary["dataset_fraction"] = numeric(
-        summary["dataset_fraction"], "bc_live summary fraction"
-    ).round(6)
-    summary["workers"] = numeric(summary["workers"], "bc_live summary workers").astype(int)
-    summary["measured_repetitions"] = numeric(
-        summary["measured_repetitions"], "bc_live summary repetitions"
-    ).astype(int)
-    summary_groups = {
-        (round(float(row.dataset_fraction), 6), int(row.workers)): int(
-            row.measured_repetitions
-        )
-        for row in summary.itertuples(index=False)
-    }
-    if summary_groups != expected_groups:
-        raise ValidationError("bc_live summary design differs from the raw design")
-    assert_all_one(summary["unique_trace_hashes"], "bc_live summary unique hashes")
-    assert_all_one(
-        summary["all_runtime_decompositions_valid"],
-        "bc_live summary decomposition status",
-    )
-
-    manifest_obj = read_json_required(manifest_path, "bc_live decomposition manifest")
-    if not isinstance(manifest_obj, dict):
-        raise ValidationError("bc_live decomposition manifest must be a JSON object")
-    _require_manifest_int(manifest_obj, "unique_configurations", 8, "bc_live manifest")
-    _require_manifest_int(manifest_obj, "expected_measured_rows", 88, "bc_live manifest")
-    _require_manifest_int(manifest_obj, "completed_measured_rows", 88, "bc_live manifest")
-    _require_manifest_true(
-        manifest_obj,
-        [
-            "all_runtime_decompositions_valid",
-            "all_hashes_stable",
-            "all_authorization_execution_consistent",
-            "all_row_counts_match",
-            "all_validation_passed",
-            "all_fault_counts_zero",
-            "all_unauthorized_invocations_zero",
-        ],
-        "bc_live manifest",
-    )
-    if str(manifest_obj.get("raw_csv_sha256", "")).lower() != sha256_file(raw_path):
-        raise ValidationError("bc_live raw CSV SHA-256 differs from its manifest")
-    if str(manifest_obj.get("summary_csv_sha256", "")).lower() != sha256_file(summary_path):
-        raise ValidationError("bc_live summary CSV SHA-256 differs from its manifest")
-
-    full_one = summary.loc[
-        summary["dataset_fraction"].eq(1.0) & summary["workers"].eq(1)
-    ]
-    if len(full_one) != 1:
-        raise ValidationError("bc_live summary lacks the full-workload one-worker row")
-    row = full_one.iloc[0]
-    results = {
-        "measured_executions": 88,
-        "unique_configurations": 8,
-        "configurations_x_7_repetitions": 4,
-        "configurations_x_15_repetitions": 4,
-        "all_runtime_decompositions_valid": True,
-        "all_trace_hashes_stable": True,
-        "max_authorization_contradictions": 0,
-        "full_workload_one_worker": {
-            "end_to_end_runtime_seconds_median": float(
-                row["end_to_end_runtime_seconds_median"]
-            ),
-            "checkpoint_preparation_seconds_median": float(
-                row["checkpoint_preparation_seconds_median"]
-            ),
-            "replay_only_runtime_seconds_median": float(
-                row["replay_only_runtime_seconds_median"]
-            ),
-            "post_replay_validation_seconds_median": float(
-                row["post_replay_validation_seconds_median"]
-            ),
-            "checkpoint_preparation_share_median": float(
-                row["checkpoint_preparation_share_median"]
-            ),
-            "replay_only_share_median": float(row["replay_only_share_median"]),
-            "post_replay_validation_share_median": float(
-                row["post_replay_validation_share_median"]
-            ),
-        },
-    }
-    inventory = [
-        evidence_file(project_dir, "bc_live_runtime_decomposition", "raw", raw_path),
-        evidence_file(
-            project_dir, "bc_live_runtime_decomposition", "summary", summary_path
-        ),
-        evidence_file(
-            project_dir, "bc_live_runtime_decomposition", "manifest", manifest_path
-        ),
-    ]
-    return results, inventory
 
 
 def validate_execution_integrity_validation(
@@ -1403,7 +1151,6 @@ def validate_phase1_label_independent_validation(
 def make_claims_numbers(
     primary: dict[str, Any],
     timing: dict[str, Any],
-    bc_live_decomposition: dict[str, Any],
     execution_integrity: dict[str, Any],
     validator_selectivity: dict[str, Any],
     phase1_label_independent: dict[str, Any],
@@ -1419,7 +1166,7 @@ def make_claims_numbers(
         "schema_version": "1.1",
         "primary_benchmark": {
             "conditions_completed": primary["conditions"],
-            "conditions_expected": 360,
+            "conditions_expected": 240,
             "full_workload_decision_points": primary["full_workload_decision_points"],
             "max_clean_authorization_contradictions": primary[
                 "max_clean_unauthorized_invocations"
@@ -1440,7 +1187,6 @@ def make_claims_numbers(
             ],
             "paired_worker_speedup_rows": timing["worker_speedup_rows"],
         },
-        "bc_live_runtime_decomposition": bc_live_decomposition,
         "execution_integrity_validation": execution_integrity,
         "validator_selectivity_validation": validator_selectivity,
         "phase1_label_independent_validation": phase1_label_independent,
@@ -1503,18 +1249,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cloud-root",
-        default="cloud_results/cloud360_riskproxy_20260702",
+        default="cloud_results/cloud240_v260",
         help="Root containing finalized regional and local-to-cloud outputs.",
     )
     parser.add_argument(
         "--cloud-cross-region-csv",
         default=None,
-        help="Optional explicit finalized CSV/JSON for the 360 cross-region comparisons.",
+        help="Optional explicit finalized CSV/JSON for the 240 cross-region comparisons.",
     )
     parser.add_argument(
         "--cloud-local-to-cloud-csv",
         default=None,
-        help="Optional explicit finalized CSV/JSON for the 720 local-to-cloud comparisons.",
+        help="Optional explicit finalized CSV/JSON for the 480 local-to-cloud comparisons.",
     )
     return parser.parse_args()
 
@@ -1556,7 +1302,6 @@ def main() -> None:
             required_manifests=DEFAULT_REQUIRED_MANIFESTS,
             required_scripts=[
                 *DEFAULT_REQUIRED_SCRIPTS,
-                "run_bc_live_runtime_decomposition.py",
                 "run_execution_integrity_validation.py",
                 "run_validator_selectivity_validation.py",
                 "run_phase1_label_independent_validation.py",
@@ -1570,10 +1315,6 @@ def main() -> None:
         ("comment13_environment_comparison", lambda: validate_comment13_artifacts(project_dir)),
         ("primary_benchmark", lambda: validate_primary_benchmark(project_dir)),
         ("timing_study", lambda: validate_timing_study(project_dir)),
-        (
-            "bc_live_runtime_decomposition",
-            lambda: validate_bc_live_runtime_decomposition(project_dir),
-        ),
         ("ray_validation", lambda: validate_ray(project_dir)),
         (
             "execution_integrity_validation",
@@ -1640,9 +1381,6 @@ def main() -> None:
         claims = make_claims_numbers(
             primary=component_results["primary_benchmark"],
             timing=component_results["timing_study"],
-            bc_live_decomposition=component_results[
-                "bc_live_runtime_decomposition"
-            ],
             execution_integrity=component_results[
                 "execution_integrity_validation"
             ],
@@ -1691,12 +1429,10 @@ def main() -> None:
             "project_dir": project_dir.as_posix(),
             "output_dir": relative_posix(output_dir, project_dir),
             "strict_requirements": {
-                "primary_benchmark_conditions": 360,
-                "timing_rows": 528,
-                "timing_configurations_x_7": 24,
-                "timing_configurations_x_15": 24,
-                "bc_live_decomposition_rows": 88,
-                "bc_live_decomposition_configurations": 8,
+                "primary_benchmark_conditions": 240,
+                "timing_rows": 352,
+                "timing_configurations_x_7": 16,
+                "timing_configurations_x_15": 16,
                 "execution_integrity_clean_instances": 18,
                 "execution_integrity_receipt_fault_instances": 72,
                 "execution_integrity_record_config_applications": 90,
@@ -1729,8 +1465,8 @@ def main() -> None:
                 "fault_clean_validator_applications": (
                     FAULT_CLEAN_VALIDATOR_APPLICATIONS
                 ),
-                "cloud_cross_region_matches": "360/360",
-                "cloud_local_to_cloud_matches": "720/720",
+                "cloud_cross_region_matches": "240/240",
+                "cloud_local_to_cloud_matches": "480/480",
                 "comment13_environment_comparison": True,
                 "clean_authorization_contradictions": 0,
                 "all_python_files_compile": True,

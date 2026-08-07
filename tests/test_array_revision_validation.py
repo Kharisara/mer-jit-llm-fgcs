@@ -34,6 +34,8 @@ from summarize_replaybench_timing_study import (  # noqa: E402
 def test_resume_normalization_populates_alias_columns() -> None:
     raw = pd.DataFrame(
         {
+            "configuration_id": ["cfg"],
+            "execution_instance_id": ["exec-1"],
             "dataset_fraction": [1.0],
             "policy_mode": ["never"],
             "workers": [1],
@@ -46,6 +48,21 @@ def test_resume_normalization_populates_alias_columns() -> None:
     assert normalized.loc[0, "policy"] == "never"
     assert normalized.loc[0, "runtime_seconds"] == pytest.approx(8.0)
     assert normalized.loc[0, "workload_fraction"] == pytest.approx(1.0)
+
+
+def test_resume_rejects_legacy_rows_without_execution_identity() -> None:
+    raw = pd.DataFrame(
+        {
+            "dataset_fraction": [1.0],
+            "policy_mode": ["never"],
+            "workers": [1],
+            "repetition": [1],
+            "total_runtime_seconds": [8.0],
+            "trace_hash": ["abc"],
+        }
+    )
+    with pytest.raises(ValueError, match="execution_instance_id"):
+        normalize_existing(raw)
 
 def test_bootstrap_ci_contains_constant_value() -> None:
     values = np.array([1.1] * 15)
@@ -206,8 +223,8 @@ def test_final_ray_config_validation(tmp_path: Path) -> None:
     input_csv = tmp_path / "replay.csv"
     pd.DataFrame(
         {
-            "utterance_id": [1, 2],
-            "label": ["sadness", "joy"],
+            "source_record_id": ["train:d0_u0", "train:d0_u1"],
+            "diagnostic_action": [1, 0],
         }
     ).to_csv(input_csv, index=False)
 
@@ -222,7 +239,7 @@ def test_final_ray_config_validation(tmp_path: Path) -> None:
         "fault_modes": ["clean", "action_flip", "dropped_row"],
         "fault_rate": 0.01,
         "policy": {
-            "negative_labels": ["sadness"],
+            "diagnostic_action_column": "diagnostic_action",
             "random_intervention_probability": 0.5,
         },
         "reference": {
@@ -241,11 +258,14 @@ def test_final_ray_config_validation(tmp_path: Path) -> None:
     validate_comparison_config(normalized)
 
 
-def test_ray_config_rejects_missing_risk_proxy_labels(tmp_path: Path) -> None:
+def test_ray_config_rejects_missing_diagnostic_action(tmp_path: Path) -> None:
     input_csv = tmp_path / "replay.csv"
-    pd.DataFrame({"utterance_id": [1], "label": ["sadness"]}).to_csv(
-        input_csv, index=False
-    )
+    pd.DataFrame(
+        {
+            "source_record_id": ["train:d0_u0"],
+            "label": ["sadness"],
+        }
+    ).to_csv(input_csv, index=False)
 
     raw = {
         "input": {
@@ -257,6 +277,10 @@ def test_ray_config_rejects_missing_risk_proxy_labels(tmp_path: Path) -> None:
         "workers": [1, 4],
         "fault_modes": ["clean", "action_flip", "dropped_row"],
         "fault_rate": 0.01,
+        "policy": {
+            "diagnostic_action_column": "diagnostic_action",
+            "random_intervention_probability": 0.5,
+        },
         "reference": {"require_reference_results": True},
         "execution_semantics": {
             "task_retry_enabled": False,
@@ -266,5 +290,5 @@ def test_ray_config_rejects_missing_risk_proxy_labels(tmp_path: Path) -> None:
     }
 
     normalized = normalize_comparison_config(raw)
-    with pytest.raises(ValueError, match="negative_labels"):
+    with pytest.raises(ValueError, match="diagnostic-action"):
         validate_comparison_config(normalized)

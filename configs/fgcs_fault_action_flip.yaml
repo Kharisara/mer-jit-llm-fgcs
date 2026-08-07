@@ -1,7 +1,9 @@
 dataset:
-  input_csv: paper_outputs/replay_input_clean.csv
+  input_csv: paper_outputs/replay_input_v260.csv
   fractions: [1.00]
-  state_root: ""
+  identity_scheme: meld_split_qualified_source_record_id
+  require_portable_paths: true
+  touch_state_files: false
 
 benchmark:
   seeds: [1, 2, 3]
@@ -9,28 +11,18 @@ benchmark:
   policy_modes: [risk_proxy, random, never]
 
 policy:
-  negative_labels: [anger, angry, disgust, disgusted, fear, fearful, sadness, sad]
-
+  diagnostic_action_column: diagnostic_action
   random_intervention_probability: 0.50
-
-  bc_action_csv: paper_outputs/policy_first_outputs_bc.csv
-  bc_action_column: action
-  bc_key_column: utterance_id
-
-  bc_model_path: checkpoints/jitai_policy_bc.pt
-  bc_live_state_dim: 512
-  bc_live_hidden_dims: [256, 256]
-  bc_live_output_dim: 2
-  bc_live_batch_size: 4096
-  bc_live_torch_threads: 1
-  bc_live_device: cpu
-  bc_live_strict_state_dim: true
-  missing_state_policy: error
 
 fault_injection:
   enabled: true
   action_flip_probability: 0.01
   allowed_policy_modes: [risk_proxy, random, never]
+
+generation_stub:
+  mode: generic_service
+  service_name: deterministic_policy_gated_stub
+  record_id_column: source_record_id
 
 logging:
   output_dir: paper_outputs/fgcs_fault_action_flip

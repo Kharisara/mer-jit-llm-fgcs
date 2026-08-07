@@ -14,12 +14,9 @@ RUN pip install --no-cache-dir -r requirements_cloud.txt
 
 COPY run_fgcs_extended_benchmark.py .
 COPY run_fgcs_cloud_job.py .
+COPY replaybench ./replaybench
 COPY configs ./configs
 
-COPY paper_outputs/replay_input_clean.csv ./paper_outputs/replay_input_clean.csv
-COPY paper_outputs/policy_first_outputs_bc.csv ./paper_outputs/policy_first_outputs_bc.csv
-
-COPY checkpoints ./checkpoints
-COPY data/processed/MELD_state_embeddings_fixed ./data/processed/MELD_state_embeddings_fixed
-
+COPY paper_outputs/replay_input_v260.csv ./paper_outputs/replay_input_v260.csv
+COPY paper_outputs/replay_input_v260_manifest.json ./paper_outputs/replay_input_v260_manifest.json
 CMD ["python", "run_fgcs_cloud_job.py"]

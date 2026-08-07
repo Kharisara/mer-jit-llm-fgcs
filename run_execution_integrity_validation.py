@@ -156,10 +156,6 @@ def main() -> None:
     policies = [str(value) for value in benchmark_cfg["policy_modes"]]
     seeds = [int(value) for value in benchmark_cfg["seeds"]]
     workers_values = [int(value) for value in benchmark_cfg["workers"]]
-    negative_labels = {
-        normalize_label(value) for value in policy_cfg.get("negative_labels", [])
-    }
-
     expected_conditions = len(policies) * len(seeds) * len(workers_values)
     receipt_rows: list[dict[str, Any]] = []
     record_rows: list[dict[str, Any]] = []
@@ -191,7 +187,7 @@ def main() -> None:
                         df=frame,
                         cfg=cfg,
                         policy_mode=policy,
-                        negative_labels=negative_labels,
+                        negative_labels=set(),
                         seed=seed,
                         workers=workers,
                         bc_actions=None,
