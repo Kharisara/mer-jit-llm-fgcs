@@ -589,12 +589,17 @@ def combine_fault_summaries(tables_dir: Path) -> pd.DataFrame:
     clean_rows = combined[combined["fault_mode"].astype(str).eq(FaultType.CLEAN_REPLAY.value)].copy()
     fault_rows = combined[~combined["fault_mode"].astype(str).eq(FaultType.CLEAN_REPLAY.value)].copy()
 
+    clean_run_counts = sorted(set(int(v) for v in clean_rows["runs"].dropna().tolist())) if "runs" in clean_rows.columns else []
+    if len(clean_run_counts) > 1:
+        raise RuntimeError(f"Clean-reference summaries disagree on distinct run count: {clean_run_counts}")
+    distinct_clean_runs = clean_run_counts[0] if clean_run_counts else 0
+
     clean_summary = pd.DataFrame(
         [
             {
                 "fault_mode": FaultType.CLEAN_REPLAY.value,
                 "fault_category": FAULT_METADATA[FaultType.CLEAN_REPLAY]["category"],
-                "runs": int(clean_rows["runs"].sum()) if "runs" in clean_rows.columns else 0,
+                "runs": int(distinct_clean_runs),
                 "faults_or_corruptions_injected_total": 0,
                 "detected_runs": 0,
                 "detection_rate": "",
