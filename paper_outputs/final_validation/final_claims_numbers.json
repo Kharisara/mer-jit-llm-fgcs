@@ -1,32 +1,14 @@
 {
-  "bc_live_runtime_decomposition": {
-    "all_runtime_decompositions_valid": true,
-    "all_trace_hashes_stable": true,
-    "configurations_x_15_repetitions": 4,
-    "configurations_x_7_repetitions": 4,
-    "full_workload_one_worker": {
-      "checkpoint_preparation_seconds_median": 5.834816300000057,
-      "checkpoint_preparation_share_median": 0.96935646918786,
-      "end_to_end_runtime_seconds_median": 6.02168359999996,
-      "post_replay_validation_seconds_median": 0.0543502000000444,
-      "post_replay_validation_share_median": 0.0088922656098291,
-      "replay_only_runtime_seconds_median": 0.1272856999999021,
-      "replay_only_share_median": 0.0217512652023107
-    },
-    "max_authorization_contradictions": 0,
-    "measured_executions": 88,
-    "unique_configurations": 8
-  },
   "cloud_validation": {
-    "cross_region_compared": 360,
-    "cross_region_matched": 360,
-    "local_to_cloud_compared": 720,
-    "local_to_cloud_matched": 720,
+    "cross_region_compared": 240,
+    "cross_region_matched": 240,
+    "local_to_cloud_compared": 480,
+    "local_to_cloud_matched": 480,
     "max_clean_authorization_contradictions": 0
   },
   "environment_comparison": {
     "base_image_digest_matches_comment12": true,
-    "cloud_dependency_lock_sha256": "cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603",
+    "cloud_dependency_lock_sha256": "4c4fb4c6734e87ea3c54ecb78e7e647d1bdd649ecad82bdca4f1c2b64a8ffb63",
     "cloud_environment": {
       "architecture": "x86_64",
       "locale": "C.UTF-8",
@@ -44,8 +26,8 @@
     },
     "comparison_complete": true,
     "comparison_csv": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
-    "comparison_csv_sha256": "5c8ce17a8672a7e71a4cb8ff8f66cf1898909672114ae2073c6210ae1e21ff6d",
-    "comparison_json_sha256": "8ff56ffc32c2bd2d940516b78c1e62e172e18f1df707cb7aacd90205faa215d1",
+    "comparison_csv_sha256": "296be0f4eace2bb52116d7b040ead996b55d04d70a78694820286f1857dcdde9",
+    "comparison_json_sha256": "899c4d324666da1d83438e13871c51b815ebadab4dbed71612e6ffc2183c1161",
     "final_image_digest_matches_comment12": true,
     "local_cloud_dependency_locks_identical": false,
     "local_dependency_lock_sha256": "effb2ed70573394069493c3d46a1d9867aaee41269f70c84b9c880a3cd9fae6b",
@@ -67,7 +49,7 @@
   },
   "execution_integrity_validation": {
     "all_expected_outcomes_met": true,
-    "clean_downstream_receipts_reconciled": 117786,
+    "clean_downstream_receipts_reconciled": 117790,
     "clean_false_positive_executions": 0,
     "clean_receipt_execution_instances": 18,
     "receipt_execution_instances": 90,
@@ -77,33 +59,34 @@
       "duplicate_downstream_call": {
         "correctly_classified": 18,
         "execution_instances": 18,
-        "injected_events": 1238
+        "injected_events": 1220
       },
       "false_execution_log": {
         "correctly_classified": 18,
         "execution_instances": 18,
-        "injected_events": 1166
+        "injected_events": 1146
       },
       "mismatched_correlation_id": {
         "correctly_classified": 18,
         "execution_instances": 18,
-        "injected_events": 1252
+        "injected_events": 1066
       },
       "unlogged_downstream_call": {
         "correctly_classified": 18,
         "execution_instances": 18,
-        "injected_events": 1184
+        "injected_events": 1256
       }
     },
     "record_configuration_corruption_applications": 90,
     "record_configuration_corruption_applications_detected": 90,
-    "semantic_receipt_digests_recomputed": 589002
+    "semantic_receipt_digests_recomputed": 589024
   },
   "metropt3": {
     "clean_conditions": 72,
     "controlled_faults": {
       "all_fault_classes_fully_detected": true,
       "clean_false_positive_flags": 0,
+      "clean_summary_unique_references": 18,
       "clean_validator_applications": 54,
       "clean_validator_workflows": 3,
       "fault_classes": 5,
@@ -186,12 +169,12 @@
     "generic_validator_findings": 270,
     "ground_truth_fields_absent_from_findings": true,
     "ground_truth_records": 270,
-    "label_independent_localized_events": 4906,
+    "label_independent_localized_events": 4754,
     "localization_false_negatives": 0,
     "localization_false_positives": 0,
     "negative_control_units": 42,
     "positive_control_units": 228,
-    "primary_detected_positive_units": 84,
+    "primary_detected_positive_units": 88,
     "primary_invariants_recomputed": true,
     "receipt_execution_instances": 90,
     "schema_version": "replaybench-pg-phase1-validation-v1",
@@ -199,22 +182,18 @@
     "validator_inputs_label_independent": true
   },
   "primary_benchmark": {
-    "conditions_completed": 360,
-    "conditions_expected": 360,
+    "conditions_completed": 240,
+    "conditions_expected": 240,
     "full_workload_decision_points": 11351,
     "full_workload_mean_intervention_rate_by_policy": {
       "always": 1.0,
-      "bc": 1.0,
-      "bc_live": 1.0,
       "never": 0.0,
-      "random": 0.49960355915778343,
+      "random": 0.49966229113440813,
       "risk_proxy": 0.22984759052065887
     },
     "max_clean_authorization_contradictions": 0,
     "unique_hashes_by_policy": {
       "always": 5,
-      "bc": 5,
-      "bc_live": 5,
       "never": 5,
       "random": 15,
       "risk_proxy": 5
@@ -223,6 +202,7 @@
   "primary_controlled_faults": {
     "all_fault_classes_fully_detected": true,
     "clean_false_positive_flags": 0,
+    "clean_summary_unique_references": 18,
     "clean_validator_applications": 54,
     "clean_validator_workflows": 3,
     "fault_classes": 5,
@@ -230,7 +210,7 @@
       "action_flip_1_percent": {
         "detected_runs": 18,
         "false_positive_runs": 0,
-        "injected_events": 2048,
+        "injected_events": 2072,
         "label": "Action flip (1%)",
         "runs": 18
       },
@@ -258,7 +238,7 @@
       "unauthorized_invoke_1_percent": {
         "detected_runs": 18,
         "false_positive_runs": 0,
-        "injected_events": 1440,
+        "injected_events": 1542,
         "label": "Unauthorized invocation (1%)",
         "runs": 18
       }
@@ -279,15 +259,15 @@
   "software_validation": {
     "all_python_files_compile": true,
     "all_tests_passed": true,
-    "python_files_compiled": 114,
-    "tests_passed": 36
+    "python_files_compiled": 117,
+    "tests_passed": 46
   },
   "timing_study": {
-    "configurations": 48,
-    "configurations_x_15_repetitions": 24,
-    "configurations_x_7_repetitions": 24,
-    "measured_rows": 528,
-    "paired_worker_speedup_rows": 24
+    "configurations": 32,
+    "configurations_x_15_repetitions": 16,
+    "configurations_x_7_repetitions": 16,
+    "measured_rows": 352,
+    "paired_worker_speedup_rows": 16
   },
   "validator_selectivity_validation": {
     "all_expected_outcomes_met": true,
@@ -296,7 +276,7 @@
     "independent_positive_fault_executions": 216,
     "label_independent_localization_claim_superseded": true,
     "legacy_event_accounting_matches_injection_manifest": true,
-    "legacy_ground_truth_aware_runtime_events": 3240,
+    "legacy_ground_truth_aware_runtime_events": 3242,
     "posthoc_trace_applications": 108,
     "posthoc_validator_applications": 258,
     "posthoc_validator_failures": 0,
