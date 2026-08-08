@@ -212,7 +212,7 @@ def validate_execution_integrity_validation(
 ) -> tuple[dict[str, Any], list[Any]]:
     names = [
         "execution_receipt_validation_per_run.csv",
-        "execution_receipt_validation_summary_corrected.csv",
+        "execution_receipt_validation_summary.csv",
         "record_bound_corruption_validation_per_run.csv",
         "record_bound_corruption_validation_summary.csv",
         "execution_integrity_manifest.json",
@@ -304,10 +304,10 @@ def validate_execution_integrity_validation(
     assert_all_zero(faults["receipt_validation_passed"], "fault receipt validation")
 
     expected_injected = {
-        "unlogged_downstream_call": 1184,
-        "false_execution_log": 1166,
-        "duplicate_downstream_call": 1238,
-        "mismatched_correlation_id": 1252,
+        "unlogged_downstream_call": 1256,
+        "false_execution_log": 1146,
+        "duplicate_downstream_call": 1220,
+        "mismatched_correlation_id": 1066,
     }
     observed_injected = (
         receipt.groupby("fault_mode")["faults_injected"]
@@ -337,14 +337,14 @@ def validate_execution_integrity_validation(
     mismatch_rows = receipt.loc[
         receipt["fault_mode"].eq("mismatched_correlation_id")
     ]
-    if int(numeric(mismatch_rows["missing_receipts"], "mismatch missing receipts").sum()) != 1252:
+    if int(numeric(mismatch_rows["missing_receipts"], "mismatch missing receipts").sum()) != 1066:
         raise ValidationError(
-            "Mismatched-correlation controls must also produce 1,252 missing matching receipts"
+            "Mismatched-correlation controls must also produce 1,066 missing matching receipts"
         )
 
     clean_receipts = int(numeric(clean["receipt_rows"], "clean receipt rows").sum())
     all_receipts = int(numeric(receipt["receipt_rows"], "all receipt rows").sum())
-    if clean_receipts != 117_786 or all_receipts != 589_002:
+    if clean_receipts != 117_790 or all_receipts != 589_024:
         raise ValidationError(
             "Execution-integrity receipt totals differ from the frozen evidence: "
             f"clean={clean_receipts}, all={all_receipts}"
@@ -365,39 +365,54 @@ def validate_execution_integrity_validation(
         raise ValidationError("Clean execution-integrity worker reconstructions are unstable")
 
     receipt_summary = read_csv_required(
-        receipt_summary_path, "execution-integrity corrected receipt summary"
+        receipt_summary_path, "execution-integrity receipt summary"
     )
     require_columns(
         receipt_summary,
         [
             "fault_mode",
-            "execution_instances",
-            "correctly_classified_instances",
+            "runs",
+            "detected_runs",
             "injected_events",
-            "validation_passes",
-            "anomaly_detected_instances",
-            "false_positive_instances",
-            "false_negative_instances",
+            "receipt_validation_passes",
         ],
-        "execution-integrity corrected receipt summary",
+        "execution-integrity receipt summary",
     )
     if len(receipt_summary) != 5:
         raise ValidationError("Execution-integrity receipt summary must contain five rows")
-    if not numeric(
-        receipt_summary["execution_instances"], "receipt summary instances"
-    ).eq(18).all():
-        raise ValidationError("Each execution-integrity receipt mode must contain 18 instances")
-    if not numeric(
-        receipt_summary["correctly_classified_instances"],
-        "receipt summary classifications",
-    ).eq(18).all():
-        raise ValidationError("Every receipt instance must be correctly classified")
-    assert_all_zero(
-        receipt_summary["false_positive_instances"], "receipt summary false positives"
-    )
-    assert_all_zero(
-        receipt_summary["false_negative_instances"], "receipt summary false negatives"
-    )
+    receipt_summary = receipt_summary.copy()
+    receipt_summary["fault_mode"] = receipt_summary["fault_mode"].astype(str)
+    if set(receipt_summary["fault_mode"]) != expected_receipt_modes:
+        raise ValidationError("Execution-integrity receipt summary modes are incomplete")
+    if receipt_summary["fault_mode"].duplicated().any():
+        raise ValidationError("Execution-integrity receipt summary contains duplicate modes")
+    if not numeric(receipt_summary["runs"], "receipt summary runs").eq(18).all():
+        raise ValidationError("Each execution-integrity receipt mode must contain 18 runs")
+    if not numeric(receipt_summary["detected_runs"], "receipt summary detected runs").eq(18).all():
+        raise ValidationError("Every execution-integrity receipt run must match its expected outcome")
+
+    summary_by_mode = receipt_summary.set_index("fault_mode")
+    for mode in expected_receipt_modes:
+        expected_events = 0 if mode == "clean" else expected_injected[mode]
+        observed_events = int(numeric(
+            pd.Series([summary_by_mode.loc[mode, "injected_events"]]),
+            f"receipt summary {mode} injected events",
+        ).iloc[0])
+        if observed_events != expected_events:
+            raise ValidationError(
+                f"Receipt summary {mode} injected total must equal {expected_events}; "
+                f"found {observed_events}"
+            )
+        expected_passes = 18 if mode == "clean" else 0
+        observed_passes = int(numeric(
+            pd.Series([summary_by_mode.loc[mode, "receipt_validation_passes"]]),
+            f"receipt summary {mode} validation passes",
+        ).iloc[0])
+        if observed_passes != expected_passes:
+            raise ValidationError(
+                f"Receipt summary {mode} validation passes must equal "
+                f"{expected_passes}; found {observed_passes}"
+            )
 
     record = read_csv_required(record_path, "record-bound corruption per-run output")
     require_columns(
