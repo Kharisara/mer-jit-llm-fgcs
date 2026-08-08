@@ -2,7 +2,7 @@
 """
 Cloud Run Jobs wrapper for the FGCS deterministic replay benchmark.
 
-Runs the existing 360-condition benchmark and uploads selected raw outputs
+Runs the active v2.6.0 240-condition benchmark and uploads selected raw outputs
 to Google Cloud Storage under:
 
 gs://<bucket>/fgcs_cloud_results/<run_id>/<region>/
@@ -30,7 +30,7 @@ CORE_OUTPUTS = [
     "determinism_hash_results.csv",
     "parallel_speedup_results.csv",
     "policy_ablation_costs.csv",
-    "live_bc_predictions.csv",
+    "benchmark_run_manifest.json",
 ]
 
 
@@ -52,6 +52,7 @@ def main() -> None:
     run_id = os.environ.get("FGCS_RUN_ID", datetime.now(timezone.utc).strftime("fgcs_cloud_%Y%m%d_%H%M%S"))
     config_path = os.environ.get("CONFIG_PATH", "configs/fgcs_extended_benchmark.yaml")
     upload_traces = os.environ.get("UPLOAD_TRACES", "false").lower() == "true"
+    artifact_commit = os.environ.get("ARTIFACT_COMMIT", "unknown")
 
     output_dir = load_output_dir(config_path)
 
@@ -86,6 +87,7 @@ def main() -> None:
         "processor": platform.processor(),
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "return_code": completed.returncode,
+        "artifact_commit": artifact_commit,
     }
 
     metadata_path = output_dir / "cloud_run_metadata.json"

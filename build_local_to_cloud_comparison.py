@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Build the finalized 720-row local-to-cloud hash comparison.
+"""Build the finalized 480-row v2.6.0 local-to-cloud hash comparison.
 
 This script does not rerun any experiment. It joins the finalized local
 ReplayBench-PG determinism results against the two finalized regional cloud
 determinism outputs and writes one auditable row per local/cloud comparison.
 
 Expected result:
-    360 local conditions x 2 cloud regions = 720 comparisons
+    240 local conditions x 2 cloud regions = 480 comparisons
 """
 
 from __future__ import annotations
@@ -21,10 +21,10 @@ import pandas as pd
 DEFAULT_LOCAL = (
     "paper_outputs/fgcs_extended_benchmark/determinism_hash_results.csv"
 )
-DEFAULT_CLOUD_ROOT = "cloud_results/cloud360_riskproxy_20260702"
+DEFAULT_CLOUD_ROOT = "cloud_results/cloud240_v260_20260808"
 DEFAULT_REGIONS = ("asia-southeast1", "us-central1")
 DEFAULT_OUTPUT = (
-    "cloud_results/cloud360_riskproxy_20260702/"
+    "cloud_results/cloud240_v260_20260808/"
     "local_to_cloud_hash_comparison.csv"
 )
 
@@ -127,7 +127,7 @@ def normalize(frame: pd.DataFrame, source: Path) -> pd.DataFrame:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Build the finalized 720-row local-to-cloud hash comparison."
+        description="Build the finalized 480-row v2.6.0 local-to-cloud hash comparison."
     )
     parser.add_argument("--local", default=DEFAULT_LOCAL)
     parser.add_argument("--cloud-root", default=DEFAULT_CLOUD_ROOT)
@@ -149,9 +149,9 @@ def main() -> None:
         raise FileNotFoundError(f"Cloud root not found: {cloud_root}")
 
     local = normalize(pd.read_csv(local_path), local_path)
-    if len(local) != 360:
+    if len(local) != 240:
         raise ValueError(
-            f"Expected 360 finalized local conditions, observed {len(local)}"
+            f"Expected 240 finalized local conditions, observed {len(local)}"
         )
 
     keys = ["dataset_fraction", "policy_mode", "seed", "workers"]
@@ -165,9 +165,9 @@ def main() -> None:
             )
 
         cloud = normalize(pd.read_csv(cloud_path), cloud_path)
-        if len(cloud) != 360:
+        if len(cloud) != 240:
             raise ValueError(
-                f"Expected 360 cloud conditions for {region}, observed {len(cloud)}"
+                f"Expected 240 cloud conditions for {region}, observed {len(cloud)}"
             )
 
         merged = local.merge(
@@ -211,7 +211,7 @@ def main() -> None:
 
     result = pd.concat(comparisons, ignore_index=True)
 
-    expected_rows = 360 * len(args.regions)
+    expected_rows = 240 * len(args.regions)
     if len(result) != expected_rows:
         raise ValueError(
             f"Expected {expected_rows} local-to-cloud comparisons, "
