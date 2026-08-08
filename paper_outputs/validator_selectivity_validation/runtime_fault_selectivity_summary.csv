@@ -25,7 +25,7 @@ mismatched_correlation_id,single_last,6,6,6,6,0,0
 mismatched_correlation_id,single_seeded,6,6,6,6,0,0
 unauthorized_invocation,rate_0_01_percent,6,8,6,8,0,0
 unauthorized_invocation,rate_0_1_percent,6,54,6,54,0,0
-unauthorized_invocation,rate_1_percent,6,518,6,518,0,0
+unauthorized_invocation,rate_1_percent,6,520,6,520,0,0
 unauthorized_invocation,single_first,6,6,6,6,0,0
 unauthorized_invocation,single_last,6,6,6,6,0,0
 unauthorized_invocation,single_seeded,6,6,6,6,0,0
