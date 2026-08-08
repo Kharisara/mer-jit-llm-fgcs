@@ -17,6 +17,8 @@ def run(command: list[str]) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-csv", help="Path to MetroPT3(AirCompressor).csv")
+    parser.add_argument("--archive-path", help="Path to the downloaded canonical UCI ZIP")
+    parser.add_argument("--download-date", help="Archive download date in YYYY-MM-DD format")
     parser.add_argument("--sample-size", type=int, default=20_000)
     parser.add_argument("--skip-preparation", action="store_true")
     parser.add_argument("--allow-row-count-mismatch", action="store_true")
@@ -41,6 +43,10 @@ def main() -> None:
             "--sample-size",
             str(args.sample_size),
         ]
+        if bool(args.archive_path) != bool(args.download_date):
+            raise ValueError("--archive-path and --download-date must be supplied together")
+        if args.archive_path:
+            prep.extend(["--archive-path", args.archive_path, "--download-date", args.download_date])
         if args.allow_row_count_mismatch:
             prep.append("--allow-row-count-mismatch")
         run(prep)

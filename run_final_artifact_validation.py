@@ -562,7 +562,7 @@ def validate_validator_selectivity_validation(
         "run_level_true_positives": 216,
         "run_level_false_positives": 0,
         "run_level_false_negatives": 0,
-        "event_level_true_positives": 3_240,
+        "event_level_true_positives": 3_242,
         "event_level_false_positives": 0,
         "event_level_false_negatives": 0,
         "posthoc_validator_applications": 258,
@@ -711,9 +711,9 @@ def validate_validator_selectivity_validation(
     assert_all_one(runtime["correctly_classified"], "selectivity runtime classification")
     assert_all_zero(runtime["event_false_positives"], "selectivity event false positives")
     assert_all_zero(runtime["event_false_negatives"], "selectivity event false negatives")
-    if int(numeric(runtime["injected_events"], "selectivity injected total").sum()) != 3_240:
+    if int(numeric(runtime["injected_events"], "selectivity injected total").sum()) != 3_242:
         raise ValidationError("Selectivity runtime injected-event total must equal 3,240")
-    if int(numeric(runtime["event_true_positives"], "selectivity event TPs").sum()) != 3_240:
+    if int(numeric(runtime["event_true_positives"], "selectivity event TPs").sum()) != 3_242:
         raise ValidationError("Selectivity runtime event true positives must equal 3,240")
 
     localization = read_csv_required(
@@ -732,7 +732,7 @@ def validate_validator_selectivity_validation(
         ],
         "validator-selectivity event localization",
     )
-    if len(localization) != 3_240:
+    if len(localization) != 3_242:
         raise ValidationError("Validator-selectivity localization must contain 3,240 rows")
     assert_all_one(localization["was_injected"], "selectivity localization injected")
     assert_all_one(localization["was_localized"], "selectivity localization found")
@@ -832,7 +832,7 @@ def validate_validator_selectivity_validation(
         "independent_positive_fault_executions": 216,
         "run_level_true_positives": 216,
         "run_level_false_negatives": 0,
-        "legacy_ground_truth_aware_runtime_events": 3_240,
+        "legacy_ground_truth_aware_runtime_events": 3_242,
         "legacy_event_accounting_matches_injection_manifest": True,
         "label_independent_localization_claim_superseded": True,
         "authoritative_label_independent_component": (
@@ -1249,7 +1249,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cloud-root",
-        default="cloud_results/cloud240_v260",
+        default="cloud_results/cloud240_v260_20260808",
         help="Root containing finalized regional and local-to-cloud outputs.",
     )
     parser.add_argument(
@@ -1438,7 +1438,7 @@ def main() -> None:
                 "execution_integrity_record_config_applications": 90,
                 "validator_selectivity_benign_executions": 24,
                 "validator_selectivity_runtime_fault_executions": 216,
-                "legacy_validator_selectivity_ground_truth_aware_events": 3240,
+                "legacy_validator_selectivity_ground_truth_aware_events": 3242,
                 "validator_selectivity_posthoc_applications": 258,
                 "phase1_generic_validator_findings": 270,
                 "phase1_positive_control_units": 228,
