@@ -194,8 +194,8 @@
   "output_sha256": "954ce56d39ebd47ac0249f5da39a1fab0d678d58889049c64b2c082123bd860c",
   "preparation_software": {
     "python": "3.12.2",
-    "numpy": "2.5.1",
-    "pandas": "3.0.5"
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
   },
   "source_duplicate_row_check_scope": "complete canonical source data rows excluding header",
   "source_duplicate_row_check_normalization": "remove CR/LF terminator only; preserve all other row bytes",

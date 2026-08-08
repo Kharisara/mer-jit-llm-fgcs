@@ -28,9 +28,12 @@
     "task_failure_policy": "fail_fast",
     "duplicate_delivery_supported": false
   },
+  "execution_receipts_enabled": false,
   "validation": {
     "action_hash": "SHA-256 over the canonical ordered integer action sequence",
-    "authorization_execution_invariant": "violation when downstream execution=1 and prior authorization=0",
+    "record_trace_hash": "SHA-256 over ordered record identity, action, authorization, primary execution state, correlation identity, and reconciled receipt state when execution receipts are enabled",
+    "config_bound_trace_hash": "SHA-256 binding the record trace hash to the run configuration manifest hash when execution receipts are enabled",
+    "authorization_execution_invariant": "cross-log reconciliation between primary trace and independently emitted downstream execution receipts when enabled",
     "row_count_validation": true
   },
   "all_runs_authorization_execution_consistent": true,

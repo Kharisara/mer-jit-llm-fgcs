@@ -859,10 +859,10 @@ def validate_fault_summary(
 ) -> tuple[dict[str, Any], list[EvidenceFile], pd.DataFrame]:
     """Validate the frozen five-class fault summary without pseudoreplication.
 
-    The raw combined summary stores the clean false-positive control in its
-    ``runs`` field as validator applications. The same 18 independently
-    executed clean references are reused by three validator workflows, so the
-    expected raw count is 54 applications, not 54 independent executions.
+    The raw combined summary stores the distinct clean-reference count in its
+    ``runs`` field. The same 18 independently executed clean references are
+    reused by three validator workflows, yielding 54 validator applications
+    for accounting purposes, but only 18 unique clean-reference executions.
     """
 
     if expected_unique_clean_references <= 0:
@@ -902,12 +902,12 @@ def validate_fault_summary(
         )
 
     clean = frame.loc[frame["fault_mode"].eq("clean_replay")].iloc[0]
-    clean_applications = int(clean["runs"])
-    if clean_applications != expected_clean_validator_applications:
+    clean_reference_runs = int(clean["runs"])
+    if clean_reference_runs != expected_unique_clean_references:
         raise ValidationError(
-            f"{component} clean validator applications must equal "
-            f"{expected_clean_validator_applications}; found "
-            f"{clean_applications}"
+            f"{component} clean unique-reference count must equal "
+            f"{expected_unique_clean_references}; found "
+            f"{clean_reference_runs}"
         )
     if int(clean["detected_runs"]) != 0 or int(clean["false_positive_runs"]) != 0:
         raise ValidationError(
@@ -950,7 +950,8 @@ def validate_fault_summary(
             expected_unique_clean_references
         ),
         "clean_validator_workflows": int(expected_validator_workflows),
-        "clean_validator_applications": int(clean_applications),
+        "clean_validator_applications": int(expected_clean_validator_applications),
+        "clean_summary_unique_references": int(clean_reference_runs),
         "clean_false_positive_flags": int(clean["false_positive_runs"]),
         "fault_classes": int(len(FAULT_ORDER)),
         "runs_per_fault_class": int(expected_runs_per_fault_class),
