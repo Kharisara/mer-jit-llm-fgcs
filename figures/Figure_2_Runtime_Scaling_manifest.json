@@ -1,16 +1,14 @@
 {
   "input": "paper_outputs/replaybench_timing_study/timing_runtime_summary_mixed_7_15.csv",
-  "input_sha256": "317f9892620d0d48a38730bf8bd6357c1e53731d4bd43119baec1494e4da5a6b",
+  "input_sha256": "ce0e7e9d0aa6fca0cb1bf377ab0a112e2ae076578d3fc6d6731b3e2d0bc77eed",
   "outputs": {
-    "figures/Figure_2_Runtime_Scaling.png": "e65569105eb881b293b8e47dac0ad2ac2f4872e30940cc99df2928513a232b92",
-    "figures/Figure_2_Runtime_Scaling.pdf": "736d6e5ead927d27f870acfcf4ab67f29465b1d90e8ba38537602777187ed85a"
+    "figures/Figure_2_Runtime_Scaling.png": "6e01f8e96b0931fe74c56d465051afd1bc539010d8e2ef7b716558a3d89d61cb",
+    "figures/Figure_2_Runtime_Scaling.pdf": "a0b4765d87b52ec9007593fc04555c7a803cb2a131d0f85775b8e575421743f6"
   },
   "filter": "workers == 1",
-  "expected_rows": 30,
+  "expected_rows": 20,
   "policies": [
     "always",
-    "bc",
-    "bc_live",
     "never",
     "random",
     "risk_proxy"
