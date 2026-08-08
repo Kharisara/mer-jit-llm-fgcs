@@ -1,6 +1,6 @@
 # Compact Fault Validation (RQ7)
 
-This section documents the additional compact fault-validation experiments used for RQ7. These experiments are separate from the main clean 360-condition benchmark and are intended to test whether the replay infrastructure detects deliberately injected execution and trace-integrity faults.
+This section documents the additional compact fault-validation experiments used for RQ7. These experiments are separate from the active clean 240-condition primary benchmark and are intended to test whether the replay infrastructure detects deliberately injected execution and trace-integrity faults.
 
 ## Clean benchmark prerequisite
 
@@ -98,6 +98,6 @@ Use cautious wording:
 
 Do not claim that the system prevents all execution faults. These experiments evaluate deterministic fault detection under controlled replay perturbations.
 
-## Optional cloud validation
+## Cloud-validation boundary
 
-The compact RQ7 experiments can also be run through the existing Cloud Run Jobs wrapper by using the same two fault configs and separate cloud output prefixes. This is optional. It is useful only if the manuscript needs the stronger claim that local and cloud replay detect identical injected faults. If time or page budget is limited, local RQ7 validation is sufficient for the current manuscript revision.
+The v2.6.0 cloud evidence does not execute this controlled fault suite. Cloud validation is limited to clean action-trace consistency and authorization checks across the two evaluated regions, together with local-to-cloud action-trace comparisons. Therefore, these controlled fault results must not be described as cloud-validated.

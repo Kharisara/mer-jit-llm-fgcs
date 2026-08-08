@@ -19,7 +19,7 @@ Outputs:
     paper_outputs/fgcs_tables_figures/
 
 The script is intentionally defensive:
-- It accepts the current 360-run FGCS benchmark schema.
+- It accepts the current 240-run v2.6.0 active benchmark schema and remains compatible with historical outputs.
 - It avoids the older "extended_scalability_results.csv" / "workload_size" schema.
 - It does not require the old fault-injection CSVs.
 - It produces CSV, LaTeX, PNG figures, and a compact Markdown summary.
@@ -186,7 +186,7 @@ def numeric_sort_key(value) -> Tuple[int, float, str]:
 
 
 def compact_policy_order(policies: Iterable[str]) -> List[str]:
-    preferred = ["never", "risk_proxy", "proxy", "bc", "bc_live", "random", "always"]
+    preferred = ["risk_proxy", "random", "always", "never", "proxy", "bc", "bc_live"]
     available = list(dict.fromkeys(str(p) for p in policies))
     ordered = [p for p in preferred if p in available]
     ordered += sorted([p for p in available if p not in ordered])
@@ -915,18 +915,6 @@ def make_summary_findings_table(
         else np.nan
     )
 
-    max_speedup = (
-        max_or_nan(speedup["speedup_vs_single_worker"])
-        if "speedup_vs_single_worker" in speedup.columns
-        else float("nan")
-    )
-
-    live_bc_intervention_rate = np.nan
-    if not live_bc_df.empty:
-        action_col = first_existing_column(live_bc_df, ["bc_live_action", "action", "predicted_action"])
-        if action_col:
-            live_bc_intervention_rate = float(pd.to_numeric(live_bc_df[action_col], errors="coerce").mean())
-
     rows = [
         {
             "finding": "Benchmark coverage",
@@ -939,7 +927,7 @@ def make_summary_findings_table(
         {
             "finding": "Policy modes",
             "observed_value": ", ".join(policy_modes),
-            "paper_interpretation": "The evaluation includes fixed, stochastic, proxy, offline BC, and live BC policy modes.",
+            "paper_interpretation": "The table reports the policy modes present in the supplied benchmark evidence; the active v2.6.0 evaluation uses risk_proxy, random, always, and never.",
         },
         {
             "finding": "Maximum replay workload",
@@ -954,12 +942,7 @@ def make_summary_findings_table(
         {
             "finding": "Maximum full-workload throughput",
             "observed_value": f"{max_throughput:.6f} decision points/s" if not math.isnan(max_throughput) else "N/A",
-            "paper_interpretation": "Replay throughput is directly measurable across workload and worker settings.",
-        },
-        {
-            "finding": "Maximum observed speedup",
-            "observed_value": f"{max_speedup:.6f}x" if not math.isnan(max_speedup) else "N/A",
-            "paper_interpretation": "Parallel workers provide measurable acceleration, though gains depend on policy and workload.",
+            "paper_interpretation": "This value is descriptive benchmark throughput; repeated timing measurements are authoritative for worker-performance comparisons.",
         },
         {
             "finding": "Deterministic trace hashes",
@@ -973,13 +956,6 @@ def make_summary_findings_table(
             "finding": "Unauthorized invocations",
             "observed_value": f"{max_unauthorized}",
             "paper_interpretation": "The policy-first gate prevented unauthorized generator invocation in normal replay.",
-        },
-        {
-            "finding": "Live BC action rate",
-            "observed_value": f"{live_bc_intervention_rate:.6f}" if not math.isnan(live_bc_intervention_rate) else "N/A",
-            "paper_interpretation": (
-                "The live BC policy executed end-to-end; action diversity should be reported conservatively."
-            ),
         },
     ]
 
@@ -1222,14 +1198,14 @@ def write_markdown_summary(
     lines.append("## Safe paper wording")
     lines.append("")
     lines.append(
-        "The extended benchmark executed deterministic offline replay across multiple "
-        "workload fractions, policy modes, random seeds, and worker settings. "
-        "Trace-level hashes provide an audit mechanism for reproducibility. "
-        "Deterministic policies produced stable trace behavior, whereas the random "
-        "baseline varied across seeds as expected. The live BC policy was evaluated "
-        "as an execution-level policy mode; its observed action distribution should "
-        "be interpreted as checkpoint-dependent behavior rather than evidence of "
-        "policy optimality."
+        "The active v2.6.0 benchmark executed offline replay across five workload "
+        "fractions, four policy modes (risk_proxy, random, always, and never), three "
+        "seeds, and four worker settings. Deterministic policies produced one stable "
+        "action-trace hash per workload fraction, whereas the random baseline varied "
+        "across seeds as expected. No unauthorized invocations were observed during "
+        "clean replay. Worker-performance claims are based on the separate repeated "
+        "timing study, which showed concurrency overhead rather than speedup for the "
+        "evaluated lightweight workload."
     )
     lines.append("")
 
@@ -1331,6 +1307,21 @@ def main() -> None:
     speedup_df = read_csv_required(speedup_path)
     policy_cost_df = read_csv_required(policy_cost_path)
     live_bc_df = read_csv_optional(live_bc_path)
+
+    # Remove stale historical live-BC presentation artifacts when the active
+    # benchmark contains no live-BC evidence.
+    if live_bc_df.empty:
+        for stale_name in [
+            "fgcs_table_live_bc_summary.csv",
+            "fgcs_table_live_bc_summary.tex",
+            "fgcs_table_live_bc_compact.csv",
+            "fgcs_table_live_bc_compact.tex",
+            "fgcs_fig_live_bc_action_distribution.png",
+        ]:
+            stale_path = out_dir / stale_name
+            if stale_path.exists():
+                stale_path.unlink()
+                print(f"[CLEAN] {stale_path}")
 
     # Normalize schemas before any table/figure functions run.
     # In the current benchmark, parallel_speedup_results.csv may not include
