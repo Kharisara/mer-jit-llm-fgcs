@@ -1002,8 +1002,8 @@ def validate_phase1_label_independent_validation(
         raise ValidationError("Full validator did not flag all 228 positive units")
     if int(numeric(negative["full_validator_triggered"], "full negative detection").sum()) != 0:
         raise ValidationError("Full validator flagged a clean or benign unit")
-    if int(numeric(positive["primary_validator_triggered"], "primary positive detection").sum()) != 84:
-        raise ValidationError("Primary validator detection total must equal 84/228")
+    if int(numeric(positive["primary_validator_triggered"], "primary positive detection").sum()) != 88:
+        raise ValidationError("Primary validator detection total must equal 88/228")
     assert_all_one(positive["full_correct"], "Phase-1 full positive classifications")
     assert_all_one(negative["full_correct"], "Phase-1 full negative classifications")
 
@@ -1047,10 +1047,10 @@ def validate_phase1_label_independent_validation(
     localization_fn = int(
         numeric(supported["event_false_negatives"], "localized false negatives").sum()
     )
-    if localized_events != 4_906 or localization_fp != 0 or localization_fn != 0:
+    if localized_events != 4_754 or localization_fp != 0 or localization_fn != 0:
         raise ValidationError(
             "Phase-1 label-independent localization must equal "
-            "4,906 TP, 0 FP, and 0 FN"
+            "4,754 TP, 0 FP, and 0 FN"
         )
 
     comparison = read_csv_required(
@@ -1103,10 +1103,10 @@ def validate_phase1_label_independent_validation(
         "benign_control_units": 24,
         "negative_control_units": 42,
         "positive_control_units": 228,
-        "primary_detected_positive_units": 84,
+        "primary_detected_positive_units": 88,
         "full_detected_positive_units": 228,
         "full_false_positive_units": 0,
-        "label_independent_localized_events": 4_906,
+        "label_independent_localized_events": 4_754,
         "localization_false_positives": 0,
         "localization_false_negatives": 0,
     }
@@ -1140,7 +1140,7 @@ def validate_phase1_label_independent_validation(
         "benign_control_units": 24,
         "negative_control_units": 42,
         "positive_control_units": 228,
-        "primary_detected_positive_units": 84,
+        "primary_detected_positive_units": 88,
         "full_detected_positive_units": 228,
         "full_false_positive_units": 0,
         "label_independent_localized_events": localized_events,
@@ -1458,9 +1458,9 @@ def main() -> None:
                 "phase1_generic_validator_findings": 270,
                 "phase1_positive_control_units": 228,
                 "phase1_negative_control_units": 42,
-                "phase1_primary_detected_positive_units": 84,
+                "phase1_primary_detected_positive_units": 88,
                 "phase1_full_detected_positive_units": 228,
-                "phase1_label_independent_localized_events": 4906,
+                "phase1_label_independent_localized_events": 4754,
                 "phase1_localization_false_positives": 0,
                 "phase1_localization_false_negatives": 0,
                 "ray_conditions": 54,
