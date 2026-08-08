@@ -4,11 +4,11 @@
   "python_version": "3.12.2 (tags/v3.12.2:6abddd9, Feb  6 2024, 21:26:36) [MSC v.1937 64 bit (AMD64)]",
   "platform": "Windows-11-10.0.26200-SP0",
   "ray_version": "2.56.1",
-  "git_commit": "be7836317c6074bebf3b87ed178bde8874d11e97",
+  "git_commit": "1b739efd340c78647fc0c42c1a8aa6d28602779c",
   "config_path": "configs/ray_comparison.yaml",
   "resolved_base_config": "D:\\Project final\\mer-jit-llm-fgcs\\configs\\fgcs_extended_benchmark.yaml",
-  "input_csv": "paper_outputs\\replay_input_clean.csv",
-  "input_sha256": "9b2dff24e0197227e2a0b9b651c7a61576bc700e89a5a882260a4c27cf3ce75a",
+  "input_csv": "paper_outputs\\replay_input_v260.csv",
+  "input_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
   "full_input_rows": 11351,
   "workload_fraction": 1.0,
   "decision_points": 11351,
@@ -35,8 +35,8 @@
   "expected_conditions": 54,
   "completed_conditions": 54,
   "ray_init_seconds_by_worker": {
-    "1": 4.246945700000651,
-    "4": 3.4552158000005875
+    "1": 12.680535900002724,
+    "4": 3.4127644000000146
   },
   "execution_semantics": {
     "task_retry_enabled": false,
@@ -46,7 +46,7 @@
   "reference": {
     "determinism_csv": "paper_outputs/fgcs_extended_benchmark/determinism_hash_results.csv",
     "reference_file_exists": true,
-    "loaded_reference_hashes": 72,
+    "loaded_reference_hashes": 48,
     "external_clean_comparisons": 18,
     "external_clean_hash_matches": 18
   },

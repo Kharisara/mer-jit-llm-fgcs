@@ -1,7 +1,10 @@
 {
   "dataset": {
-    "input_csv": "paper_outputs/replay_input_clean.csv",
-    "workload_fraction": 1.0
+    "input_csv": "paper_outputs/replay_input_v260.csv",
+    "workload_fraction": 1.0,
+    "identity_scheme": "meld_split_qualified_source_record_id",
+    "require_portable_paths": true,
+    "touch_state_files": false
   },
   "benchmark": {
     "policy_modes": [
@@ -26,34 +29,14 @@
     "ray_chunk_size": 256
   },
   "policy": {
-    "negative_labels": [
-      "anger",
-      "angry",
-      "disgust",
-      "disgusted",
-      "fear",
-      "fearful",
-      "sadness",
-      "sad"
-    ],
-    "random_intervention_probability": 0.5,
-    "bc_action_csv": "paper_outputs/policy_first_outputs_bc.csv",
-    "bc_action_column": "action",
-    "bc_key_column": "utterance_id",
-    "bc_model_path": "checkpoints/jitai_policy_bc.pt",
-    "bc_live_state_dim": 512,
-    "bc_live_hidden_dims": [
-      256,
-      256
-    ],
-    "bc_live_output_dim": 2,
-    "bc_live_batch_size": 4096,
-    "bc_live_torch_threads": 1,
-    "bc_live_device": "cpu",
-    "bc_live_strict_state_dim": true,
-    "missing_state_policy": "error"
+    "diagnostic_action_column": "diagnostic_action",
+    "random_intervention_probability": 0.5
   },
-  "generation_stub": {},
+  "generation_stub": {
+    "mode": "generic_service",
+    "service_name": "deterministic_policy_gated_stub",
+    "record_id_column": "source_record_id"
+  },
   "fault_injection": {
     "action_flip_probability": 0.01,
     "dropped_row_probability": 0.01
