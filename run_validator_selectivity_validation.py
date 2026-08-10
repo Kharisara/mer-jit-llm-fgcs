@@ -398,11 +398,6 @@ def main() -> None:
     all_reference_policies = sorted(set(runtime_policy_modes + receipt_policy_modes))
     profiles = _profile_rows(base_cfg, args.smoke)
     injection_seed_base = int(selectivity_cfg.get("injection_seed", 20260724))
-    negative_labels = {
-        normalize_label(value)
-        for value in base_cfg.get("policy", {}).get("negative_labels", [])
-    }
-
     clean_references: dict[tuple[str, int, int], tuple[pd.DataFrame, dict[str, Any], pd.DataFrame, pd.DataFrame]] = {}
     clean_rows: list[dict[str, Any]] = []
 
@@ -435,7 +430,7 @@ def main() -> None:
                     df=frame,
                     cfg=clean_cfg,
                     policy_mode=policy,
-                    negative_labels=negative_labels,
+                    negative_labels=set(),
                     seed=seed,
                     workers=workers,
                     bc_actions=None,
@@ -515,7 +510,7 @@ def main() -> None:
                             df=frame,
                             cfg=cfg,
                             policy_mode=policy,
-                            negative_labels=negative_labels,
+                            negative_labels=set(),
                             seed=seed,
                             workers=workers,
                             bc_actions=None,
@@ -637,7 +632,7 @@ def main() -> None:
                         df=frame,
                         cfg=cfg,
                         policy_mode=policy,
-                        negative_labels=negative_labels,
+                        negative_labels=set(),
                         seed=seed,
                         workers=workers,
                         bc_actions=None,

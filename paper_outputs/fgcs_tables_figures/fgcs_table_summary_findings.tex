@@ -2,15 +2,13 @@
 \toprule
 finding & observed\_value & paper\_interpretation \\
 \midrule
-Benchmark coverage & 360 runs & The benchmark covers 5 workload fractions, 6 policies, and 4 worker settings. \\
-Policy modes & never, risk\_proxy, bc, bc\_live, random, always & The evaluation includes fixed, stochastic, proxy, offline BC, and live BC policy modes. \\
+Benchmark coverage & 240 runs & The benchmark covers 5 workload fractions, 4 policies, and 4 worker settings. \\
+Policy modes & risk\_proxy, random, always, never & The table reports the policy modes present in the supplied benchmark evidence; the active v2.6.0 evaluation uses risk\_proxy, random, always, and never. \\
 Maximum replay workload & 11,351 decision points & The benchmark reaches the full MELD-derived replay workload. \\
-Full-workload runtime range & 5.553629–30.310232 seconds & Runtime varies by policy mode and worker configuration under deterministic replay. \\
-Maximum full-workload throughput & 2043.888669 decision points/s & Replay throughput is directly measurable across workload and worker settings. \\
-Maximum observed speedup & 24.725832x & Parallel workers provide measurable acceleration, though gains depend on policy and workload. \\
-Deterministic trace hashes & \{'always': 5, 'bc': 5, 'bc\_live': 5, 'never': 5, 'random': 15, 'risk\_proxy': 5\} & Deterministic policies should produce one stable trace per workload; the random baseline is expected to vary across seeds. \\
+Full-workload runtime range & 0.096197–0.646154 seconds & Runtime varies by policy mode and worker configuration under deterministic replay. \\
+Maximum full-workload throughput & 117997.810735 decision points/s & This value is descriptive benchmark throughput; repeated timing measurements are authoritative for worker-performance comparisons. \\
+Deterministic trace hashes & \{'always': 5, 'never': 5, 'random': 15, 'risk\_proxy': 5\} & Deterministic policies should produce one stable trace per workload; the random baseline is expected to vary across seeds. \\
 Unauthorized invocations & 0 & The policy-first gate prevented unauthorized generator invocation in normal replay. \\
-Live BC action rate & 1.000000 & The live BC policy executed end-to-end; action diversity should be reported conservatively. \\
-Full-workload mean intervention rates & \{'always': 1.0, 'bc': 1.0, 'bc\_live': 1.0, 'never': 0.0, 'random': 0.499604, 'risk\_proxy': 0.229848\} & Intervention frequency is policy-dependent and execution-identifiable under replay. \\
+Full-workload mean intervention rates & \{'always': 1.0, 'never': 0.0, 'random': 0.499662, 'risk\_proxy': 0.229848\} & Intervention frequency is policy-dependent and execution-identifiable under replay. \\
 \bottomrule
 \end{tabular}

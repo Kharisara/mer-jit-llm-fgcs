@@ -45,13 +45,20 @@ class EvidenceFile:
 
 
 PRIMARY_FRACTIONS = {0.10, 0.25, 0.50, 0.75, 1.00}
-PRIMARY_POLICIES = {"risk_proxy", "bc", "bc_live", "random", "always", "never"}
+PRIMARY_POLICIES = {"risk_proxy", "random", "always", "never"}
 PRIMARY_SEEDS = {1, 2, 3}
 PRIMARY_WORKERS = {1, 2, 4, 8}
 
 TIMING_FRACTIONS = PRIMARY_FRACTIONS
 TIMING_POLICIES = PRIMARY_POLICIES
 TIMING_WORKERS = PRIMARY_WORKERS
+
+PRIMARY_EXPECTED_CONDITIONS = 240
+TIMING_EXPECTED_CONFIGURATIONS = 32
+TIMING_EXPECTED_MEASURED_ROWS = 352
+TIMING_EXPECTED_SPEEDUP_ROWS = 16
+CLOUD_EXPECTED_CROSS_REGION = 240
+CLOUD_EXPECTED_LOCAL_TO_CLOUD = 480
 
 RAY_POLICIES = {"risk_proxy", "random", "never"}
 RAY_SEEDS = {1, 2, 3}
@@ -403,10 +410,14 @@ def validate_primary_benchmark(project_dir: Path) -> tuple[dict[str, Any], list[
         "primary determinism output",
     )
 
-    if len(scaling) != 360:
-        raise ValidationError(f"Primary benchmark must contain 360 rows; found {len(scaling)}")
-    if len(det) != 360:
-        raise ValidationError(f"Primary determinism output must contain 360 rows; found {len(det)}")
+    if len(scaling) != PRIMARY_EXPECTED_CONDITIONS:
+        raise ValidationError(
+            f"Primary benchmark must contain {PRIMARY_EXPECTED_CONDITIONS} rows; found {len(scaling)}"
+        )
+    if len(det) != PRIMARY_EXPECTED_CONDITIONS:
+        raise ValidationError(
+            f"Primary determinism output must contain {PRIMARY_EXPECTED_CONDITIONS} rows; found {len(det)}"
+        )
 
     scaling = scaling.copy()
     det = det.copy()
@@ -482,7 +493,7 @@ def validate_primary_benchmark(project_dir: Path) -> tuple[dict[str, Any], list[
     results = {
         "conditions": int(len(scaling)),
         "determinism_rows": int(len(det)),
-        "expected_conditions": 360,
+        "expected_conditions": PRIMARY_EXPECTED_CONDITIONS,
         "condition_matrix_complete": True,
         "all_worker_hashes_match": True,
         "deterministic_policies_seed_invariant": True,
@@ -546,8 +557,10 @@ def validate_timing_study(project_dir: Path) -> tuple[dict[str, Any], list[Evide
     speedup_path = base / "timing_worker_speedup_paired_ci.csv"
     raw = normalize_timing_frame(read_csv_required(raw_path, "timing repetitions"))
 
-    if len(raw) != 528:
-        raise ValidationError(f"Timing study must contain 528 measured rows; found {len(raw)}")
+    if len(raw) != TIMING_EXPECTED_MEASURED_ROWS:
+        raise ValidationError(
+            f"Timing study must contain {TIMING_EXPECTED_MEASURED_ROWS} measured rows; found {len(raw)}"
+        )
     assert_set_equal(raw["dataset_fraction"].tolist(), TIMING_FRACTIONS, "timing fractions")
     assert_set_equal(raw["policy"].tolist(), TIMING_POLICIES, "timing policies")
     assert_set_equal(raw["workers"].tolist(), TIMING_WORKERS, "timing workers")
@@ -559,13 +572,15 @@ def validate_timing_study(project_dir: Path) -> tuple[dict[str, Any], list[Evide
 
     group_sizes = raw.groupby(["dataset_fraction", "policy", "workers"]).size()
     counts = group_sizes.value_counts().sort_index().to_dict()
-    if counts != {7: 24, 15: 24}:
+    if counts != {7: 16, 15: 16}:
         raise ValidationError(
-            "Timing mixed design must contain 24 configurations x 7 and "
-            f"24 configurations x 15; observed={counts}"
+            "Timing mixed design must contain 16 configurations x 7 and "
+            f"16 configurations x 15; observed={counts}"
         )
-    if len(group_sizes) != 48:
-        raise ValidationError(f"Timing study must contain 48 configurations; found {len(group_sizes)}")
+    if len(group_sizes) != TIMING_EXPECTED_CONFIGURATIONS:
+        raise ValidationError(
+            f"Timing study must contain {TIMING_EXPECTED_CONFIGURATIONS} configurations; found {len(group_sizes)}"
+        )
 
     non_full = raw.loc[~np.isclose(raw["dataset_fraction"], 1.0)]
     full = raw.loc[np.isclose(raw["dataset_fraction"], 1.0)]
@@ -610,10 +625,14 @@ def validate_timing_study(project_dir: Path) -> tuple[dict[str, Any], list[Evide
 
     runtime_summary = read_csv_required(runtime_summary_path, "timing runtime summary")
     speedup = read_csv_required(speedup_path, "timing worker-speedup summary")
-    if len(runtime_summary) != 48:
-        raise ValidationError(f"Timing runtime summary must contain 48 rows; found {len(runtime_summary)}")
-    if len(speedup) != 24:
-        raise ValidationError(f"Timing worker-speedup summary must contain 24 rows; found {len(speedup)}")
+    if len(runtime_summary) != TIMING_EXPECTED_CONFIGURATIONS:
+        raise ValidationError(
+            f"Timing runtime summary must contain {TIMING_EXPECTED_CONFIGURATIONS} rows; found {len(runtime_summary)}"
+        )
+    if len(speedup) != TIMING_EXPECTED_SPEEDUP_ROWS:
+        raise ValidationError(
+            f"Timing worker-speedup summary must contain {TIMING_EXPECTED_SPEEDUP_ROWS} rows; found {len(speedup)}"
+        )
     require_columns(
         speedup,
         [
@@ -632,7 +651,7 @@ def validate_timing_study(project_dir: Path) -> tuple[dict[str, Any], list[Evide
 
     results = {
         "measured_rows": int(len(raw)),
-        "expected_measured_rows": 528,
+        "expected_measured_rows": TIMING_EXPECTED_MEASURED_ROWS,
         "unique_configurations": int(len(group_sizes)),
         "configurations_with_7_repetitions": int((group_sizes == 7).sum()),
         "configurations_with_15_repetitions": int((group_sizes == 15).sum()),
@@ -840,10 +859,10 @@ def validate_fault_summary(
 ) -> tuple[dict[str, Any], list[EvidenceFile], pd.DataFrame]:
     """Validate the frozen five-class fault summary without pseudoreplication.
 
-    The raw combined summary stores the clean false-positive control in its
-    ``runs`` field as validator applications. The same 18 independently
-    executed clean references are reused by three validator workflows, so the
-    expected raw count is 54 applications, not 54 independent executions.
+    The raw combined summary stores the distinct clean-reference count in its
+    ``runs`` field. The same 18 independently executed clean references are
+    reused by three validator workflows, yielding 54 validator applications
+    for accounting purposes, but only 18 unique clean-reference executions.
     """
 
     if expected_unique_clean_references <= 0:
@@ -883,12 +902,12 @@ def validate_fault_summary(
         )
 
     clean = frame.loc[frame["fault_mode"].eq("clean_replay")].iloc[0]
-    clean_applications = int(clean["runs"])
-    if clean_applications != expected_clean_validator_applications:
+    clean_reference_runs = int(clean["runs"])
+    if clean_reference_runs != expected_unique_clean_references:
         raise ValidationError(
-            f"{component} clean validator applications must equal "
-            f"{expected_clean_validator_applications}; found "
-            f"{clean_applications}"
+            f"{component} clean unique-reference count must equal "
+            f"{expected_unique_clean_references}; found "
+            f"{clean_reference_runs}"
         )
     if int(clean["detected_runs"]) != 0 or int(clean["false_positive_runs"]) != 0:
         raise ValidationError(
@@ -931,7 +950,8 @@ def validate_fault_summary(
             expected_unique_clean_references
         ),
         "clean_validator_workflows": int(expected_validator_workflows),
-        "clean_validator_applications": int(clean_applications),
+        "clean_validator_applications": int(expected_clean_validator_applications),
+        "clean_summary_unique_references": int(clean_reference_runs),
         "clean_false_positive_flags": int(clean["false_positive_runs"]),
         "fault_classes": int(len(FAULT_ORDER)),
         "runs_per_fault_class": int(expected_runs_per_fault_class),
@@ -1558,7 +1578,7 @@ def _json_metrics(path: Path) -> list[dict[str, Any]]:
             continue
 
     candidates: list[dict[str, Any]] = []
-    for expected, kind in [(360, "cross_region"), (720, "local_to_cloud")]:
+    for expected, kind in [(CLOUD_EXPECTED_CROSS_REGION, "cross_region"), (CLOUD_EXPECTED_LOCAL_TO_CLOUD, "local_to_cloud")]:
         related = {
             key: value
             for key, value in numeric_lookup.items()
@@ -1679,9 +1699,9 @@ def discover_cloud_evidence(
             compared, matched = metrics
             token = _normalize_name(path.as_posix())
             kind = None
-            if compared == 360:
+            if compared == CLOUD_EXPECTED_CROSS_REGION:
                 kind = "cross_region"
-            elif compared == 720:
+            elif compared == CLOUD_EXPECTED_LOCAL_TO_CLOUD:
                 kind = "local_to_cloud"
             elif "cross_region" in token or "region_to_region" in token:
                 kind = "cross_region"
@@ -1702,7 +1722,10 @@ def discover_cloud_evidence(
             candidates.extend(_json_metrics(path))
 
     selected: dict[str, dict[str, Any]] = {}
-    expected_by_kind = {"cross_region": 360, "local_to_cloud": 720}
+    expected_by_kind = {
+        "cross_region": CLOUD_EXPECTED_CROSS_REGION,
+        "local_to_cloud": CLOUD_EXPECTED_LOCAL_TO_CLOUD,
+    }
     for kind, expected in expected_by_kind.items():
         exact = [
             candidate
@@ -1780,14 +1803,14 @@ def discover_cloud_evidence(
     results = {
         "cloud_root": relative_posix(cloud_root, project_dir),
         "cross_region": {
-            "compared": 360,
-            "matched": 360,
+            "compared": CLOUD_EXPECTED_CROSS_REGION,
+            "matched": CLOUD_EXPECTED_CROSS_REGION,
             "all_match": True,
             "source": relative_posix(Path(selected["cross_region"]["source"]), project_dir),
         },
         "local_to_cloud": {
-            "compared": 720,
-            "matched": 720,
+            "compared": CLOUD_EXPECTED_LOCAL_TO_CLOUD,
+            "matched": CLOUD_EXPECTED_LOCAL_TO_CLOUD,
             "all_match": True,
             "source": relative_posix(Path(selected["local_to_cloud"]["source"]), project_dir),
         },

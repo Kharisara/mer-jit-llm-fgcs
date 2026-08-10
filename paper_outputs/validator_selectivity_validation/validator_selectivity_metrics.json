@@ -4,7 +4,7 @@
   "event_level_false_positives": 0,
   "event_level_precision": 1.0,
   "event_level_recall": 1.0,
-  "event_level_true_positives": 3240,
+  "event_level_true_positives": 3242,
   "experiment": "validator_selectivity_and_non_circular_fault_evaluation",
   "independent_benign_negative_control_executions": 24,
   "independent_positive_fault_executions": 216,

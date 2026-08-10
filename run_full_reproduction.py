@@ -1,16 +1,8 @@
-"""
-run_full_reproduction.py
+"""Run the active ReplayBench-PG v2.6.0 four-policy workflow.
 
-Full reproduction runner for the FGCS deterministic replay and benchmarking artifact.
-
-This script runs:
-1. Extended FGCS deterministic replay benchmark
-2. Paper-ready table, figure, benchmark-summary, and mean-SD result generation
-
-Expected prepared inputs:
-- configs/fgcs_extended_benchmark.yaml
-- paper_outputs/replay_input_clean.csv
-- paper_outputs/policy_first_outputs_bc.csv
+The active primary replay input is regenerated from the historical local source
+before execution unless ``--skip-prepare`` is supplied. Learned-policy artifacts
+and state embeddings are not active reproduction inputs.
 """
 
 from __future__ import annotations
@@ -20,59 +12,34 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent
-
 DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "fgcs_extended_benchmark.yaml"
-REPLAY_INPUT = PROJECT_ROOT / "paper_outputs" / "replay_input_clean.csv"
-BC_TRACE = PROJECT_ROOT / "paper_outputs" / "policy_first_outputs_bc.csv"
-
+REPLAY_INPUT = PROJECT_ROOT / "paper_outputs" / "replay_input_v260.csv"
+PREP_SCRIPT = PROJECT_ROOT / "scripts" / "prepare_primary_replay_v260.py"
 BENCHMARK_SCRIPT = PROJECT_ROOT / "run_fgcs_extended_benchmark.py"
 SUMMARY_SCRIPT = PROJECT_ROOT / "summarize_fgcs_extended_results.py"
-
 RAW_OUTPUT_DIR = PROJECT_ROOT / "paper_outputs" / "fgcs_extended_benchmark"
 TABLE_FIGURE_DIR = PROJECT_ROOT / "paper_outputs" / "fgcs_tables_figures"
 
 
 def require_file(path: Path, description: str) -> None:
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Required {description} not found:\n{path}\n\n"
-            "This FGCS artifact reproduces the benchmark from prepared "
-            "MELD-derived replay inputs. It does not recreate the full raw "
-            "MELD preprocessing pipeline."
-        )
+    if not path.is_file():
+        raise FileNotFoundError(f"Required {description} not found: {path}")
 
 
 def run_cmd(cmd: list[str]) -> None:
-    print("\n[CMD]", " ".join(str(x) for x in cmd))
+    print("\n[CMD]", " ".join(str(value) for value in cmd))
     subprocess.run(cmd, cwd=str(PROJECT_ROOT), check=True)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run full FGCS benchmark reproduction pipeline."
+        description="Run the ReplayBench-PG v2.6.0 four-policy workflow."
     )
-
-    parser.add_argument(
-        "--config",
-        type=str,
-        default=str(DEFAULT_CONFIG),
-        help="Path to FGCS extended benchmark YAML configuration.",
-    )
-
-    parser.add_argument(
-        "--skip_benchmark",
-        action="store_true",
-        help="Skip benchmark execution and only run result summarization.",
-    )
-
-    parser.add_argument(
-        "--skip_summary",
-        action="store_true",
-        help="Skip summary table/figure generation.",
-    )
-
+    parser.add_argument("--config", default=str(DEFAULT_CONFIG))
+    parser.add_argument("--skip-prepare", action="store_true")
+    parser.add_argument("--skip-benchmark", action="store_true")
+    parser.add_argument("--skip-summary", action="store_true")
     return parser.parse_args()
 
 
@@ -80,39 +47,33 @@ def main() -> None:
     args = parse_args()
     config_path = Path(args.config)
 
-    print("\n================================================")
-    print(" FGCS DETERMINISTIC REPLAY REPRODUCTION PIPELINE")
-    print("================================================")
+    print("\n====================================================")
+    print(" REPLAYBENCH-PG v2.6.0 FOUR-POLICY REPRODUCTION")
+    print("====================================================")
     print(f"[INFO] Project root : {PROJECT_ROOT}")
     print(f"[INFO] Config path  : {config_path}")
 
-    require_file(config_path, "benchmark configuration file")
-    require_file(REPLAY_INPUT, "prepared replay input CSV")
-    require_file(BC_TRACE, "prepared offline behavioral-cloning trace CSV")
-    require_file(BENCHMARK_SCRIPT, "extended benchmark script")
-    require_file(SUMMARY_SCRIPT, "extended summarization script")
+    require_file(config_path, "benchmark configuration")
+    require_file(PREP_SCRIPT, "primary-input preparation script")
+    require_file(BENCHMARK_SCRIPT, "benchmark script")
+    require_file(SUMMARY_SCRIPT, "summarization script")
+
+    if not args.skip_prepare:
+        run_cmd([sys.executable, str(PREP_SCRIPT)])
+    require_file(REPLAY_INPUT, "prepared v2.6.0 replay input")
 
     if not args.skip_benchmark:
-        print("\n[STEP 1] Running final extended FGCS benchmark")
-        run_cmd([
-            sys.executable,
-            str(BENCHMARK_SCRIPT),
-            "--config",
-            str(config_path),
-        ])
+        run_cmd([sys.executable, str(BENCHMARK_SCRIPT), "--config", str(config_path)])
     else:
         print("\n[STEP 1] Skipping benchmark execution")
 
     if not args.skip_summary:
-        print("\n[STEP 2] Generating manuscript-ready tables, figures, and summaries")
-        run_cmd([
-            sys.executable,
-            str(SUMMARY_SCRIPT),
-        ])
+        run_cmd([sys.executable, str(SUMMARY_SCRIPT)])
     else:
         print("\n[STEP 2] Skipping summarization")
 
-    print("\n[DONE] FGCS reproduction pipeline completed.")
+    print("\n[DONE] ReplayBench-PG four-policy workflow completed")
+    print(f"[OUT] Active replay input    : {REPLAY_INPUT}")
     print(f"[OUT] Raw benchmark outputs : {RAW_OUTPUT_DIR}")
     print(f"[OUT] Tables and figures    : {TABLE_FIGURE_DIR}")
 

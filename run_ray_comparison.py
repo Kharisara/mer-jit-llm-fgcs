@@ -103,6 +103,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 import pandas as pd
 import yaml
 
+from replaybench.workload import load_replay_frame
+
 try:
     import ray
 except ImportError:
@@ -314,6 +316,9 @@ def normalize_comparison_config(cfg: Mapping[str, Any]) -> Dict[str, Any]:
         "dataset": {
             "input_csv": str(input_csv),
             "workload_fraction": workload_fraction,
+            "identity_scheme": dataset_cfg.get("identity_scheme"),
+            "require_portable_paths": bool(dataset_cfg.get("require_portable_paths", True)),
+            "touch_state_files": bool(dataset_cfg.get("touch_state_files", True)),
         },
         "benchmark": {
             "policy_modes": policy_modes,
@@ -374,11 +379,11 @@ def validate_comparison_config(cfg: Mapping[str, Any]) -> None:
     policies = list(benchmark_cfg["policy_modes"])
     if not policies:
         raise ValueError("At least one policy mode is required")
-    if "bc_live" in policies:
+    retired = sorted(set(policies) & {"bc", "bc_live"})
+    if retired:
         raise ValueError(
-            "bc_live is intentionally excluded from the reduced Ray "
-            "comparison. The comparison targets orchestration and validation "
-            "logic, not checkpoint-serving behavior."
+            "Learned-policy modes are inactive in the v2.6.0 Ray comparison: "
+            + ", ".join(retired)
         )
 
     seeds = [int(value) for value in benchmark_cfg["seeds"]]
@@ -403,11 +408,17 @@ def validate_comparison_config(cfg: Mapping[str, Any]) -> None:
             "dropped_row fault modes"
         )
 
-    negative_labels = policy_cfg.get("negative_labels", [])
-    if not negative_labels:
+    if dataset_cfg.get("identity_scheme"):
+        validated_input = load_replay_frame(input_csv, dataset_cfg)
+    else:
+        validated_input = pd.read_csv(input_csv)
+    diagnostic_column = str(
+        policy_cfg.get("diagnostic_action_column", "diagnostic_action")
+    )
+    if "risk_proxy" in policies and diagnostic_column not in validated_input.columns:
         raise ValueError(
-            "risk_proxy requires non-empty policy.negative_labels. "
-            "Use base_config to inherit the exact ReplayBench-PG policy logic."
+            "risk_proxy requires the configured diagnostic-action column "
+            f"{diagnostic_column!r}; legacy MELD-label fallback is disabled"
         )
 
     if not bool(reference_cfg.get("require_reference_results", True)):
@@ -512,7 +523,6 @@ def process_chunk_impl(
     indexed_rows: Sequence[Tuple[int, Dict[str, Any]]],
     policy_mode: str,
     seed: int,
-    negative_labels: set[str],
     random_probability: float,
     bc_actions: Optional[Mapping[int, int]],
     policy_cfg: Mapping[str, Any],
@@ -551,7 +561,7 @@ def process_chunk_impl(
             row=row,
             row_index=int(row_index),
             policy_mode=policy_mode,
-            negative_labels=negative_labels,
+            negative_labels=set(),
             seed=int(seed),
             random_p=float(random_probability),
             bc_actions=bc_actions,
@@ -748,7 +758,6 @@ def execute_condition(
     seed: int,
     workers: int,
     fault_mode: str,
-    negative_labels_ref: Any,
     policy_cfg_ref: Any,
     generation_cfg_ref: Any,
     bc_actions_ref: Any,
@@ -768,7 +777,6 @@ def execute_condition(
             chunk,
             policy_mode,
             int(seed),
-            negative_labels_ref,
             float(random_probability),
             bc_actions_ref,
             policy_cfg_ref,
@@ -1102,7 +1110,10 @@ def main() -> None:
     if save_traces:
         ensure_dir(traces_dir)
 
-    df_full = pd.read_csv(input_csv).reset_index(drop=True)
+    if dataset_cfg.get("identity_scheme"):
+        df_full = load_replay_frame(input_csv, dataset_cfg)
+    else:
+        df_full = pd.read_csv(input_csv).reset_index(drop=True)
     if df_full.empty:
         raise ValueError(f"Input CSV has no rows: {input_csv}")
 
@@ -1118,13 +1129,6 @@ def main() -> None:
     rows = df.to_dict(orient="records")
     chunks = chunk_rows(rows, chunk_size)
 
-    negative_labels = {
-        normalize_label(value)
-        for value in policy_cfg.get(
-            "negative_labels",
-            [],
-        )
-    }
     random_probability = float(
         policy_cfg.get(
             "random_intervention_probability",
@@ -1230,7 +1234,6 @@ def main() -> None:
             time.perf_counter() - init_start
         )
 
-        negative_labels_ref = ray.put(negative_labels)
         policy_cfg_ref = ray.put(policy_cfg)
         generation_cfg_ref = ray.put(generation_cfg)
         bc_actions_ref = (
@@ -1269,9 +1272,6 @@ def main() -> None:
                             seed=seed,
                             workers=workers,
                             fault_mode=fault_mode,
-                            negative_labels_ref=(
-                                negative_labels_ref
-                            ),
                             policy_cfg_ref=policy_cfg_ref,
                             generation_cfg_ref=(
                                 generation_cfg_ref

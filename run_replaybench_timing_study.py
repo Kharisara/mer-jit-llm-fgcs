@@ -9,9 +9,9 @@ The script executes the two timing arms used in the manuscript:
 The overlapping full-workload/one-worker configurations are executed once.
 Each active configuration receives untimed warm-up execution(s). Non-full
 workload-scaling configurations retain seven measured repetitions, while the
-24 full-workload worker-scaling configurations are extended to fifteen.
+16 full-workload worker-scaling configurations are extended to fifteen.
 ``--resume`` retains the original seven-repetition rows and executes only the
-192 missing full-workload measurements.
+128 missing full-workload measurements.
 """
 
 from __future__ import annotations
@@ -30,7 +30,6 @@ import pandas as pd
 
 from run_fgcs_extended_benchmark import (
     ensure_dir,
-    load_bc_reference_actions,
     load_config,
     normalize_label,
     run_replay,
@@ -127,6 +126,8 @@ def normalize_existing(frame: pd.DataFrame) -> pd.DataFrame:
         "repetition",
         "total_runtime_seconds",
         "trace_hash",
+        "configuration_id",
+        "execution_instance_id",
     }
     missing = sorted(required - set(frame.columns))
     if missing:
@@ -225,8 +226,8 @@ def main() -> None:
         help=(
             "Keep valid existing rows and run only missing repetitions. "
             "With the original seven-repetition file, this adds only the "
-            "eight missing repetitions to the 24 full-workload worker "
-            "configurations (192 executions)."
+            "eight missing repetitions to the 16 full-workload worker "
+            "configurations (128 executions)."
         ),
     )
     args = parser.parse_args()
@@ -328,23 +329,6 @@ def main() -> None:
     if df_full.empty:
         raise ValueError(f"Input CSV has no rows: {input_csv}")
 
-    negative_labels = {
-        normalize_label(value)
-        for value in policy_cfg.get("negative_labels", [])
-    }
-
-    bc_actions: Optional[Dict[int, int]] = None
-    if "bc" in policies:
-        bc_actions = load_bc_reference_actions(
-            bc_action_csv=policy_cfg.get(
-                "bc_action_csv",
-                "paper_outputs/policy_first_outputs_bc.csv",
-            ),
-            df_full=df_full,
-            action_column=str(policy_cfg.get("bc_action_column", "action")),
-            key_column=str(policy_cfg.get("bc_key_column", "utterance_id")),
-        )
-
     fraction_frames: dict[float, pd.DataFrame] = {}
     for fraction in fractions:
         count = max(1, int(len(df_full) * fraction))
@@ -387,7 +371,7 @@ def main() -> None:
 
     # Warm only configurations that will receive new measured executions in
     # this invocation. When resuming the original seven-repetition file, this
-    # is exactly the 24 full-workload worker-scaling configurations.
+    # is exactly the 16 full-workload worker-scaling configurations.
     for warmup_index in range(1, args.warmups + 1):
         ordered = list(conditions_needing_runs)
         random.Random(args.order_seed + warmup_index - 1).shuffle(ordered)
@@ -397,10 +381,10 @@ def main() -> None:
                 df=frame,
                 cfg=cfg,
                 policy_mode=condition.policy_mode,
-                negative_labels=negative_labels,
+                negative_labels=set(),
                 seed=args.policy_seed,
                 workers=condition.workers,
-                bc_actions=bc_actions,
+                bc_actions=None,
             )
             if int(summary["authorization_execution_consistent"]) != 1:
                 raise RuntimeError("Warm-up authorization invariant failed")
@@ -449,10 +433,10 @@ def main() -> None:
                 df=frame,
                 cfg=cfg,
                 policy_mode=condition.policy_mode,
-                negative_labels=negative_labels,
+                negative_labels=set(),
                 seed=args.policy_seed,
                 workers=condition.workers,
-                bc_actions=bc_actions,
+                bc_actions=None,
             )
 
             if int(summary["authorization_execution_consistent"]) != 1:
@@ -481,6 +465,8 @@ def main() -> None:
                     )
 
             row: dict[str, Any] = {
+                "configuration_id": str(summary["configuration_id"]),
+                "execution_instance_id": str(summary["execution_instance_id"]),
                 "dataset_fraction": float(condition.dataset_fraction),
                 "workload_name": f"fraction_{condition.dataset_fraction}",
                 "decision_points": int(summary["decision_points"]),

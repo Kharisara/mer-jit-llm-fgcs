@@ -1,37 +1,19 @@
 {
-  "completed_at_utc": "2026-08-02T17:28:18.420894+00:00",
+  "completed_at_utc": "2026-08-10T07:26:49.790064+00:00",
   "components": {
-    "bc_live_runtime_decomposition": {
-      "all_runtime_decompositions_valid": true,
-      "all_trace_hashes_stable": true,
-      "configurations_x_15_repetitions": 4,
-      "configurations_x_7_repetitions": 4,
-      "full_workload_one_worker": {
-        "checkpoint_preparation_seconds_median": 5.834816300000057,
-        "checkpoint_preparation_share_median": 0.96935646918786,
-        "end_to_end_runtime_seconds_median": 6.02168359999996,
-        "post_replay_validation_seconds_median": 0.0543502000000444,
-        "post_replay_validation_share_median": 0.0088922656098291,
-        "replay_only_runtime_seconds_median": 0.1272856999999021,
-        "replay_only_share_median": 0.0217512652023107
-      },
-      "max_authorization_contradictions": 0,
-      "measured_executions": 88,
-      "unique_configurations": 8
-    },
     "cloud_validation": {
-      "cloud_root": "cloud_results/cloud360_riskproxy_20260702",
+      "cloud_root": "cloud_results/cloud240_v260_20260808",
       "cross_region": {
         "all_match": true,
-        "compared": 360,
-        "matched": 360,
-        "source": "cloud_results/cloud360_riskproxy_20260702/cross_region_comparison.csv"
+        "compared": 240,
+        "matched": 240,
+        "source": "cloud_results/cloud240_v260_20260808/cross_region_comparison.csv"
       },
       "local_to_cloud": {
         "all_match": true,
-        "compared": 720,
-        "matched": 720,
-        "source": "cloud_results/cloud360_riskproxy_20260702/local_to_cloud_hash_comparison.csv"
+        "compared": 480,
+        "matched": 480,
+        "source": "cloud_results/cloud240_v260_20260808/local_to_cloud_hash_comparison.csv"
       },
       "max_clean_unauthorized_invocations": 0
     },
@@ -42,10 +24,10 @@
     },
     "comment12_traceability": {
       "base_image": "python:3.12-slim",
-      "base_image_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
+      "base_image_digest": "python@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
       "dependency_lock_hash_matches": true,
       "environment_manifest_complete": true,
-      "environment_manifest_sha256": "bcd16738af5334a754028b18e54a15ab16d296d2722f123ea0aaeec177271198",
+      "environment_manifest_sha256": "572c7329902623c46e682323d5946b67de72a1f294dfadf8d0f7efa6e3852b94",
       "figure2_output_hashes_match": true,
       "figure2_outputs": [
         "figures/Figure_2_Runtime_Scaling.pdf",
@@ -53,14 +35,14 @@
       ],
       "figure2_source": "paper_outputs/replaybench_timing_study/timing_runtime_summary_mixed_7_15.csv",
       "figure2_source_hash_matches": true,
-      "final_image_digest": "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
-      "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+      "final_image_digest": "sha256:021414ef3131a415207735a8d5575966e5038302426c6d3fc668abcaf3244ada",
+      "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:021414ef3131a415207735a8d5575966e5038302426c6d3fc668abcaf3244ada",
       "python_executable_sha256": "9b0bffb7a259cd2722df454fdfff41ee13665820cff1f578b1d97d31f9ef93d5",
       "requirements_hash_matches": true
     },
     "comment13_environment_comparison": {
       "base_image_digest_matches_comment12": true,
-      "cloud_dependency_lock_sha256": "cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603",
+      "cloud_dependency_lock_sha256": "4c4fb4c6734e87ea3c54ecb78e7e647d1bdd649ecad82bdca4f1c2b64a8ffb63",
       "cloud_environment": {
         "architecture": "x86_64",
         "locale": "C.UTF-8",
@@ -78,8 +60,8 @@
       },
       "comparison_complete": true,
       "comparison_csv": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
-      "comparison_csv_sha256": "5c8ce17a8672a7e71a4cb8ff8f66cf1898909672114ae2073c6210ae1e21ff6d",
-      "comparison_json_sha256": "8ff56ffc32c2bd2d940516b78c1e62e172e18f1df707cb7aacd90205faa215d1",
+      "comparison_csv_sha256": "296be0f4eace2bb52116d7b040ead996b55d04d70a78694820286f1857dcdde9",
+      "comparison_json_sha256": "899c4d324666da1d83438e13871c51b815ebadab4dbed71612e6ffc2183c1161",
       "final_image_digest_matches_comment12": true,
       "local_cloud_dependency_locks_identical": false,
       "local_dependency_lock_sha256": "effb2ed70573394069493c3d46a1d9867aaee41269f70c84b9c880a3cd9fae6b",
@@ -101,7 +83,7 @@
     },
     "execution_integrity_validation": {
       "all_expected_outcomes_met": true,
-      "clean_downstream_receipts_reconciled": 117786,
+      "clean_downstream_receipts_reconciled": 117790,
       "clean_false_positive_executions": 0,
       "clean_receipt_execution_instances": 18,
       "receipt_execution_instances": 90,
@@ -111,27 +93,27 @@
         "duplicate_downstream_call": {
           "correctly_classified": 18,
           "execution_instances": 18,
-          "injected_events": 1238
+          "injected_events": 1220
         },
         "false_execution_log": {
           "correctly_classified": 18,
           "execution_instances": 18,
-          "injected_events": 1166
+          "injected_events": 1146
         },
         "mismatched_correlation_id": {
           "correctly_classified": 18,
           "execution_instances": 18,
-          "injected_events": 1252
+          "injected_events": 1066
         },
         "unlogged_downstream_call": {
           "correctly_classified": 18,
           "execution_instances": 18,
-          "injected_events": 1184
+          "injected_events": 1256
         }
       },
       "record_configuration_corruption_applications": 90,
       "record_configuration_corruption_applications_detected": 90,
-      "semantic_receipt_digests_recomputed": 589002
+      "semantic_receipt_digests_recomputed": 589024
     },
     "metropt3": {
       "all_worker_hashes_match": true,
@@ -140,6 +122,7 @@
       "fault_validation": {
         "all_fault_classes_fully_detected": true,
         "clean_false_positive_flags": 0,
+        "clean_summary_unique_references": 18,
         "clean_validator_applications": 54,
         "clean_validator_workflows": 3,
         "fault_classes": 5,
@@ -222,12 +205,12 @@
       "generic_validator_findings": 270,
       "ground_truth_fields_absent_from_findings": true,
       "ground_truth_records": 270,
-      "label_independent_localized_events": 4906,
+      "label_independent_localized_events": 4754,
       "localization_false_negatives": 0,
       "localization_false_positives": 0,
       "negative_control_units": 42,
       "positive_control_units": 228,
-      "primary_detected_positive_units": 84,
+      "primary_detected_positive_units": 88,
       "primary_invariants_recomputed": true,
       "receipt_execution_instances": 90,
       "schema_version": "replaybench-pg-phase1-validation-v1",
@@ -237,24 +220,20 @@
     "primary_benchmark": {
       "all_worker_hashes_match": true,
       "condition_matrix_complete": true,
-      "conditions": 360,
-      "determinism_rows": 360,
+      "conditions": 240,
+      "determinism_rows": 240,
       "deterministic_policies_seed_invariant": true,
-      "expected_conditions": 360,
+      "expected_conditions": 240,
       "full_workload_decision_points": 11351,
       "full_workload_mean_intervention_rate_by_policy": {
         "always": 1.0,
-        "bc": 1.0,
-        "bc_live": 1.0,
         "never": 0.0,
-        "random": 0.49960355915778343,
+        "random": 0.49966229113440813,
         "risk_proxy": 0.22984759052065887
       },
       "max_clean_unauthorized_invocations": 0,
       "unique_hashes_by_policy": {
         "always": 5,
-        "bc": 5,
-        "bc_live": 5,
         "never": 5,
         "random": 15,
         "risk_proxy": 5
@@ -263,6 +242,7 @@
     "primary_controlled_faults": {
       "all_fault_classes_fully_detected": true,
       "clean_false_positive_flags": 0,
+      "clean_summary_unique_references": 18,
       "clean_validator_applications": 54,
       "clean_validator_workflows": 3,
       "fault_classes": 5,
@@ -270,7 +250,7 @@
         "action_flip_1_percent": {
           "detected_runs": 18,
           "false_positive_runs": 0,
-          "injected_events": 2048,
+          "injected_events": 2072,
           "label": "Action flip (1%)",
           "runs": 18
         },
@@ -298,13 +278,28 @@
         "unauthorized_invoke_1_percent": {
           "detected_runs": 18,
           "false_positive_runs": 0,
-          "injected_events": 1440,
+          "injected_events": 1542,
           "label": "Unauthorized invocation (1%)",
           "runs": 18
         }
       },
       "runs_per_fault_class": 18,
       "unique_clean_reference_executions": 18
+    },
+    "primary_input_reconstruction": {
+      "canonical_output_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
+      "canonical_output_verified": true,
+      "diagnostic_action_positive_count": 2609,
+      "generated_replay_table_redistributed": false,
+      "local_reconstructed_output_hash_valid": true,
+      "local_reconstructed_output_present": true,
+      "public_reconstruction_contract_valid": true,
+      "schema_version": "replaybench-pg-primary-input-reconstruction-v2.6.0",
+      "selection_manifest_rows": 11351,
+      "selection_manifest_sha256": "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646",
+      "selection_manifest_unique_ids": 11351,
+      "source_dataset": "MELD",
+      "source_dataset_redistributed": false
     },
     "pytest": {
       "all_tests_passed": true,
@@ -315,8 +310,8 @@
         "-q"
       ],
       "exit_code": 0,
-      "output": "....................................                                     [100%]\n36 passed in 41.23s",
-      "tests_passed": 36
+      "output": "..............................................                           [100%]\n46 passed in 42.17s",
+      "tests_passed": 46
     },
     "python_compilation": {
       "all_python_files_compile": true,
@@ -382,6 +377,7 @@
         "replaybench/generic_validator.py",
         "replaybench/integrity.py",
         "replaybench/validation.py",
+        "replaybench/workload.py",
         "robustness_experiment.py",
         "run_array_revision_validation.py",
         "run_bc_live_runtime_decomposition.py",
@@ -404,6 +400,7 @@
         "scripts/mer_noise_stress.py",
         "scripts/policy_ablation.py",
         "scripts/prepare_metropt3_secondary_workload.py",
+        "scripts/prepare_primary_replay_v260.py",
         "scripts/preprocess_meld.py",
         "summarize_fgcs_extended_results.py",
         "summarize_fgcs_fault_action_flip.py",
@@ -421,6 +418,7 @@
         "tests/test_timing_statistics.py",
         "tests/test_validation.py",
         "tests/test_validator_selectivity.py",
+        "tests/test_workload_contract.py",
         "tools/analyze_simulation.py",
         "tools/clean_local_replies.py",
         "tools/eval_replies.py",
@@ -436,8 +434,8 @@
         "tools/select_sample_for_cloud.py",
         "validate_submission_package.py"
       ],
-      "python_files_compiled": 114,
-      "python_files_discovered": 114
+      "python_files_compiled": 117,
+      "python_files_discovered": 117
     },
     "ray_validation": {
       "all_detection_expectations_met": true,
@@ -455,26 +453,26 @@
       "all_present": true,
       "required_configurations": 9,
       "required_manifests": 14,
-      "required_scripts": 25
+      "required_scripts": 24
     },
     "timing_study": {
       "all_recorded_validation_flags_pass": true,
-      "configurations_with_15_repetitions": 24,
-      "configurations_with_7_repetitions": 24,
-      "expected_measured_rows": 528,
+      "configurations_with_15_repetitions": 16,
+      "configurations_with_7_repetitions": 16,
+      "expected_measured_rows": 352,
       "legacy_missing_validation_values": {
-        "authorization_execution_consistent": 336,
+        "authorization_execution_consistent": 0,
         "fault_injected_count": 0,
-        "hash_match": 336,
-        "row_count_match": 336,
+        "hash_match": 0,
+        "row_count_match": 0,
         "unauthorized_invocations": 0,
-        "validation_passed": 336
+        "validation_passed": 0
       },
-      "measured_rows": 528,
-      "runtime_summary_rows": 48,
+      "measured_rows": 352,
+      "runtime_summary_rows": 32,
       "stable_hashes_within_configuration": true,
-      "unique_configurations": 48,
-      "worker_speedup_rows": 24
+      "unique_configurations": 32,
+      "worker_speedup_rows": 16
     },
     "validator_selectivity_validation": {
       "all_expected_outcomes_met": true,
@@ -483,7 +481,7 @@
       "independent_positive_fault_executions": 216,
       "label_independent_localization_claim_superseded": true,
       "legacy_event_accounting_matches_injection_manifest": true,
-      "legacy_ground_truth_aware_runtime_events": 3240,
+      "legacy_ground_truth_aware_runtime_events": 3242,
       "posthoc_trace_applications": 108,
       "posthoc_validator_applications": 258,
       "posthoc_validator_failures": 0,
@@ -504,16 +502,14 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.1",
-  "started_at_utc": "2026-08-02T17:27:29.467350+00:00",
+  "started_at_utc": "2026-08-10T07:26:00.719184+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,
     "all_tests_pass": true,
-    "bc_live_decomposition_configurations": 8,
-    "bc_live_decomposition_rows": 88,
     "clean_authorization_contradictions": 0,
-    "cloud_cross_region_matches": "360/360",
-    "cloud_local_to_cloud_matches": "720/720",
+    "cloud_cross_region_matches": "240/240",
+    "cloud_local_to_cloud_matches": "480/480",
     "comment13_environment_comparison": true,
     "execution_integrity_clean_instances": 18,
     "execution_integrity_receipt_fault_instances": 72,
@@ -521,7 +517,7 @@
     "fault_clean_validator_applications": 54,
     "fault_clean_validator_workflows": 3,
     "fault_unique_clean_reference_executions": 18,
-    "legacy_validator_selectivity_ground_truth_aware_events": 3240,
+    "legacy_validator_selectivity_ground_truth_aware_events": 3242,
     "metropt3_canonical_source_rows": 1516948,
     "metropt3_clean_conditions": 72,
     "metropt3_duplicate_full_source_rows": 0,
@@ -530,20 +526,25 @@
     "metropt3_unique_full_source_rows": 1516948,
     "phase1_full_detected_positive_units": 228,
     "phase1_generic_validator_findings": 270,
-    "phase1_label_independent_localized_events": 4906,
+    "phase1_label_independent_localized_events": 4754,
     "phase1_localization_false_negatives": 0,
     "phase1_localization_false_positives": 0,
     "phase1_negative_control_units": 42,
     "phase1_positive_control_units": 228,
-    "phase1_primary_detected_positive_units": 84,
-    "primary_benchmark_conditions": 360,
+    "phase1_primary_detected_positive_units": 88,
+    "primary_benchmark_conditions": 240,
     "primary_fault_classes": "5 classes, 18/18 each",
+    "primary_input_reconstruction_canonical_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
+    "primary_input_reconstruction_positive_actions": 2609,
+    "primary_input_reconstruction_rows": 11351,
+    "primary_input_reconstruction_selection_sha256": "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646",
+    "primary_input_reconstruction_verified": true,
     "ray_clean_external_hash_matches": "18/18",
     "ray_conditions": 54,
     "ray_fault_conditions_flagged": "36/36",
-    "timing_configurations_x_15": 24,
-    "timing_configurations_x_7": 24,
-    "timing_rows": 528,
+    "timing_configurations_x_15": 16,
+    "timing_configurations_x_7": 16,
+    "timing_rows": 352,
     "validator_selectivity_benign_executions": 24,
     "validator_selectivity_posthoc_applications": 258,
     "validator_selectivity_runtime_fault_executions": 216

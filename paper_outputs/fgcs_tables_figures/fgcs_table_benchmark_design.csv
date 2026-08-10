@@ -1,8 +1,8 @@
 item,value
-Observed benchmark rows,360
-Expected benchmark rows,360
+Observed benchmark rows,240
+Expected benchmark rows,240
 Workload settings,5
 Dataset fractions,"0.1, 0.25, 0.5, 0.75, 1.0"
-Policy modes,"never, risk_proxy, bc, bc_live, random, always"
+Policy modes,"risk_proxy, random, always, never"
 Seeds,3
 Worker settings,"1, 2, 4, 8"

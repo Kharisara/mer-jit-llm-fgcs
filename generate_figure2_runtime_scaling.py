@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-POLICIES = ["always", "bc", "bc_live", "never", "random", "risk_proxy"]
-MARKERS = ["o", "s", "^", "D", "v", "P"]
+POLICIES = ["always", "never", "random", "risk_proxy"]
+MARKERS = ["o", "s", "^", "D"]
 FRACTIONS = [0.10, 0.25, 0.50, 0.75, 1.00]
 
 

@@ -1,6 +1,6 @@
 {
   "experiment": "independent_execution_receipts_and_record_bound_trace",
-  "input_csv": "paper_outputs/replay_input_clean.csv",
+  "input_csv": "paper_outputs/replay_input_v260.csv",
   "decision_points": 11351,
   "policies": [
     "risk_proxy",

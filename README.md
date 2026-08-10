@@ -8,7 +8,7 @@ This repository contains the reproducibility artifact accompanying the paper:
 
 ReplayBench-PG is a deterministic replay benchmarking framework for reproducible validation of execution-level properties in policy-gated multimodal AI pipelines. The framework provides controlled replay execution, policy-ablation benchmarking, invocation-boundary verification, controlled fault validation, cross-region cloud-job validation, and reproducibility artifact generation.
 
-The benchmark operates on a MELD-derived replay workload containing **11,351 decision points** and evaluates replay behavior across **5 workload fractions**, **6 policy modes**, **3 random seeds**, and **4 worker configurations**, producing **360 benchmark conditions**.
+The benchmark operates on a MELD-derived replay workload containing **11,351 decision points** and evaluates replay behavior across **5 workload fractions**, **4 active policy modes**, **3 random seeds**, and **4 worker configurations**, producing **240 benchmark conditions**.
 
 ReplayBench-PG evaluates execution-level properties including:
 
@@ -17,7 +17,7 @@ ReplayBench-PG evaluates execution-level properties including:
 - Invocation-boundary enforcement
 - Trace reproducibility
 - Worker-level replay consistency
-- Replay scalability
+- Replay worker-scaling behavior
 - Cross-region cloud-job consistency
 - Controlled execution-fault detection
 
@@ -25,9 +25,9 @@ ReplayBench-PG does **not** evaluate policy quality, policy optimality, interven
 
 ---
 
-# v2.5.9 Label-Independent Evaluation Correction
+# v2.6.0 Label-Independent Evaluation and Active-Benchmark Correction
 
-Version 2.5.9 corrects the fault-evaluation methodology by separating generic validation from fault injection and post-hoc scoring. It supersedes the earlier ground-truth-aware event-localization interpretation while retaining the historical outputs for reproducibility.
+Version 2.6.0 retains the label-independent fault-evaluation correction and aligns the active benchmark with the corrected four-policy replay workload and validation evidence. It supersedes the earlier ground-truth-aware event-localization interpretation while retaining the historical outputs for reproducibility.
 
 ## Evidence models
 
@@ -42,10 +42,10 @@ The generic validator rejects trace inputs containing fault labels or injection-
 
 The corrected corpus contains 270 evidence units: 228 positive controls and 42 negative controls. The negative set comprises 18 clean receipt-enabled execution instances and 24 prespecified benign post-execution applications.
 
-- `V_primary` detected **84/228** positive-control units.
+- `V_primary` detected **88/228** positive-control units.
 - `V_full` detected **228/228** positive-control units.
 - `V_full` flagged **0/42** negative-control units.
-- Independent comparison with clean references localized **4,906/4,906** supported injected events, with zero off-target or missed identifiers.
+- The label-independent validation workflow localized **4,754** supported injected-event identifiers, with zero localization false positives and zero localization false negatives.
 
 These counts mix distinct evidence-unit types by design: receipt faults are execution instances, whereas saved-trace, record/configuration, primary-control, and benign cases are post-execution validator applications. The machine-readable outputs retain that distinction.
 
@@ -120,14 +120,12 @@ The authoritative implementation is `replaybench/generic_validator.py`. The hist
 
 ReplayBench-PG uses a replay workload containing **11,351 decision points** derived from the publicly available MELD dataset.
 
-Each replay state includes:
+The active v2.6.0 primary replay input contains exactly two columns:
 
-- Multimodal availability metadata
-- Emotion label metadata
-- Replay identifiers
-- State embeddings
+- `source_record_id` - split-qualified unique replay identifier
+- `diagnostic_action` - deterministic diagnostic gate signal used by `risk_proxy`
 
-The replay workload is used exclusively for deterministic replay benchmarking.
+The active benchmark does not require state embeddings, stored BC actions, or raw emotion-label columns. The replay workload is used exclusively for deterministic execution-validation benchmarking.
 
 ---
 
@@ -135,10 +133,10 @@ The replay workload is used exclusively for deterministic replay benchmarking.
 
 ```text
 5 workload fractions
-Ã— 6 policy modes
+Ã— 4 policy modes
 Ã— 3 random seeds
 Ã— 4 worker configurations
-= 360 benchmark conditions
+= 240 benchmark conditions
 ```
 
 ## Workload Fractions
@@ -155,8 +153,6 @@ The replay workload is used exclusively for deterministic replay benchmarking.
 
 ```text
 risk_proxy
-bc
-bc_live
 random
 always
 never
@@ -165,11 +161,11 @@ never
 ### Policy Descriptions
 
 - **risk_proxy** â€” deterministic diagnostic policy providing action-diverse replay for infrastructure validation.
-- **bc** â€” offline behavioural-cloning replay using stored actions.
-- **bc_live** â€” live behavioural-cloning policy executed during replay.
 - **random** â€” deterministic seed-controlled stochastic replay.
 - **always** â€” always intervene.
 - **never** â€” never intervene.
+
+Historical `bc` and `bc_live` compatibility paths remain in the source tree for reproduction of earlier releases, but they are not active v2.6.0 benchmark policies.
 
 The included policies are intended to exercise ReplayBench-PG under different execution characteristics and are **not** intended to compare policy quality.
 
@@ -189,14 +185,13 @@ stage_latency_summary.csv
 determinism_hash_results.csv
 parallel_speedup_results.csv
 policy_ablation_costs.csv
-live_bc_predictions.csv
 ```
 
 ---
 
 # Historical Controlled Fault Validation (RQ7)
 
-The following workflows are retained to reproduce the originally archived mode-aware summaries. They must not be used as the authoritative source for label-independent detection or localization claims. Use the v2.5.9 corrected label-independent pipeline above for those claims.
+The following workflows are retained to reproduce the originally archived mode-aware summaries. They must not be used as the authoritative source for label-independent detection or localization claims. Use the v2.6.0 label-independent validation pipeline above for authoritative detection and localization claims.
 
 ReplayBench-PG includes compact controlled fault-validation workflows that evaluate whether execution anomalies are correctly detected.
 
@@ -251,7 +246,7 @@ fgcs_table_validation_ablation_matrix.csv
 Build:
 
 ```bash
-docker build -t fgcs-replay-cloud:v1 .
+docker build -t fgcs-replay-cloud:v2.6.0 .
 ```
 
 ReplayBench-PG was validated using Google Cloud Run Jobs in:
@@ -263,8 +258,8 @@ us-central1
 
 Observed results:
 
-- 360/360 completed benchmark conditions
-- 360/360 matching SHA-256 replay hashes
+- 240/240 matching action-trace hashes across `asia-southeast1` and `us-central1`
+- 480/480 corresponding local-to-cloud action-trace hash matches
 - Zero unauthorized invocations during clean replay
 
 ---
@@ -300,7 +295,7 @@ ReplayBench-PG validates:
 - Deterministic replay
 - Replay trace reproducibility
 - Invocation-boundary enforcement
-- Replay scalability
+- Replay worker-scaling behavior
 - Cross-region cloud-job consistency
 - Controlled execution-fault detection
 
@@ -341,26 +336,26 @@ covering:
 ## Main Benchmark
 
 - 11,351 replay decision points
-- 360 benchmark conditions
+- 240 benchmark conditions
 - Stable SHA-256 replay hashes for deterministic policy modes
 - Approximately 23% intervention rate for `risk_proxy`
 - Zero unauthorized invocations during clean replay
-- More than 2,200 replay decisions/s for `bc_live`
+- Repeated timing measurements showed concurrency overhead rather than worker speedup; paired `T1/Tw` ratios were below 1 for all evaluated full-workload multi-worker comparisons
 
 ## Corrected Label-Independent Fault Validation
 
 - 270 total evidence units: 228 positive and 42 negative controls
-- `V_primary`: 84/228 positive units detected
+- `V_primary`: 88/228 positive units detected
 - `V_full`: 228/228 positive units detected
 - `V_full`: 0/42 negative units flagged
-- 4,906/4,906 supported injected-event identifiers localized independently of injection-marker columns
+- 4,754 supported injected-event identifiers localized by the label-independent validation workflow
 - Zero localization false positives and zero localization false negatives
 
 ## Cross-Region Cloud Validation
 
-- Successful execution in two Google Cloud regions
-- Matching SHA-256 replay hashes across regions
-- Reproducible execution under identical benchmark configurations
+- 240/240 matching action-trace hashes across the two Google Cloud regions
+- 480/480 corresponding local-to-cloud action-trace hash matches
+- Zero unauthorized invocations during clean cloud replay
 
 ---
 

@@ -1,0 +1,46 @@
+{
+  "input_csv": "paper_outputs/replay_input_v260.csv",
+  "input_rows": 11351,
+  "fractions": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "policy_modes": [
+    "risk_proxy",
+    "random",
+    "always",
+    "never"
+  ],
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "workers": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "expected_runs": 240,
+  "completed_runs": 240,
+  "execution_semantics": {
+    "task_retry_enabled": false,
+    "task_failure_policy": "fail_fast",
+    "duplicate_delivery_supported": false
+  },
+  "execution_receipts_enabled": false,
+  "validation": {
+    "action_hash": "SHA-256 over the canonical ordered integer action sequence",
+    "record_trace_hash": "SHA-256 over ordered record identity, action, authorization, primary execution state, correlation identity, and reconciled receipt state when execution receipts are enabled",
+    "config_bound_trace_hash": "SHA-256 binding the record trace hash to the run configuration manifest hash when execution receipts are enabled",
+    "authorization_execution_invariant": "cross-log reconciliation between primary trace and independently emitted downstream execution receipts when enabled",
+    "row_count_validation": true
+  },
+  "all_runs_authorization_execution_consistent": true,
+  "all_runs_row_count_match": true,
+  "all_runs_validation_passed": true
+}

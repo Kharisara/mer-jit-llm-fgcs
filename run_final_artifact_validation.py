@@ -2,7 +2,7 @@
 """Master final validator for the frozen ReplayBench-PG evidence package.
 
 The validator does not rerun experiments. It validates the completed primary,
-common timing, bc_live phase-decomposition, execution-integrity,
+common timing, execution-integrity,
 validator-selectivity, Ray, MetroPT-3, controlled-fault, and cloud outputs;
 compiles every repository Python file; runs the complete pytest suite; and emits
 a machine-readable final validation package.
@@ -207,256 +207,305 @@ def _require_manifest_int(
         )
 
 
-def validate_bc_live_runtime_decomposition(
+
+def validate_primary_input_reconstruction(
     project_dir: Path,
 ) -> tuple[dict[str, Any], list[Any]]:
-    base = _resolve_evidence_base(
-        project_dir,
-        ["paper_outputs/bc_live_runtime_decomposition"],
-        [
-            "bc_live_runtime_decomposition_raw.csv",
-            "bc_live_runtime_decomposition_summary.csv",
-            "bc_live_runtime_decomposition_manifest.json",
-        ],
-        "bc_live runtime-decomposition",
+    """Validate the public v2.6.0 MELD reconstruction/provenance contract.
+
+    Provider-obtained MELD source files and the locally reconstructed
+    two-column replay CSV are deliberately not required release files.
+    The public artifact must instead contain:
+      * DATA_TERMS.md;
+      * the deterministic reconstruction script;
+      * the ordered ID-only selection manifest; and
+      * the reconstruction verification manifest.
+
+    If the ignored local reconstructed replay CSV is present, its SHA-256 is
+    additionally checked against the canonical v2.6.0 experiment input.
+    """
+
+    expected_rows = 11_351
+    expected_positive = 2_609
+    expected_selection_sha256 = (
+        "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646"
     )
-    raw_path = base / "bc_live_runtime_decomposition_raw.csv"
-    summary_path = base / "bc_live_runtime_decomposition_summary.csv"
-    manifest_path = base / "bc_live_runtime_decomposition_manifest.json"
-
-    raw = read_csv_required(raw_path, "bc_live runtime-decomposition raw output")
-    require_columns(
-        raw,
-        [
-            "dataset_fraction",
-            "decision_points",
-            "policy_mode",
-            "policy_seed",
-            "workers",
-            "repetition",
-            "end_to_end_runtime_seconds",
-            "checkpoint_preparation_seconds",
-            "replay_only_runtime_seconds",
-            "post_replay_validation_seconds",
-            "timed_execution_runtime_seconds",
-            "runtime_decomposition_tolerance_seconds",
-            "runtime_decomposition_valid",
-            "trace_hash",
-            "reference_hash",
-            "hash_match",
-            "unauthorized_invocations",
-            "authorization_execution_consistent",
-            "row_count_match",
-            "validation_passed",
-            "fault_injected_count",
-        ],
-        "bc_live runtime-decomposition raw output",
-    )
-    if len(raw) != 88:
-        raise ValidationError(
-            f"bc_live decomposition must contain 88 measured rows; found {len(raw)}"
-        )
-
-    raw = raw.copy()
-    raw["dataset_fraction"] = numeric(
-        raw["dataset_fraction"], "bc_live decomposition fraction"
-    ).round(6)
-    raw["workers"] = numeric(raw["workers"], "bc_live decomposition workers").astype(int)
-    raw["policy_seed"] = numeric(
-        raw["policy_seed"], "bc_live decomposition policy seed"
-    ).astype(int)
-    raw["repetition"] = numeric(
-        raw["repetition"], "bc_live decomposition repetition"
-    ).astype(int)
-    raw["policy_mode"] = raw["policy_mode"].astype(str)
-
-    if set(raw["policy_mode"]) != {"bc_live"}:
-        raise ValidationError("bc_live decomposition contains a non-bc_live policy")
-    if set(raw["policy_seed"]) != {1}:
-        raise ValidationError("bc_live decomposition must use policy seed 1")
-    assert_no_duplicates(
-        raw,
-        ["dataset_fraction", "workers", "repetition"],
-        "bc_live decomposition repetitions",
+    expected_output_sha256 = (
+        "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44"
     )
 
-    group_sizes = raw.groupby(["dataset_fraction", "workers"]).size().to_dict()
-    expected_groups = {
-        (0.10, 1): 7,
-        (0.25, 1): 7,
-        (0.50, 1): 7,
-        (0.75, 1): 7,
-        (1.00, 1): 15,
-        (1.00, 2): 15,
-        (1.00, 4): 15,
-        (1.00, 8): 15,
+    terms_path = project_dir / "DATA_TERMS.md"
+    selection_path = (
+        project_dir / "data_provenance" / "meld_v260_record_ids.csv"
+    )
+    manifest_path = (
+        project_dir / "paper_outputs" / "replay_input_v260_manifest.json"
+    )
+    script_path = (
+        project_dir / "scripts" / "prepare_primary_replay_v260.py"
+    )
+    local_output_path = (
+        project_dir / "paper_outputs" / "replay_input_v260.csv"
+    )
+
+    required_paths = {
+        "dataset_terms": terms_path,
+        "selection_manifest": selection_path,
+        "reconstruction_manifest": manifest_path,
+        "reconstruction_script": script_path,
     }
-    normalized_groups = {
-        (round(float(fraction), 6), int(workers)): int(count)
-        for (fraction, workers), count in group_sizes.items()
-    }
-    if normalized_groups != expected_groups:
-        raise ValidationError(
-            "Unexpected bc_live decomposition mixed-repetition design: "
-            f"{normalized_groups}"
-        )
-
-    for column in [
-        "runtime_decomposition_valid",
-        "hash_match",
-        "authorization_execution_consistent",
-        "row_count_match",
-        "validation_passed",
-    ]:
-        assert_all_one(raw[column], f"bc_live decomposition {column}")
-    for column in ["unauthorized_invocations", "fault_injected_count"]:
-        assert_all_zero(raw[column], f"bc_live decomposition {column}")
-
-    for column in [
-        "end_to_end_runtime_seconds",
-        "checkpoint_preparation_seconds",
-        "replay_only_runtime_seconds",
-        "post_replay_validation_seconds",
-        "timed_execution_runtime_seconds",
-    ]:
-        values = numeric(raw[column], f"bc_live decomposition {column}")
-        if values.le(0).any():
-            raise ValidationError(f"bc_live decomposition {column} must be positive")
-
-    end_to_end = numeric(raw["end_to_end_runtime_seconds"], "bc_live end-to-end")
-    components = (
-        numeric(raw["checkpoint_preparation_seconds"], "bc_live preparation")
-        + numeric(raw["replay_only_runtime_seconds"], "bc_live replay-only")
-        + numeric(raw["post_replay_validation_seconds"], "bc_live validation")
-    )
-    tolerance = numeric(
-        raw["runtime_decomposition_tolerance_seconds"],
-        "bc_live decomposition tolerance",
-    )
-    if (end_to_end.sub(components).abs() > tolerance.add(1e-12)).any():
-        raise ValidationError("bc_live end-to-end phase decomposition is inconsistent")
-
-    unstable = raw.groupby(["dataset_fraction", "workers"])["trace_hash"].nunique()
-    if unstable.ne(1).any():
-        raise ValidationError("bc_live decomposition trace hashes are unstable")
-    if not raw["trace_hash"].astype(str).eq(raw["reference_hash"].astype(str)).all():
-        raise ValidationError("bc_live decomposition trace/reference hashes differ")
-
-    summary = read_csv_required(summary_path, "bc_live runtime-decomposition summary")
-    require_columns(
-        summary,
-        [
-            "dataset_fraction",
-            "workers",
-            "measured_repetitions",
-            "unique_trace_hashes",
-            "all_runtime_decompositions_valid",
-            "end_to_end_runtime_seconds_median",
-            "checkpoint_preparation_seconds_median",
-            "replay_only_runtime_seconds_median",
-            "post_replay_validation_seconds_median",
-            "checkpoint_preparation_share_median",
-            "replay_only_share_median",
-            "post_replay_validation_share_median",
-        ],
-        "bc_live runtime-decomposition summary",
-    )
-    if len(summary) != 8:
-        raise ValidationError(
-            f"bc_live decomposition summary must contain 8 rows; found {len(summary)}"
-        )
-    summary = summary.copy()
-    summary["dataset_fraction"] = numeric(
-        summary["dataset_fraction"], "bc_live summary fraction"
-    ).round(6)
-    summary["workers"] = numeric(summary["workers"], "bc_live summary workers").astype(int)
-    summary["measured_repetitions"] = numeric(
-        summary["measured_repetitions"], "bc_live summary repetitions"
-    ).astype(int)
-    summary_groups = {
-        (round(float(row.dataset_fraction), 6), int(row.workers)): int(
-            row.measured_repetitions
-        )
-        for row in summary.itertuples(index=False)
-    }
-    if summary_groups != expected_groups:
-        raise ValidationError("bc_live summary design differs from the raw design")
-    assert_all_one(summary["unique_trace_hashes"], "bc_live summary unique hashes")
-    assert_all_one(
-        summary["all_runtime_decompositions_valid"],
-        "bc_live summary decomposition status",
-    )
-
-    manifest_obj = read_json_required(manifest_path, "bc_live decomposition manifest")
-    if not isinstance(manifest_obj, dict):
-        raise ValidationError("bc_live decomposition manifest must be a JSON object")
-    _require_manifest_int(manifest_obj, "unique_configurations", 8, "bc_live manifest")
-    _require_manifest_int(manifest_obj, "expected_measured_rows", 88, "bc_live manifest")
-    _require_manifest_int(manifest_obj, "completed_measured_rows", 88, "bc_live manifest")
-    _require_manifest_true(
-        manifest_obj,
-        [
-            "all_runtime_decompositions_valid",
-            "all_hashes_stable",
-            "all_authorization_execution_consistent",
-            "all_row_counts_match",
-            "all_validation_passed",
-            "all_fault_counts_zero",
-            "all_unauthorized_invocations_zero",
-        ],
-        "bc_live manifest",
-    )
-    if str(manifest_obj.get("raw_csv_sha256", "")).lower() != sha256_file(raw_path):
-        raise ValidationError("bc_live raw CSV SHA-256 differs from its manifest")
-    if str(manifest_obj.get("summary_csv_sha256", "")).lower() != sha256_file(summary_path):
-        raise ValidationError("bc_live summary CSV SHA-256 differs from its manifest")
-
-    full_one = summary.loc[
-        summary["dataset_fraction"].eq(1.0) & summary["workers"].eq(1)
+    missing = [
+        relative_posix(path, project_dir)
+        for path in required_paths.values()
+        if not path.is_file()
     ]
-    if len(full_one) != 1:
-        raise ValidationError("bc_live summary lacks the full-workload one-worker row")
-    row = full_one.iloc[0]
-    results = {
-        "measured_executions": 88,
-        "unique_configurations": 8,
-        "configurations_x_7_repetitions": 4,
-        "configurations_x_15_repetitions": 4,
-        "all_runtime_decompositions_valid": True,
-        "all_trace_hashes_stable": True,
-        "max_authorization_contradictions": 0,
-        "full_workload_one_worker": {
-            "end_to_end_runtime_seconds_median": float(
-                row["end_to_end_runtime_seconds_median"]
-            ),
-            "checkpoint_preparation_seconds_median": float(
-                row["checkpoint_preparation_seconds_median"]
-            ),
-            "replay_only_runtime_seconds_median": float(
-                row["replay_only_runtime_seconds_median"]
-            ),
-            "post_replay_validation_seconds_median": float(
-                row["post_replay_validation_seconds_median"]
-            ),
-            "checkpoint_preparation_share_median": float(
-                row["checkpoint_preparation_share_median"]
-            ),
-            "replay_only_share_median": float(row["replay_only_share_median"]),
-            "post_replay_validation_share_median": float(
-                row["post_replay_validation_share_median"]
-            ),
-        },
+    if missing:
+        raise ValidationError(
+            "Primary-input reconstruction files are missing: "
+            f"{missing}"
+        )
+
+    # Ordered ID-only selection manifest.
+    selection = read_csv_required(
+        selection_path,
+        "MELD v2.6.0 ordered ID-only selection manifest",
+    )
+    if list(selection.columns) != ["source_record_id"]:
+        raise ValidationError(
+            "MELD selection manifest must contain exactly one column: "
+            "source_record_id"
+        )
+    if len(selection) != expected_rows:
+        raise ValidationError(
+            "MELD selection manifest row count mismatch: "
+            f"expected={expected_rows}, observed={len(selection)}"
+        )
+
+    ids = selection["source_record_id"].astype(str).str.strip()
+    if ids.eq("").any():
+        raise ValidationError(
+            "MELD selection manifest contains blank source_record_id values"
+        )
+    if not ids.str.fullmatch(r"(?:train|dev|test):d\d+_u\d+").all():
+        raise ValidationError(
+            "MELD selection manifest contains an invalid split-qualified "
+            "source_record_id"
+        )
+
+    unique_ids = int(ids.nunique(dropna=False))
+    if unique_ids != expected_rows:
+        raise ValidationError(
+            "MELD selection manifest identities are not unique: "
+            f"expected={expected_rows}, observed={unique_ids}"
+        )
+
+    selection_sha256 = sha256_file(selection_path)
+    if selection_sha256 != expected_selection_sha256:
+        raise ValidationError(
+            "MELD selection-manifest SHA-256 mismatch: "
+            f"expected={expected_selection_sha256}, "
+            f"observed={selection_sha256}"
+        )
+
+    # Reconstruction verification manifest.
+    manifest = read_json_required(
+        manifest_path,
+        "primary-input reconstruction manifest",
+    )
+    if not isinstance(manifest, dict):
+        raise ValidationError(
+            "Primary-input reconstruction manifest must be a JSON object"
+        )
+
+    expected_values = {
+        "schema_version":
+            "replaybench-pg-primary-input-reconstruction-v2.6.0",
+        "source_dataset": "MELD",
+        "source_dataset_redistributed": False,
+        "source_content_in_release": False,
+        "selection_manifest":
+            "data_provenance/meld_v260_record_ids.csv",
+        "selection_manifest_contains_source_content": False,
+        "selection_manifest_contains_labels": False,
+        "selection_manifest_rows": expected_rows,
+        "selection_manifest_sha256": expected_selection_sha256,
+        "selection_order_preserved": True,
+        "diagnostic_action_source_field": "Emotion",
+        "diagnostic_action_positive_count": expected_positive,
+        "output_columns": [
+            "source_record_id",
+            "diagnostic_action",
+        ],
+        "output_rows": expected_rows,
+        "unique_source_record_ids": expected_rows,
+        "output_csv": "paper_outputs/replay_input_v260.csv",
+        "output_sha256": expected_output_sha256,
+        "expected_output_sha256": expected_output_sha256,
+        "canonical_output_verified": True,
+        "utterance_text_redistributed": False,
+        "emotion_labels_redistributed": False,
+        "audio_or_video_redistributed": False,
+        "state_embeddings_redistributed": False,
     }
+    for key, expected in expected_values.items():
+        observed = manifest.get(key)
+        if observed != expected:
+            raise ValidationError(
+                "Primary-input reconstruction manifest mismatch for "
+                f"{key}: expected={expected!r}, observed={observed!r}"
+            )
+
+    expected_positive_labels = {
+        "anger",
+        "disgust",
+        "fear",
+        "sadness",
+    }
+    observed_positive_labels = set(
+        str(value)
+        for value in manifest.get(
+            "diagnostic_action_positive_labels",
+            [],
+        )
+    )
+    if observed_positive_labels != expected_positive_labels:
+        raise ValidationError(
+            "Unexpected diagnostic-action positive-label set: "
+            f"{sorted(observed_positive_labels)}"
+        )
+
+    identity_rule = str(manifest.get("identity_rule", ""))
+    if identity_rule != "<split>:d<Dialogue_ID>_u<Utterance_ID>":
+        raise ValidationError(
+            "Unexpected MELD identity rule in reconstruction manifest: "
+            f"{identity_rule!r}"
+        )
+
+    provider_files = manifest.get("provider_files")
+    if not isinstance(provider_files, dict):
+        raise ValidationError(
+            "Primary-input reconstruction manifest provider_files "
+            "must be an object"
+        )
+    expected_provider = {
+        "train": ("train_sent_emo.csv", 9_989),
+        "dev": ("dev_sent_emo.csv", 1_109),
+        "test": ("test_sent_emo.csv", 2_610),
+    }
+    for split, (expected_filename, expected_count) in expected_provider.items():
+        metadata = provider_files.get(split)
+        if not isinstance(metadata, dict):
+            raise ValidationError(
+                f"Missing provider metadata for MELD split {split}"
+            )
+        if metadata.get("filename") != expected_filename:
+            raise ValidationError(
+                f"Unexpected provider filename for MELD split {split}: "
+                f"{metadata.get('filename')!r}"
+            )
+        try:
+            observed_rows = int(metadata.get("rows"))
+        except (TypeError, ValueError) as exc:
+            raise ValidationError(
+                f"Provider row count for MELD split {split} is invalid"
+            ) from exc
+        if observed_rows != expected_count:
+            raise ValidationError(
+                f"MELD split {split} row count must equal "
+                f"{expected_count}; found {observed_rows}"
+            )
+        provider_sha = str(metadata.get("sha256", ""))
+        if re.fullmatch(r"[0-9a-f]{64}", provider_sha) is None:
+            raise ValidationError(
+                f"Provider SHA-256 for MELD split {split} is invalid"
+            )
+
+    # DATA_TERMS documentation must carry the executable reconstruction route
+    # and both release-recorded verification hashes.
+    terms_text = terms_path.read_text(
+        encoding="utf-8",
+        errors="strict",
+    )
+    required_terms_tokens = [
+        "scripts/prepare_primary_replay_v260.py",
+        "data_provenance/meld_v260_record_ids.csv",
+        expected_selection_sha256,
+        expected_output_sha256,
+        "11,351",
+        "2,609",
+    ]
+    missing_tokens = [
+        token
+        for token in required_terms_tokens
+        if token not in terms_text
+    ]
+    if missing_tokens:
+        raise ValidationError(
+            "DATA_TERMS.md is missing required reconstruction "
+            f"information: {missing_tokens}"
+        )
+
+    # The generated primary table is intentionally absent from the public
+    # artifact. When present in the local working tree, verify it rather than
+    # requiring it as a public release file.
+    local_output_present = local_output_path.is_file()
+    local_output_hash_valid: bool | None = None
+    if local_output_present:
+        observed_output_sha256 = sha256_file(local_output_path)
+        if observed_output_sha256 != expected_output_sha256:
+            raise ValidationError(
+                "Locally reconstructed MELD replay table does not match "
+                "the canonical v2.6.0 SHA-256: "
+                f"expected={expected_output_sha256}, "
+                f"observed={observed_output_sha256}"
+            )
+        local_output_hash_valid = True
+
+    result = {
+        "schema_version":
+            "replaybench-pg-primary-input-reconstruction-v2.6.0",
+        "public_reconstruction_contract_valid": True,
+        "source_dataset": "MELD",
+        "source_dataset_redistributed": False,
+        "generated_replay_table_redistributed": False,
+        "selection_manifest_rows": expected_rows,
+        "selection_manifest_unique_ids": unique_ids,
+        "selection_manifest_sha256": selection_sha256,
+        "diagnostic_action_positive_count": expected_positive,
+        "canonical_output_sha256": expected_output_sha256,
+        "canonical_output_verified": True,
+        "local_reconstructed_output_present": local_output_present,
+        "local_reconstructed_output_hash_valid":
+            local_output_hash_valid,
+    }
+
     inventory = [
-        evidence_file(project_dir, "bc_live_runtime_decomposition", "raw", raw_path),
         evidence_file(
-            project_dir, "bc_live_runtime_decomposition", "summary", summary_path
+            project_dir,
+            "primary_input_reconstruction",
+            "dataset_terms",
+            terms_path,
         ),
         evidence_file(
-            project_dir, "bc_live_runtime_decomposition", "manifest", manifest_path
+            project_dir,
+            "primary_input_reconstruction",
+            "selection_manifest",
+            selection_path,
+        ),
+        evidence_file(
+            project_dir,
+            "primary_input_reconstruction",
+            "reconstruction_manifest",
+            manifest_path,
+        ),
+        evidence_file(
+            project_dir,
+            "primary_input_reconstruction",
+            "reconstruction_script",
+            script_path,
         ),
     ]
-    return results, inventory
+    return result, inventory
 
 
 def validate_execution_integrity_validation(
@@ -464,7 +513,7 @@ def validate_execution_integrity_validation(
 ) -> tuple[dict[str, Any], list[Any]]:
     names = [
         "execution_receipt_validation_per_run.csv",
-        "execution_receipt_validation_summary_corrected.csv",
+        "execution_receipt_validation_summary.csv",
         "record_bound_corruption_validation_per_run.csv",
         "record_bound_corruption_validation_summary.csv",
         "execution_integrity_manifest.json",
@@ -556,10 +605,10 @@ def validate_execution_integrity_validation(
     assert_all_zero(faults["receipt_validation_passed"], "fault receipt validation")
 
     expected_injected = {
-        "unlogged_downstream_call": 1184,
-        "false_execution_log": 1166,
-        "duplicate_downstream_call": 1238,
-        "mismatched_correlation_id": 1252,
+        "unlogged_downstream_call": 1256,
+        "false_execution_log": 1146,
+        "duplicate_downstream_call": 1220,
+        "mismatched_correlation_id": 1066,
     }
     observed_injected = (
         receipt.groupby("fault_mode")["faults_injected"]
@@ -589,14 +638,14 @@ def validate_execution_integrity_validation(
     mismatch_rows = receipt.loc[
         receipt["fault_mode"].eq("mismatched_correlation_id")
     ]
-    if int(numeric(mismatch_rows["missing_receipts"], "mismatch missing receipts").sum()) != 1252:
+    if int(numeric(mismatch_rows["missing_receipts"], "mismatch missing receipts").sum()) != 1066:
         raise ValidationError(
-            "Mismatched-correlation controls must also produce 1,252 missing matching receipts"
+            "Mismatched-correlation controls must also produce 1,066 missing matching receipts"
         )
 
     clean_receipts = int(numeric(clean["receipt_rows"], "clean receipt rows").sum())
     all_receipts = int(numeric(receipt["receipt_rows"], "all receipt rows").sum())
-    if clean_receipts != 117_786 or all_receipts != 589_002:
+    if clean_receipts != 117_790 or all_receipts != 589_024:
         raise ValidationError(
             "Execution-integrity receipt totals differ from the frozen evidence: "
             f"clean={clean_receipts}, all={all_receipts}"
@@ -617,39 +666,54 @@ def validate_execution_integrity_validation(
         raise ValidationError("Clean execution-integrity worker reconstructions are unstable")
 
     receipt_summary = read_csv_required(
-        receipt_summary_path, "execution-integrity corrected receipt summary"
+        receipt_summary_path, "execution-integrity receipt summary"
     )
     require_columns(
         receipt_summary,
         [
             "fault_mode",
-            "execution_instances",
-            "correctly_classified_instances",
+            "runs",
+            "detected_runs",
             "injected_events",
-            "validation_passes",
-            "anomaly_detected_instances",
-            "false_positive_instances",
-            "false_negative_instances",
+            "receipt_validation_passes",
         ],
-        "execution-integrity corrected receipt summary",
+        "execution-integrity receipt summary",
     )
     if len(receipt_summary) != 5:
         raise ValidationError("Execution-integrity receipt summary must contain five rows")
-    if not numeric(
-        receipt_summary["execution_instances"], "receipt summary instances"
-    ).eq(18).all():
-        raise ValidationError("Each execution-integrity receipt mode must contain 18 instances")
-    if not numeric(
-        receipt_summary["correctly_classified_instances"],
-        "receipt summary classifications",
-    ).eq(18).all():
-        raise ValidationError("Every receipt instance must be correctly classified")
-    assert_all_zero(
-        receipt_summary["false_positive_instances"], "receipt summary false positives"
-    )
-    assert_all_zero(
-        receipt_summary["false_negative_instances"], "receipt summary false negatives"
-    )
+    receipt_summary = receipt_summary.copy()
+    receipt_summary["fault_mode"] = receipt_summary["fault_mode"].astype(str)
+    if set(receipt_summary["fault_mode"]) != expected_receipt_modes:
+        raise ValidationError("Execution-integrity receipt summary modes are incomplete")
+    if receipt_summary["fault_mode"].duplicated().any():
+        raise ValidationError("Execution-integrity receipt summary contains duplicate modes")
+    if not numeric(receipt_summary["runs"], "receipt summary runs").eq(18).all():
+        raise ValidationError("Each execution-integrity receipt mode must contain 18 runs")
+    if not numeric(receipt_summary["detected_runs"], "receipt summary detected runs").eq(18).all():
+        raise ValidationError("Every execution-integrity receipt run must match its expected outcome")
+
+    summary_by_mode = receipt_summary.set_index("fault_mode")
+    for mode in expected_receipt_modes:
+        expected_events = 0 if mode == "clean" else expected_injected[mode]
+        observed_events = int(numeric(
+            pd.Series([summary_by_mode.loc[mode, "injected_events"]]),
+            f"receipt summary {mode} injected events",
+        ).iloc[0])
+        if observed_events != expected_events:
+            raise ValidationError(
+                f"Receipt summary {mode} injected total must equal {expected_events}; "
+                f"found {observed_events}"
+            )
+        expected_passes = 18 if mode == "clean" else 0
+        observed_passes = int(numeric(
+            pd.Series([summary_by_mode.loc[mode, "receipt_validation_passes"]]),
+            f"receipt summary {mode} validation passes",
+        ).iloc[0])
+        if observed_passes != expected_passes:
+            raise ValidationError(
+                f"Receipt summary {mode} validation passes must equal "
+                f"{expected_passes}; found {observed_passes}"
+            )
 
     record = read_csv_required(record_path, "record-bound corruption per-run output")
     require_columns(
@@ -814,7 +878,7 @@ def validate_validator_selectivity_validation(
         "run_level_true_positives": 216,
         "run_level_false_positives": 0,
         "run_level_false_negatives": 0,
-        "event_level_true_positives": 3_240,
+        "event_level_true_positives": 3_242,
         "event_level_false_positives": 0,
         "event_level_false_negatives": 0,
         "posthoc_validator_applications": 258,
@@ -963,10 +1027,10 @@ def validate_validator_selectivity_validation(
     assert_all_one(runtime["correctly_classified"], "selectivity runtime classification")
     assert_all_zero(runtime["event_false_positives"], "selectivity event false positives")
     assert_all_zero(runtime["event_false_negatives"], "selectivity event false negatives")
-    if int(numeric(runtime["injected_events"], "selectivity injected total").sum()) != 3_240:
-        raise ValidationError("Selectivity runtime injected-event total must equal 3,240")
-    if int(numeric(runtime["event_true_positives"], "selectivity event TPs").sum()) != 3_240:
-        raise ValidationError("Selectivity runtime event true positives must equal 3,240")
+    if int(numeric(runtime["injected_events"], "selectivity injected total").sum()) != 3_242:
+        raise ValidationError("Selectivity runtime injected-event total must equal 3,242")
+    if int(numeric(runtime["event_true_positives"], "selectivity event TPs").sum()) != 3_242:
+        raise ValidationError("Selectivity runtime event true positives must equal 3,242")
 
     localization = read_csv_required(
         paths["runtime_fault_event_localization.csv"],
@@ -984,8 +1048,8 @@ def validate_validator_selectivity_validation(
         ],
         "validator-selectivity event localization",
     )
-    if len(localization) != 3_240:
-        raise ValidationError("Validator-selectivity localization must contain 3,240 rows")
+    if len(localization) != 3_242:
+        raise ValidationError("Validator-selectivity localization must contain 3,242 rows")
     assert_all_one(localization["was_injected"], "selectivity localization injected")
     assert_all_one(localization["was_localized"], "selectivity localization found")
 
@@ -1084,7 +1148,7 @@ def validate_validator_selectivity_validation(
         "independent_positive_fault_executions": 216,
         "run_level_true_positives": 216,
         "run_level_false_negatives": 0,
-        "legacy_ground_truth_aware_runtime_events": 3_240,
+        "legacy_ground_truth_aware_runtime_events": 3_242,
         "legacy_event_accounting_matches_injection_manifest": True,
         "label_independent_localization_claim_superseded": True,
         "authoritative_label_independent_component": (
@@ -1239,8 +1303,8 @@ def validate_phase1_label_independent_validation(
         raise ValidationError("Full validator did not flag all 228 positive units")
     if int(numeric(negative["full_validator_triggered"], "full negative detection").sum()) != 0:
         raise ValidationError("Full validator flagged a clean or benign unit")
-    if int(numeric(positive["primary_validator_triggered"], "primary positive detection").sum()) != 84:
-        raise ValidationError("Primary validator detection total must equal 84/228")
+    if int(numeric(positive["primary_validator_triggered"], "primary positive detection").sum()) != 88:
+        raise ValidationError("Primary validator detection total must equal 88/228")
     assert_all_one(positive["full_correct"], "Phase-1 full positive classifications")
     assert_all_one(negative["full_correct"], "Phase-1 full negative classifications")
 
@@ -1284,10 +1348,10 @@ def validate_phase1_label_independent_validation(
     localization_fn = int(
         numeric(supported["event_false_negatives"], "localized false negatives").sum()
     )
-    if localized_events != 4_906 or localization_fp != 0 or localization_fn != 0:
+    if localized_events != 4_754 or localization_fp != 0 or localization_fn != 0:
         raise ValidationError(
             "Phase-1 label-independent localization must equal "
-            "4,906 TP, 0 FP, and 0 FN"
+            "4,754 TP, 0 FP, and 0 FN"
         )
 
     comparison = read_csv_required(
@@ -1340,10 +1404,10 @@ def validate_phase1_label_independent_validation(
         "benign_control_units": 24,
         "negative_control_units": 42,
         "positive_control_units": 228,
-        "primary_detected_positive_units": 84,
+        "primary_detected_positive_units": 88,
         "full_detected_positive_units": 228,
         "full_false_positive_units": 0,
-        "label_independent_localized_events": 4_906,
+        "label_independent_localized_events": 4_754,
         "localization_false_positives": 0,
         "localization_false_negatives": 0,
     }
@@ -1377,7 +1441,7 @@ def validate_phase1_label_independent_validation(
         "benign_control_units": 24,
         "negative_control_units": 42,
         "positive_control_units": 228,
-        "primary_detected_positive_units": 84,
+        "primary_detected_positive_units": 88,
         "full_detected_positive_units": 228,
         "full_false_positive_units": 0,
         "label_independent_localized_events": localized_events,
@@ -1403,7 +1467,6 @@ def validate_phase1_label_independent_validation(
 def make_claims_numbers(
     primary: dict[str, Any],
     timing: dict[str, Any],
-    bc_live_decomposition: dict[str, Any],
     execution_integrity: dict[str, Any],
     validator_selectivity: dict[str, Any],
     phase1_label_independent: dict[str, Any],
@@ -1419,7 +1482,7 @@ def make_claims_numbers(
         "schema_version": "1.1",
         "primary_benchmark": {
             "conditions_completed": primary["conditions"],
-            "conditions_expected": 360,
+            "conditions_expected": 240,
             "full_workload_decision_points": primary["full_workload_decision_points"],
             "max_clean_authorization_contradictions": primary[
                 "max_clean_unauthorized_invocations"
@@ -1440,7 +1503,6 @@ def make_claims_numbers(
             ],
             "paired_worker_speedup_rows": timing["worker_speedup_rows"],
         },
-        "bc_live_runtime_decomposition": bc_live_decomposition,
         "execution_integrity_validation": execution_integrity,
         "validator_selectivity_validation": validator_selectivity,
         "phase1_label_independent_validation": phase1_label_independent,
@@ -1503,18 +1565,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cloud-root",
-        default="cloud_results/cloud360_riskproxy_20260702",
+        default="cloud_results/cloud240_v260_20260808",
         help="Root containing finalized regional and local-to-cloud outputs.",
     )
     parser.add_argument(
         "--cloud-cross-region-csv",
         default=None,
-        help="Optional explicit finalized CSV/JSON for the 360 cross-region comparisons.",
+        help="Optional explicit finalized CSV/JSON for the 240 cross-region comparisons.",
     )
     parser.add_argument(
         "--cloud-local-to-cloud-csv",
         default=None,
-        help="Optional explicit finalized CSV/JSON for the 720 local-to-cloud comparisons.",
+        help="Optional explicit finalized CSV/JSON for the 480 local-to-cloud comparisons.",
     )
     return parser.parse_args()
 
@@ -1556,7 +1618,6 @@ def main() -> None:
             required_manifests=DEFAULT_REQUIRED_MANIFESTS,
             required_scripts=[
                 *DEFAULT_REQUIRED_SCRIPTS,
-                "run_bc_live_runtime_decomposition.py",
                 "run_execution_integrity_validation.py",
                 "run_validator_selectivity_validation.py",
                 "run_phase1_label_independent_validation.py",
@@ -1565,15 +1626,15 @@ def main() -> None:
             ],
             cloud_root=cloud_root,
         )),
+        (
+            "primary_input_reconstruction",
+            lambda: validate_primary_input_reconstruction(project_dir),
+        ),
         ("code_quality", lambda: (validate_code_quality_fix(project_dir), [])),
         ("comment12_traceability", lambda: validate_comment12_artifacts(project_dir)),
         ("comment13_environment_comparison", lambda: validate_comment13_artifacts(project_dir)),
         ("primary_benchmark", lambda: validate_primary_benchmark(project_dir)),
         ("timing_study", lambda: validate_timing_study(project_dir)),
-        (
-            "bc_live_runtime_decomposition",
-            lambda: validate_bc_live_runtime_decomposition(project_dir),
-        ),
         ("ray_validation", lambda: validate_ray(project_dir)),
         (
             "execution_integrity_validation",
@@ -1640,9 +1701,6 @@ def main() -> None:
         claims = make_claims_numbers(
             primary=component_results["primary_benchmark"],
             timing=component_results["timing_study"],
-            bc_live_decomposition=component_results[
-                "bc_live_runtime_decomposition"
-            ],
             execution_integrity=component_results[
                 "execution_integrity_validation"
             ],
@@ -1660,6 +1718,9 @@ def main() -> None:
             tests=tests,
             compilation=compilation,
         )
+        claims["primary_input_reconstruction"] = component_results[
+            "primary_input_reconstruction"
+        ]
 
         # Add the code-quality target to the artifact inventory.
         inventory_rows.append(
@@ -1691,25 +1752,32 @@ def main() -> None:
             "project_dir": project_dir.as_posix(),
             "output_dir": relative_posix(output_dir, project_dir),
             "strict_requirements": {
-                "primary_benchmark_conditions": 360,
-                "timing_rows": 528,
-                "timing_configurations_x_7": 24,
-                "timing_configurations_x_15": 24,
-                "bc_live_decomposition_rows": 88,
-                "bc_live_decomposition_configurations": 8,
+                "primary_benchmark_conditions": 240,
+                "primary_input_reconstruction_rows": 11_351,
+                "primary_input_reconstruction_positive_actions": 2_609,
+                "primary_input_reconstruction_selection_sha256": (
+                    "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646"
+                ),
+                "primary_input_reconstruction_canonical_sha256": (
+                    "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44"
+                ),
+                "primary_input_reconstruction_verified": True,
+                "timing_rows": 352,
+                "timing_configurations_x_7": 16,
+                "timing_configurations_x_15": 16,
                 "execution_integrity_clean_instances": 18,
                 "execution_integrity_receipt_fault_instances": 72,
                 "execution_integrity_record_config_applications": 90,
                 "validator_selectivity_benign_executions": 24,
                 "validator_selectivity_runtime_fault_executions": 216,
-                "legacy_validator_selectivity_ground_truth_aware_events": 3240,
+                "legacy_validator_selectivity_ground_truth_aware_events": 3242,
                 "validator_selectivity_posthoc_applications": 258,
                 "phase1_generic_validator_findings": 270,
                 "phase1_positive_control_units": 228,
                 "phase1_negative_control_units": 42,
-                "phase1_primary_detected_positive_units": 84,
+                "phase1_primary_detected_positive_units": 88,
                 "phase1_full_detected_positive_units": 228,
-                "phase1_label_independent_localized_events": 4906,
+                "phase1_label_independent_localized_events": 4754,
                 "phase1_localization_false_positives": 0,
                 "phase1_localization_false_negatives": 0,
                 "ray_conditions": 54,
@@ -1729,8 +1797,8 @@ def main() -> None:
                 "fault_clean_validator_applications": (
                     FAULT_CLEAN_VALIDATOR_APPLICATIONS
                 ),
-                "cloud_cross_region_matches": "360/360",
-                "cloud_local_to_cloud_matches": "720/720",
+                "cloud_cross_region_matches": "240/240",
+                "cloud_local_to_cloud_matches": "480/480",
                 "comment13_environment_comparison": True,
                 "clean_authorization_contradictions": 0,
                 "all_python_files_compile": True,

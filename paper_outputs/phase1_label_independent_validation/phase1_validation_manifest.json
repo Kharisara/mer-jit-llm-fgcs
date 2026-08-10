@@ -4,27 +4,27 @@
   "files": {
     "baseline_comparison_by_fault_class.csv": {
       "bytes": 1581,
-      "sha256": "63cfcb8084821e1f4ae4c579279f3d77c5297c0621898f6b887f2e39ec47b61b"
+      "sha256": "e2cc2ac8068213a67bb8ddec512bbb045e7d6c8dad6749c4715769081136ea6e"
     },
     "event_localization_results.csv": {
-      "bytes": 196233,
-      "sha256": "d4b7712caadc1945ea97966daeb1ef77150d9d557346ef3ad033594f16dae492"
+      "bytes": 245183,
+      "sha256": "c86b8ab42948e7c900c1faad21b45fed37acd925bec0fd9a3e25ebf8bb80bbb5"
     },
     "generic_validator_findings.jsonl": {
-      "bytes": 637904,
-      "sha256": "452a9d5aa7336526491e94ac48008482dc521ec18dbab4e471e1c1e416c0009d"
+      "bytes": 665954,
+      "sha256": "99fe79cf25e67513a1d5ff471d5d6ba0847870a85ec6462717784ee5dd45d364"
     },
     "ground_truth_manifest.jsonl": {
-      "bytes": 175478,
-      "sha256": "1dbc7d495df0cb89fc3fbf2489a816e3d4387a64a04d894ba6b9a3a98a02fdd4"
+      "bytes": 200582,
+      "sha256": "5f4f837518c8f18645b8370a6cb202141ced9acd7d1e9f48589fe75d7638c513"
     },
     "per_evidence_scored_results.csv": {
-      "bytes": 575832,
-      "sha256": "a7b8da5920824b088db1a0f37e09d3b5855feb64a75d6675104558bf5c972076"
+      "bytes": 677944,
+      "sha256": "bc2b43045a256a628778bd732deef870d5100eaf0dcfe62516364a3c11dad92d"
     },
     "validator_input_separation_audit.csv": {
       "bytes": 46861,
-      "sha256": "4a30cf507fa7f9aace97f6d94352b670a074fd77be50a81d07f3d083eb02c7e9"
+      "sha256": "ff1d329d9718cd4793a3ae47b80f265e6f358cff5dd208f5208a3eb7abcc6a48"
     }
   },
   "forbidden_trace_columns": [
@@ -39,13 +39,13 @@
   "full_false_positive_units": 0,
   "generic_validator_findings": 270,
   "ground_truth_records": 270,
-  "label_independent_localized_events": 4906,
+  "label_independent_localized_events": 4754,
   "localization_false_negatives": 0,
   "localization_false_positives": 0,
   "method": "Generic findings were frozen before a one-to-one post-hoc join with a separate ground-truth manifest.",
   "negative_control_units": 42,
   "positive_control_units": 228,
-  "primary_detected_positive_units": 84,
+  "primary_detected_positive_units": 88,
   "receipt_execution_instances": 90,
   "schema_version": "replaybench-pg-phase1-validation-v1",
   "status": "passed"

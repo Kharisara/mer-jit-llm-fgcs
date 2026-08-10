@@ -33,14 +33,14 @@ ROOT = Path(__file__).resolve().parent
 ASIA_METADATA = (
     ROOT
     / "cloud_results"
-    / "cloud360_riskproxy_20260702"
+    / "cloud240_v260_20260808"
     / "asia-southeast1"
     / "cloud_run_metadata.json"
 )
 US_METADATA = (
     ROOT
     / "cloud_results"
-    / "cloud360_riskproxy_20260702"
+    / "cloud240_v260_20260808"
     / "us-central1"
     / "cloud_run_metadata.json"
 )

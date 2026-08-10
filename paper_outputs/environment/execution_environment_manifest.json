@@ -54,10 +54,10 @@
   "container": {
     "dockerfile_base_image": "python:3.12-slim",
     "docker_daemon_available": true,
-    "base_image_repo_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
+    "base_image_repo_digest": "python@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
     "base_image_digest_source": "docker_pull_and_inspect",
-    "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
-    "final_image_digest": "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+    "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:021414ef3131a415207735a8d5575966e5038302426c6d3fc668abcaf3244ada",
+    "final_image_digest": "sha256:021414ef3131a415207735a8d5575966e5038302426c6d3fc668abcaf3244ada",
     "final_image_digest_source": "pinned_uri"
   }
 }

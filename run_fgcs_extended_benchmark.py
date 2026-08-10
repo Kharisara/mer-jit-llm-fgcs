@@ -5,11 +5,14 @@ FGCS extended benchmark runner for the policy-first MER-JIT-LLM pipeline.
 This script runs deterministic offline replay experiments over:
     workloads/fractions x policy modes x seeds x worker counts
 
-Final policy modes for the FGCS extension:
-    risk_proxy, bc, bc_live, random, always, never
+Active v2.6.0 policy modes:
+    risk_proxy, random, always, never
 
-Expected default count:
-    5 workloads x 6 policies x 3 seeds x 4 worker settings = 360 runs
+The inherited bc and bc_live implementations remain only for historical
+provenance and are not selectable by the active v2.6.0 configuration.
+
+Expected active count:
+    5 workload fractions x 4 policies x 3 seeds x 4 workers = 240 runs
 
 Outputs are written to the configured logging.output_dir:
     - scaling_and_runtime_results.csv
@@ -17,7 +20,6 @@ Outputs are written to the configured logging.output_dir:
     - determinism_hash_results.csv
     - parallel_speedup_results.csv
     - policy_ablation_costs.csv
-    - live_bc_predictions.csv            only if bc_live and enabled
     - trace_*.csv                         only if logging.save_traces=true
     - benchmark_run_manifest.json
 """
@@ -50,6 +52,7 @@ from replaybench.integrity import (
     record_bound_trace_hash,
     validate_receipt_digest_rows,
 )
+from replaybench.workload import load_replay_frame
 
 try:
     import psutil
@@ -64,8 +67,10 @@ except ImportError:  # torch is only required for bc_live
     nn = None
 
 
-SUPPORTED_POLICY_MODES = {"risk_proxy", "proxy", "rule_gate", "bc", "bc_live", "random", "always", "never"}
-DEFAULT_POLICY_ORDER = ["risk_proxy", "bc", "bc_live", "random", "always", "never"]
+ACTIVE_POLICY_MODES = {"risk_proxy", "proxy", "rule_gate", "random", "always", "never"}
+LEGACY_LEARNED_POLICY_MODES = {"bc", "bc_live"}
+SUPPORTED_POLICY_MODES = ACTIVE_POLICY_MODES
+DEFAULT_POLICY_ORDER = ["risk_proxy", "random", "always", "never"]
 
 
 # ---------------------------------------------------------------------------
@@ -611,16 +616,35 @@ def proxy_action(label: Any, negative_labels: set[str]) -> int:
     return 1 if normalize_label(label) in negative_labels else 0
 
 
-def risk_proxy_action(row: Mapping[str, Any], negative_labels: set[str]) -> int:
-    """
-    Deterministic affective-risk diagnostic proxy.
+def risk_proxy_action(
+    row: Mapping[str, Any],
+    negative_labels: set[str],
+    policy_cfg: Optional[Mapping[str, Any]] = None,
+) -> int:
+    """Return the frozen binary diagnostic action for one replay point.
 
-    This is an action-diverse diagnostic replay policy, not a clinically valid
-    intervention policy. It selects intervention only when the replay label is
-    one of the configured negative/sensitive labels.
+    v2.6.0 is fail-closed: the configured diagnostic-action column is
+    mandatory. negative_labels remains only for historical API compatibility.
     """
-    label = extract_label_from_row(row)
-    return proxy_action(label, negative_labels)
+    del negative_labels
+    action_column = str(
+        (policy_cfg or {}).get("diagnostic_action_column", "diagnostic_action")
+    )
+    if action_column not in row:
+        raise ValueError(
+            f"risk_proxy/proxy requires input column {action_column!r}; "
+            "legacy MELD-label fallback is disabled in v2.6.0"
+        )
+    value = row.get(action_column)
+    if value is None or pd.isna(value):
+        raise ValueError(f"{action_column} must be binary and non-missing")
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{action_column} must be binary") from exc
+    if numeric not in {0.0, 1.0}:
+        raise ValueError(f"{action_column} must be binary")
+    return int(numeric)
 
 
 def _normalized_rule_value(value: Any) -> Any:
@@ -719,8 +743,8 @@ def rule_gate_action(row: Mapping[str, Any], policy_cfg: Mapping[str, Any]) -> i
 
 
 def random_action(row: Mapping[str, Any], seed: int, row_index: int, p: float) -> int:
-    utterance_id = row.get("utterance_id", row_index)
-    r = stable_hash_to_float("random_policy", seed, utterance_id, row_index)
+    record_id = row.get("source_record_id", row.get("utterance_id", row_index))
+    r = stable_hash_to_float("random_policy", seed, record_id, row_index)
     return 1 if r < p else 0
 
 
@@ -736,7 +760,7 @@ def base_action_for_row(
     policy_cfg: Optional[Mapping[str, Any]] = None,
 ) -> int:
     if policy_mode in {"risk_proxy", "proxy"}:
-        return risk_proxy_action(row, negative_labels)
+        return risk_proxy_action(row, negative_labels, policy_cfg)
 
     if policy_mode == "rule_gate":
         if policy_cfg is None:
@@ -810,8 +834,8 @@ def maybe_fault_inject(
     if flip_p <= 0.0:
         return int(action), 0
 
-    utterance_id = row.get("utterance_id", row_index)
-    r = stable_hash_to_float("fault_action_flip", seed, policy_mode, utterance_id, row_index)
+    record_id = row.get("source_record_id", row.get("utterance_id", row_index))
+    r = stable_hash_to_float("fault_action_flip", seed, policy_mode, record_id, row_index)
     if r < flip_p:
         return 1 - int(action), 1
     return int(action), 0
@@ -852,8 +876,8 @@ def maybe_force_unauthorized_invocation(
     if invoke_p <= 0.0:
         return 0
 
-    utterance_id = row.get("utterance_id", row_index)
-    r = stable_hash_to_float("fault_unauthorized_invoke", seed, policy_mode, utterance_id, row_index)
+    record_id = row.get("source_record_id", row.get("utterance_id", row_index))
+    r = stable_hash_to_float("fault_unauthorized_invoke", seed, policy_mode, record_id, row_index)
     return 1 if r < invoke_p else 0
 
 
@@ -1126,12 +1150,14 @@ def process_one_row(
 
     t0 = time.perf_counter()
 
-    # Stage 1: state loading. For bc_live this has already happened during batch inference.
+    # Stage 1: optional state-file access. Active v2.6.0 primary runs set
+    # dataset.touch_state_files=false because no learned policy consumes states.
+    touch_state_files = bool(dataset_cfg.get("touch_state_files", True))
     if policy_mode == "bc_live" and live_metrics is not None and row_index in live_metrics:
         state_exists = int(live_metrics[row_index].get("state_exists", 0))
         state_size_bytes = int(live_metrics[row_index].get("state_size_bytes", 0))
         state_loading_ms = float(live_metrics[row_index].get("state_loading_ms", 0.0))
-    else:
+    elif touch_state_files:
         s0 = time.perf_counter()
         state_exists_bool, state_size_bytes = safe_touch_state(
             row_dict.get("state_path", ""), input_csv=input_csv, state_root=state_root
@@ -1139,6 +1165,10 @@ def process_one_row(
         s1 = time.perf_counter()
         state_exists = int(state_exists_bool)
         state_loading_ms = (s1 - s0) * 1000.0
+    else:
+        state_exists = 0
+        state_size_bytes = 0
+        state_loading_ms = 0.0
 
     # Stage 2: policy inference/action selection.
     if policy_mode == "bc_live" and live_metrics is not None and row_index in live_metrics:
@@ -1203,15 +1233,21 @@ def process_one_row(
     # Stage 4: observed downstream generation execution. Receipt collection is
     # optional so the frozen timing study can retain its original execution path.
     gen0 = time.perf_counter()
-    receipts_enabled = receipt_collector is not None and run_identity is not None
+    identity_available = run_identity is not None
+    receipts_enabled = receipt_collector is not None and identity_available
     run_id = str(run_identity.get("run_id", "")) if run_identity else ""
-    replay_point_id = make_replay_point_id(row_index, row_dict) if receipts_enabled else ""
-    correlation_scope_id = (
-        str(run_identity.get("trace_scope_id", run_id)) if run_identity else ""
+    configuration_id = (
+        str(run_identity.get("configuration_id", run_id)) if run_identity else ""
+    )
+    execution_instance_id = (
+        str(run_identity.get("execution_instance_id", "")) if run_identity else ""
+    )
+    replay_point_id = (
+        make_replay_point_id(row_index, row_dict) if identity_available else ""
     )
     correlation_id = (
-        make_correlation_id(correlation_scope_id, replay_point_id)
-        if receipts_enabled
+        make_correlation_id(execution_instance_id, replay_point_id)
+        if identity_available
         else ""
     )
     downstream_operation = str(
@@ -1235,6 +1271,8 @@ def process_one_row(
     expected_receipt_context = (
         ReceiptContext(
             run_id=run_id,
+            configuration_id=configuration_id,
+            execution_instance_id=execution_instance_id,
             replay_point_id=replay_point_id,
             correlation_id=correlation_id,
             downstream_operation=downstream_operation,
@@ -1252,6 +1290,8 @@ def process_one_row(
         if receipt_fault_mode == "mismatched_correlation_id" and actual_context is not None:
             actual_context = ReceiptContext(
                 run_id=actual_context.run_id,
+                configuration_id=actual_context.configuration_id,
+                execution_instance_id=actual_context.execution_instance_id,
                 replay_point_id=actual_context.replay_point_id,
                 correlation_id=hashlib.sha256(
                     f"mismatch|{actual_context.correlation_id}".encode("utf-8")
@@ -1306,6 +1346,8 @@ def process_one_row(
         "unauthorized_invoke_fault_injected": int(unauthorized_invoke_fault),
         "fault_injected": int(fault_injected) + int(unauthorized_invoke_fault),
         "run_id": run_id,
+        "configuration_id": configuration_id,
+        "execution_instance_id": execution_instance_id,
         "replay_point_id": replay_point_id,
         "correlation_id": correlation_id,
         "authorized_to_generate": int(authorized_to_generate),
@@ -1354,16 +1396,12 @@ def run_replay(
 
     receipt_cfg = cfg.get("execution_receipts", {})
     receipts_enabled = bool(receipt_cfg.get("enabled", False))
-    run_identity = (
-        build_run_identity(
-            frame=df,
-            cfg=cfg,
-            policy_mode=policy_mode,
-            seed=seed,
-            workers=workers,
-        )
-        if receipts_enabled
-        else None
+    run_identity = build_run_identity(
+        frame=df,
+        cfg=cfg,
+        policy_mode=policy_mode,
+        seed=seed,
+        workers=workers,
     )
     receipt_collector = DownstreamReceiptCollector() if receipts_enabled else None
 
@@ -1476,7 +1514,7 @@ def run_replay(
     }
     record_trace_hash_value = ""
     config_bound_trace_hash_value = ""
-    config_manifest_hash_value = ""
+    config_manifest_hash_value = str(run_identity["config_manifest_hash"])
 
     if receipts_enabled:
         if receipt_collector is None or run_identity is None:
@@ -1508,9 +1546,6 @@ def run_replay(
         )
         record_trace_hash_value = record_bound_trace_hash(
             out_df, reconciliation_df
-        )
-        config_manifest_hash_value = str(
-            run_identity["config_manifest_hash"]
         )
         config_bound_trace_hash_value = config_bound_trace_hash(
             record_trace_hash_value,
@@ -1573,17 +1608,20 @@ def run_replay(
     mem_after = get_process_memory_mb()
 
     summary: Dict[str, Any] = {
+        "run_id": str(run_identity["run_id"]),
+        "configuration_id": str(run_identity["configuration_id"]),
+        "execution_instance_id": str(run_identity["execution_instance_id"]),
         "policy_mode": policy_mode,
         "seed": int(seed),
         "workers": int(workers),
         "decision_points": int(decision_points),
-        # Historical timing boundary retained for compatibility with the
-        # finalized 528-row study: checkpoint preparation + replay only.
+        # Timed execution boundary: optional pre-replay preparation + replay.
+        # Active v2.6.0 policies require no checkpoint preparation.
         "total_runtime_seconds": float(timed_execution_runtime_seconds),
         "timed_execution_runtime_seconds": float(
             timed_execution_runtime_seconds
         ),
-        # New explicit boundaries used for the bc_live-only Comment 8 study.
+        # Explicit runtime boundaries retained for reproducible decomposition.
         "end_to_end_runtime_seconds": float(end_to_end_runtime_seconds),
         "checkpoint_preparation_seconds": float(
             checkpoint_preparation_seconds
@@ -1609,21 +1647,6 @@ def run_replay(
             "state load+batched inference+action-map construction; replay_only="
             "per-record replay using prepared actions; post_replay_validation="
             "trace reconstruction+receipt reconciliation+hashing+validation"
-        ),
-        "bc_live_total_end_to_end_runtime_seconds": (
-            float(end_to_end_runtime_seconds)
-            if policy_mode == "bc_live"
-            else None
-        ),
-        "bc_live_checkpoint_preparation_seconds": (
-            float(checkpoint_preparation_seconds)
-            if policy_mode == "bc_live"
-            else None
-        ),
-        "bc_live_replay_only_runtime_seconds": (
-            float(replay_only_runtime_seconds)
-            if policy_mode == "bc_live"
-            else None
         ),
         "throughput_points_per_second": (
             float(decision_points / timed_execution_runtime_seconds)
@@ -1683,10 +1706,10 @@ def run_replay(
         "state_missing_count": int((out_df["state_exists"].astype(int) == 0).sum()),
     }
 
+    out_df.attrs["run_identity"] = dict(run_identity)
     if receipts_enabled:
         out_df.attrs["execution_receipts"] = receipt_df
         out_df.attrs["receipt_reconciliation"] = reconciliation_df
-        out_df.attrs["run_identity"] = dict(run_identity or {})
 
     return out_df, summary, live_prediction_df
 
@@ -1838,12 +1861,16 @@ def validate_config(cfg: Mapping[str, Any]) -> None:
             raise ValueError(f"Missing required config key: {full_name}")
 
     policy_modes = list(benchmark_cfg.get("policy_modes", []))
+    legacy_requested = sorted(set(policy_modes) & LEGACY_LEARNED_POLICY_MODES)
+    if legacy_requested:
+        raise ValueError(
+            "Learned-policy modes are inactive in v2.6.0: "
+            + ", ".join(legacy_requested)
+            + ". Use the immutable v2.5.9 archive for historical reproduction."
+        )
     unknown = sorted(set(policy_modes) - SUPPORTED_POLICY_MODES)
     if unknown:
         raise ValueError(f"Unknown policy_modes in config: {unknown}")
-
-    if any(mode in {"risk_proxy", "proxy"} for mode in policy_modes) and "negative_labels" not in policy_cfg:
-        raise ValueError("risk_proxy/proxy requires policy.negative_labels")
 
     if "rule_gate" in policy_modes:
         gate_cfg = policy_cfg.get("rule_gate")
@@ -1855,6 +1882,20 @@ def validate_config(cfg: Mapping[str, Any]) -> None:
     input_csv = Path(str(dataset_cfg["input_csv"]).replace("\\", os.sep))
     if not input_csv.exists():
         raise FileNotFoundError(f"Input CSV not found: {input_csv}")
+
+    if dataset_cfg.get("identity_scheme"):
+        validated_input = load_replay_frame(input_csv, dataset_cfg)
+    else:
+        validated_input = pd.read_csv(input_csv)
+    if any(mode in {"risk_proxy", "proxy"} for mode in policy_modes):
+        diagnostic_column = str(
+            policy_cfg.get("diagnostic_action_column", "diagnostic_action")
+        )
+        if diagnostic_column not in validated_input.columns:
+            raise ValueError(
+                "risk_proxy/proxy requires the configured diagnostic-action "
+                f"column {diagnostic_column!r}; legacy MELD-label fallback is disabled"
+            )
 
     if "bc" in policy_modes:
         bc_action_csv = policy_cfg.get("bc_action_csv", "paper_outputs/policy_first_outputs_bc.csv")
@@ -1919,23 +1960,18 @@ def main() -> None:
     save_execution_receipts = bool(
         logging_cfg.get("save_execution_receipts", True)
     )
-    save_live_bc_predictions = bool(logging_cfg.get("save_live_bc_predictions", True))
-    negative_labels = {normalize_label(x) for x in policy_cfg.get("negative_labels", [])}
+    save_live_bc_predictions = bool(logging_cfg.get("save_live_bc_predictions", False))
 
     ensure_dir(output_dir)
 
-    df_full = pd.read_csv(input_csv).reset_index(drop=True)
+    if dataset_cfg.get("identity_scheme"):
+        df_full = load_replay_frame(input_csv, dataset_cfg)
+    else:
+        df_full = pd.read_csv(input_csv).reset_index(drop=True)
     if df_full.empty:
         raise ValueError(f"Input CSV has no rows: {input_csv}")
 
     bc_actions: Optional[Dict[int, int]] = None
-    if "bc" in policy_modes:
-        bc_actions = load_bc_reference_actions(
-            bc_action_csv=policy_cfg.get("bc_action_csv", "paper_outputs/policy_first_outputs_bc.csv"),
-            df_full=df_full,
-            action_column=str(policy_cfg.get("bc_action_column", "action")),
-            key_column=str(policy_cfg.get("bc_key_column", "utterance_id")),
-        )
 
     expected_runs = len(fractions) * len(policy_modes) * len(seeds) * len(workers_list)
     print(f"[INFO] Loaded {len(df_full)} decision points from {input_csv}")
@@ -1971,7 +2007,7 @@ def main() -> None:
                         df=df,
                         cfg=cfg,
                         policy_mode=policy_mode,
-                        negative_labels=negative_labels,
+                        negative_labels=set(),
                         seed=seed,
                         workers=workers,
                         bc_actions=bc_actions,

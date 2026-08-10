@@ -13,6 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from replaybench.integrity import (  # noqa: E402
     config_bound_trace_hash,
+    reconcile_execution_receipts,
     record_bound_trace_hash,
     sha256_json,
 )
@@ -135,3 +136,29 @@ def test_config_bound_hash_detects_configuration_label_corruption() -> None:
         summary["record_trace_hash"], corrupted_manifest_hash
     )
     assert corrupted != summary["config_bound_trace_hash"]
+
+
+def test_execution_instance_identity_is_unique_and_configuration_is_stable() -> None:
+    trace_a, summary_a, _ = _run("clean", workers=1)
+    trace_b, summary_b, _ = _run("clean", workers=1)
+
+    assert summary_a["configuration_id"] == summary_b["configuration_id"]
+    assert summary_a["run_id"] == summary_a["configuration_id"]
+    assert summary_b["run_id"] == summary_b["configuration_id"]
+    assert summary_a["execution_instance_id"] != summary_b["execution_instance_id"]
+    assert trace_a["execution_instance_id"].nunique() == 1
+    assert trace_b["execution_instance_id"].nunique() == 1
+    assert trace_a.loc[0, "correlation_id"] != trace_b.loc[0, "correlation_id"]
+    assert summary_a["record_trace_hash"] == summary_b["record_trace_hash"]
+    assert summary_a["config_bound_trace_hash"] == summary_b["config_bound_trace_hash"]
+
+
+def test_cross_execution_receipts_are_rejected_by_instance_binding() -> None:
+    trace_a, _, _ = _run("clean", workers=1)
+    trace_b, _, _ = _run("clean", workers=1)
+    receipts_b = trace_b.attrs["execution_receipts"]
+
+    _, summary = reconcile_execution_receipts(trace_a, receipts_b)
+    assert summary["receipt_validation_passed"] == 0
+    assert summary["orphan_receipts"] == len(receipts_b)
+    assert summary["missing_receipts"] == len(trace_a)

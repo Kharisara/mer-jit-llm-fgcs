@@ -1,5 +1,5 @@
 {
-  "input": "D:\\Project final\\mer-jit-llm-fgcs\\paper_outputs\\replaybench_timing_study\\timing_repetitions_raw.csv",
+  "input": "paper_outputs\\replaybench_timing_study\\timing_repetitions_raw.csv",
   "outputs": {
     "normalized": "paper_outputs\\replaybench_timing_study\\timing_repetitions_normalized.csv",
     "runtime_summary": "paper_outputs\\replaybench_timing_study\\timing_runtime_summary_mixed_7_15.csv",
@@ -8,15 +8,13 @@
   "design": {
     "workload_repetitions": 7,
     "worker_repetitions": 15,
-    "measured_rows": 528,
-    "expected_measured_rows": 528,
-    "unique_configurations": 48,
-    "workload_scaling_configurations": 24,
-    "worker_scaling_configurations": 24,
+    "measured_rows": 352,
+    "expected_measured_rows": 352,
+    "unique_configurations": 32,
+    "workload_scaling_configurations": 16,
+    "worker_scaling_configurations": 16,
     "policies": [
       "always",
-      "bc",
-      "bc_live",
       "never",
       "random",
       "risk_proxy"
@@ -45,10 +43,10 @@
       "stable_hash_per_configuration": true
     },
     "legacy_missing_validation_values": {
-      "hash_match": 336,
-      "authorization_execution_consistent": 336,
-      "row_count_match": 336,
-      "validation_passed": 336,
+      "hash_match": 0,
+      "authorization_execution_consistent": 0,
+      "row_count_match": 0,
+      "validation_passed": 0,
       "fault_injected_count": 0,
       "unauthorized_invocations": 0
     }

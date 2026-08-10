@@ -6,7 +6,7 @@
   "machine": "x86_64",
   "os_release": {
     "BUG_REPORT_URL": "https://bugs.debian.org/",
-    "DEBIAN_VERSION_FULL": "13.5",
+    "DEBIAN_VERSION_FULL": "13.6",
     "HOME_URL": "https://www.debian.org/",
     "ID": "debian",
     "NAME": "Debian GNU/Linux",

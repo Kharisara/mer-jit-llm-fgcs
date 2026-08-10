@@ -9,16 +9,16 @@
     ],
     "path": "paper_outputs/final_manuscript_tables/cloud_environment_comparison.csv",
     "row_count": 14,
-    "sha256": "5c8ce17a8672a7e71a4cb8ff8f66cf1898909672114ae2073c6210ae1e21ff6d"
+    "sha256": "296be0f4eace2bb52116d7b040ead996b55d04d70a78694820286f1857dcdde9"
   },
   "container": {
     "architecture": "x86_64",
-    "base_image_digest": "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
-    "final_image_digest": "sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
-    "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:bfcc798c003790c81544f712b9fa403d997ea5200a084ea74a79db651e62fcfc",
+    "base_image_digest": "python@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
+    "final_image_digest": "sha256:021414ef3131a415207735a8d5575966e5038302426c6d3fc668abcaf3244ada",
+    "final_image_uri": "asia-southeast1-docker.pkg.dev/fgcs-replay-validation/fgcs-benchmark/fgcs-replay-cloud@sha256:021414ef3131a415207735a8d5575966e5038302426c6d3fc668abcaf3244ada",
     "inspection_path": "paper_outputs/environment/cloud_container_environment.json",
     "inspection_runtime_platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
-    "inspection_sha256": "3c04ec848570994935c5e0338aaeb9f2eee8eb01ce116cd66619347ce7cccc55",
+    "inspection_sha256": "35d03c59b854fa5a216b59cfc9af416ae67b386c76bc3870a7c1706cb8571037",
     "locale": "C.UTF-8",
     "os": "Debian GNU/Linux 13 (trixie)",
     "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
@@ -29,7 +29,7 @@
   "dependency_locks": {
     "cloud_container": {
       "path": "paper_outputs/environment/cloud_pip_freeze_lock.txt",
-      "sha256": "cb53e6191b71746425decf23e786d5e14b603e2b2d277c23a8aa13d5c58dd603"
+      "sha256": "4c4fb4c6734e87ea3c54ecb78e7e647d1bdd649ecad82bdca4f1c2b64a8ffb63"
     },
     "identical": false,
     "local": {
@@ -71,24 +71,24 @@
   "schema": "replaybench-pg-cloud-environment-comparison-v2",
   "source_environment_manifest": {
     "path": "paper_outputs/environment/execution_environment_manifest.json",
-    "sha256": "bcd16738af5334a754028b18e54a15ab16d296d2722f123ea0aaeec177271198"
+    "sha256": "572c7329902623c46e682323d5946b67de72a1f294dfadf8d0f7efa6e3852b94"
   },
   "source_metadata": {
     "asia-southeast1": {
-      "path": "cloud_results/cloud360_riskproxy_20260702/asia-southeast1/cloud_run_metadata.json",
+      "path": "cloud_results/cloud240_v260_20260808/asia-southeast1/cloud_run_metadata.json",
       "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
-      "python_version": "3.12.13 (main, Jun 24 2026, 02:08:01) [GCC 14.2.0]",
+      "python_version": "3.12.13 (main, Aug  5 2026, 01:10:24) [GCC 14.2.0]",
       "region": "asia-southeast1",
       "return_code": 0,
-      "sha256": "4cb6a461d788ed0ed463e0c0bbc179490721237ce6642e3b56c5947ee3d3736c"
+      "sha256": "3864f62df9b28e56f84e226c862c63c2277fd859d852536a9e00dba4828d1dfb"
     },
     "us-central1": {
-      "path": "cloud_results/cloud360_riskproxy_20260702/us-central1/cloud_run_metadata.json",
+      "path": "cloud_results/cloud240_v260_20260808/us-central1/cloud_run_metadata.json",
       "platform": "Linux-6.9.12-x86_64-with-glibc2.41",
-      "python_version": "3.12.13 (main, Jun 24 2026, 02:08:01) [GCC 14.2.0]",
+      "python_version": "3.12.13 (main, Aug  5 2026, 01:10:24) [GCC 14.2.0]",
       "region": "us-central1",
       "return_code": 0,
-      "sha256": "ff8186ab3450f1ba158dcb40a5061e12c2b49da34808b22caea1c14c714c8ffb"
+      "sha256": "f0b1c581ada659a3b95e2eef34ea362fb49982c8d433a903a907bbdfcf2c4b18"
     }
   }
 }

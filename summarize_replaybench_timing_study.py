@@ -13,9 +13,9 @@ Worker-scaling arm:
     full workload x all policies x all configured workers
 
 The two arms overlap at full-workload/one-worker. With the current paper
-configuration this produces 48 unique configurations. The 24 non-full
+configuration this produces 32 unique configurations. The 16 non-full
 workload-scaling configurations retain seven measured repetitions, while the
-24 full-workload worker-scaling configurations require fifteen repetitions.
+16 full-workload worker-scaling configurations require fifteen repetitions.
 """
 
 from __future__ import annotations
@@ -180,7 +180,7 @@ def validate_timing_design(
     repetitions. Full-workload worker-scaling configurations require fifteen
     measured repetitions. This matches the controlled revision plan: the
     original seven-repetition study is retained and eight additional runs are
-    added only to the 24 full-workload worker configurations.
+    added only to the 16 full-workload worker configurations.
     """
     if workload_repetitions < 2:
         raise ValueError("workload_repetitions must be at least 2")

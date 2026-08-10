@@ -71,7 +71,7 @@ best_runtime = (
     .head(1)
 )
 
-policy_order = ["always", "bc", "bc_live", "never", "proxy", "random"]
+policy_order = ["always", "never", "random", "risk_proxy", "proxy"]
 best_runtime[policy_col] = pd.Categorical(best_runtime[policy_col], categories=policy_order, ordered=True)
 best_runtime = best_runtime.sort_values(policy_col)
 
