@@ -1,0 +1,52 @@
+{
+  "audio_or_video_redistributed": false,
+  "canonical_output_verified": true,
+  "diagnostic_action_positive_count": 2609,
+  "diagnostic_action_positive_labels": [
+    "anger",
+    "disgust",
+    "fear",
+    "sadness"
+  ],
+  "diagnostic_action_source_field": "Emotion",
+  "emotion_labels_redistributed": false,
+  "expected_output_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
+  "identity_rule": "<split>:d<Dialogue_ID>_u<Utterance_ID>",
+  "output_columns": [
+    "source_record_id",
+    "diagnostic_action"
+  ],
+  "output_csv": "paper_outputs/replay_input_v260.csv",
+  "output_rows": 11351,
+  "output_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
+  "provider_files": {
+    "dev": {
+      "filename": "dev_sent_emo.csv",
+      "rows": 1109,
+      "sha256": "2e89c6f8aa182d6f62f8c6331aece905ac7273ca4999660bfb5213e1d0370c1c"
+    },
+    "test": {
+      "filename": "test_sent_emo.csv",
+      "rows": 2610,
+      "sha256": "8d37103938f7067600839fe29d5a114a6cd1bcdafb75bec101e06464c5006888"
+    },
+    "train": {
+      "filename": "train_sent_emo.csv",
+      "rows": 9989,
+      "sha256": "d2fa2d6529cf03cac2989efec05c9b27d8fd2f4c8fc5974c7ae88aa537fa02db"
+    }
+  },
+  "schema_version": "replaybench-pg-primary-input-reconstruction-v2.6.0",
+  "selection_manifest": "data_provenance/meld_v260_record_ids.csv",
+  "selection_manifest_contains_labels": false,
+  "selection_manifest_contains_source_content": false,
+  "selection_manifest_rows": 11351,
+  "selection_manifest_sha256": "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646",
+  "selection_order_preserved": true,
+  "source_content_in_release": false,
+  "source_dataset": "MELD",
+  "source_dataset_redistributed": false,
+  "state_embeddings_redistributed": false,
+  "unique_source_record_ids": 11351,
+  "utterance_text_redistributed": false
+}

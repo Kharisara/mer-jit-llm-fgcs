@@ -246,6 +246,21 @@
     "runs_per_fault_class": 18,
     "unique_clean_reference_executions": 18
   },
+  "primary_input_reconstruction": {
+    "canonical_output_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
+    "canonical_output_verified": true,
+    "diagnostic_action_positive_count": 2609,
+    "generated_replay_table_redistributed": false,
+    "local_reconstructed_output_hash_valid": true,
+    "local_reconstructed_output_present": true,
+    "public_reconstruction_contract_valid": true,
+    "schema_version": "replaybench-pg-primary-input-reconstruction-v2.6.0",
+    "selection_manifest_rows": 11351,
+    "selection_manifest_sha256": "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646",
+    "selection_manifest_unique_ids": 11351,
+    "source_dataset": "MELD",
+    "source_dataset_redistributed": false
+  },
   "ray_validation": {
     "clean_conditions": 18,
     "clean_external_hash_matches": 18,

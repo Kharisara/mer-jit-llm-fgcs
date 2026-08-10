@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-08-08T14:35:46.741634+00:00",
+  "completed_at_utc": "2026-08-10T07:26:49.790064+00:00",
   "components": {
     "cloud_validation": {
       "cloud_root": "cloud_results/cloud240_v260_20260808",
@@ -286,6 +286,21 @@
       "runs_per_fault_class": 18,
       "unique_clean_reference_executions": 18
     },
+    "primary_input_reconstruction": {
+      "canonical_output_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
+      "canonical_output_verified": true,
+      "diagnostic_action_positive_count": 2609,
+      "generated_replay_table_redistributed": false,
+      "local_reconstructed_output_hash_valid": true,
+      "local_reconstructed_output_present": true,
+      "public_reconstruction_contract_valid": true,
+      "schema_version": "replaybench-pg-primary-input-reconstruction-v2.6.0",
+      "selection_manifest_rows": 11351,
+      "selection_manifest_sha256": "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646",
+      "selection_manifest_unique_ids": 11351,
+      "source_dataset": "MELD",
+      "source_dataset_redistributed": false
+    },
     "pytest": {
       "all_tests_passed": true,
       "command": [
@@ -295,7 +310,7 @@
         "-q"
       ],
       "exit_code": 0,
-      "output": "..............................................                           [100%]\n46 passed in 41.82s",
+      "output": "..............................................                           [100%]\n46 passed in 42.17s",
       "tests_passed": 46
     },
     "python_compilation": {
@@ -487,7 +502,7 @@
   },
   "project_dir": "D:/Project final/mer-jit-llm-fgcs",
   "schema_version": "1.1",
-  "started_at_utc": "2026-08-08T14:34:58.618328+00:00",
+  "started_at_utc": "2026-08-10T07:26:00.719184+00:00",
   "status": "passed",
   "strict_requirements": {
     "all_python_files_compile": true,
@@ -519,6 +534,11 @@
     "phase1_primary_detected_positive_units": 88,
     "primary_benchmark_conditions": 240,
     "primary_fault_classes": "5 classes, 18/18 each",
+    "primary_input_reconstruction_canonical_sha256": "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44",
+    "primary_input_reconstruction_positive_actions": 2609,
+    "primary_input_reconstruction_rows": 11351,
+    "primary_input_reconstruction_selection_sha256": "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646",
+    "primary_input_reconstruction_verified": true,
     "ray_clean_external_hash_matches": "18/18",
     "ray_conditions": 54,
     "ray_fault_conditions_flagged": "36/36",

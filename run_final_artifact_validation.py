@@ -207,6 +207,307 @@ def _require_manifest_int(
         )
 
 
+
+def validate_primary_input_reconstruction(
+    project_dir: Path,
+) -> tuple[dict[str, Any], list[Any]]:
+    """Validate the public v2.6.0 MELD reconstruction/provenance contract.
+
+    Provider-obtained MELD source files and the locally reconstructed
+    two-column replay CSV are deliberately not required release files.
+    The public artifact must instead contain:
+      * DATA_TERMS.md;
+      * the deterministic reconstruction script;
+      * the ordered ID-only selection manifest; and
+      * the reconstruction verification manifest.
+
+    If the ignored local reconstructed replay CSV is present, its SHA-256 is
+    additionally checked against the canonical v2.6.0 experiment input.
+    """
+
+    expected_rows = 11_351
+    expected_positive = 2_609
+    expected_selection_sha256 = (
+        "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646"
+    )
+    expected_output_sha256 = (
+        "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44"
+    )
+
+    terms_path = project_dir / "DATA_TERMS.md"
+    selection_path = (
+        project_dir / "data_provenance" / "meld_v260_record_ids.csv"
+    )
+    manifest_path = (
+        project_dir / "paper_outputs" / "replay_input_v260_manifest.json"
+    )
+    script_path = (
+        project_dir / "scripts" / "prepare_primary_replay_v260.py"
+    )
+    local_output_path = (
+        project_dir / "paper_outputs" / "replay_input_v260.csv"
+    )
+
+    required_paths = {
+        "dataset_terms": terms_path,
+        "selection_manifest": selection_path,
+        "reconstruction_manifest": manifest_path,
+        "reconstruction_script": script_path,
+    }
+    missing = [
+        relative_posix(path, project_dir)
+        for path in required_paths.values()
+        if not path.is_file()
+    ]
+    if missing:
+        raise ValidationError(
+            "Primary-input reconstruction files are missing: "
+            f"{missing}"
+        )
+
+    # Ordered ID-only selection manifest.
+    selection = read_csv_required(
+        selection_path,
+        "MELD v2.6.0 ordered ID-only selection manifest",
+    )
+    if list(selection.columns) != ["source_record_id"]:
+        raise ValidationError(
+            "MELD selection manifest must contain exactly one column: "
+            "source_record_id"
+        )
+    if len(selection) != expected_rows:
+        raise ValidationError(
+            "MELD selection manifest row count mismatch: "
+            f"expected={expected_rows}, observed={len(selection)}"
+        )
+
+    ids = selection["source_record_id"].astype(str).str.strip()
+    if ids.eq("").any():
+        raise ValidationError(
+            "MELD selection manifest contains blank source_record_id values"
+        )
+    if not ids.str.fullmatch(r"(?:train|dev|test):d\d+_u\d+").all():
+        raise ValidationError(
+            "MELD selection manifest contains an invalid split-qualified "
+            "source_record_id"
+        )
+
+    unique_ids = int(ids.nunique(dropna=False))
+    if unique_ids != expected_rows:
+        raise ValidationError(
+            "MELD selection manifest identities are not unique: "
+            f"expected={expected_rows}, observed={unique_ids}"
+        )
+
+    selection_sha256 = sha256_file(selection_path)
+    if selection_sha256 != expected_selection_sha256:
+        raise ValidationError(
+            "MELD selection-manifest SHA-256 mismatch: "
+            f"expected={expected_selection_sha256}, "
+            f"observed={selection_sha256}"
+        )
+
+    # Reconstruction verification manifest.
+    manifest = read_json_required(
+        manifest_path,
+        "primary-input reconstruction manifest",
+    )
+    if not isinstance(manifest, dict):
+        raise ValidationError(
+            "Primary-input reconstruction manifest must be a JSON object"
+        )
+
+    expected_values = {
+        "schema_version":
+            "replaybench-pg-primary-input-reconstruction-v2.6.0",
+        "source_dataset": "MELD",
+        "source_dataset_redistributed": False,
+        "source_content_in_release": False,
+        "selection_manifest":
+            "data_provenance/meld_v260_record_ids.csv",
+        "selection_manifest_contains_source_content": False,
+        "selection_manifest_contains_labels": False,
+        "selection_manifest_rows": expected_rows,
+        "selection_manifest_sha256": expected_selection_sha256,
+        "selection_order_preserved": True,
+        "diagnostic_action_source_field": "Emotion",
+        "diagnostic_action_positive_count": expected_positive,
+        "output_columns": [
+            "source_record_id",
+            "diagnostic_action",
+        ],
+        "output_rows": expected_rows,
+        "unique_source_record_ids": expected_rows,
+        "output_csv": "paper_outputs/replay_input_v260.csv",
+        "output_sha256": expected_output_sha256,
+        "expected_output_sha256": expected_output_sha256,
+        "canonical_output_verified": True,
+        "utterance_text_redistributed": False,
+        "emotion_labels_redistributed": False,
+        "audio_or_video_redistributed": False,
+        "state_embeddings_redistributed": False,
+    }
+    for key, expected in expected_values.items():
+        observed = manifest.get(key)
+        if observed != expected:
+            raise ValidationError(
+                "Primary-input reconstruction manifest mismatch for "
+                f"{key}: expected={expected!r}, observed={observed!r}"
+            )
+
+    expected_positive_labels = {
+        "anger",
+        "disgust",
+        "fear",
+        "sadness",
+    }
+    observed_positive_labels = set(
+        str(value)
+        for value in manifest.get(
+            "diagnostic_action_positive_labels",
+            [],
+        )
+    )
+    if observed_positive_labels != expected_positive_labels:
+        raise ValidationError(
+            "Unexpected diagnostic-action positive-label set: "
+            f"{sorted(observed_positive_labels)}"
+        )
+
+    identity_rule = str(manifest.get("identity_rule", ""))
+    if identity_rule != "<split>:d<Dialogue_ID>_u<Utterance_ID>":
+        raise ValidationError(
+            "Unexpected MELD identity rule in reconstruction manifest: "
+            f"{identity_rule!r}"
+        )
+
+    provider_files = manifest.get("provider_files")
+    if not isinstance(provider_files, dict):
+        raise ValidationError(
+            "Primary-input reconstruction manifest provider_files "
+            "must be an object"
+        )
+    expected_provider = {
+        "train": ("train_sent_emo.csv", 9_989),
+        "dev": ("dev_sent_emo.csv", 1_109),
+        "test": ("test_sent_emo.csv", 2_610),
+    }
+    for split, (expected_filename, expected_count) in expected_provider.items():
+        metadata = provider_files.get(split)
+        if not isinstance(metadata, dict):
+            raise ValidationError(
+                f"Missing provider metadata for MELD split {split}"
+            )
+        if metadata.get("filename") != expected_filename:
+            raise ValidationError(
+                f"Unexpected provider filename for MELD split {split}: "
+                f"{metadata.get('filename')!r}"
+            )
+        try:
+            observed_rows = int(metadata.get("rows"))
+        except (TypeError, ValueError) as exc:
+            raise ValidationError(
+                f"Provider row count for MELD split {split} is invalid"
+            ) from exc
+        if observed_rows != expected_count:
+            raise ValidationError(
+                f"MELD split {split} row count must equal "
+                f"{expected_count}; found {observed_rows}"
+            )
+        provider_sha = str(metadata.get("sha256", ""))
+        if re.fullmatch(r"[0-9a-f]{64}", provider_sha) is None:
+            raise ValidationError(
+                f"Provider SHA-256 for MELD split {split} is invalid"
+            )
+
+    # DATA_TERMS documentation must carry the executable reconstruction route
+    # and both release-recorded verification hashes.
+    terms_text = terms_path.read_text(
+        encoding="utf-8",
+        errors="strict",
+    )
+    required_terms_tokens = [
+        "scripts/prepare_primary_replay_v260.py",
+        "data_provenance/meld_v260_record_ids.csv",
+        expected_selection_sha256,
+        expected_output_sha256,
+        "11,351",
+        "2,609",
+    ]
+    missing_tokens = [
+        token
+        for token in required_terms_tokens
+        if token not in terms_text
+    ]
+    if missing_tokens:
+        raise ValidationError(
+            "DATA_TERMS.md is missing required reconstruction "
+            f"information: {missing_tokens}"
+        )
+
+    # The generated primary table is intentionally absent from the public
+    # artifact. When present in the local working tree, verify it rather than
+    # requiring it as a public release file.
+    local_output_present = local_output_path.is_file()
+    local_output_hash_valid: bool | None = None
+    if local_output_present:
+        observed_output_sha256 = sha256_file(local_output_path)
+        if observed_output_sha256 != expected_output_sha256:
+            raise ValidationError(
+                "Locally reconstructed MELD replay table does not match "
+                "the canonical v2.6.0 SHA-256: "
+                f"expected={expected_output_sha256}, "
+                f"observed={observed_output_sha256}"
+            )
+        local_output_hash_valid = True
+
+    result = {
+        "schema_version":
+            "replaybench-pg-primary-input-reconstruction-v2.6.0",
+        "public_reconstruction_contract_valid": True,
+        "source_dataset": "MELD",
+        "source_dataset_redistributed": False,
+        "generated_replay_table_redistributed": False,
+        "selection_manifest_rows": expected_rows,
+        "selection_manifest_unique_ids": unique_ids,
+        "selection_manifest_sha256": selection_sha256,
+        "diagnostic_action_positive_count": expected_positive,
+        "canonical_output_sha256": expected_output_sha256,
+        "canonical_output_verified": True,
+        "local_reconstructed_output_present": local_output_present,
+        "local_reconstructed_output_hash_valid":
+            local_output_hash_valid,
+    }
+
+    inventory = [
+        evidence_file(
+            project_dir,
+            "primary_input_reconstruction",
+            "dataset_terms",
+            terms_path,
+        ),
+        evidence_file(
+            project_dir,
+            "primary_input_reconstruction",
+            "selection_manifest",
+            selection_path,
+        ),
+        evidence_file(
+            project_dir,
+            "primary_input_reconstruction",
+            "reconstruction_manifest",
+            manifest_path,
+        ),
+        evidence_file(
+            project_dir,
+            "primary_input_reconstruction",
+            "reconstruction_script",
+            script_path,
+        ),
+    ]
+    return result, inventory
+
+
 def validate_execution_integrity_validation(
     project_dir: Path,
 ) -> tuple[dict[str, Any], list[Any]]:
@@ -727,9 +1028,9 @@ def validate_validator_selectivity_validation(
     assert_all_zero(runtime["event_false_positives"], "selectivity event false positives")
     assert_all_zero(runtime["event_false_negatives"], "selectivity event false negatives")
     if int(numeric(runtime["injected_events"], "selectivity injected total").sum()) != 3_242:
-        raise ValidationError("Selectivity runtime injected-event total must equal 3,240")
+        raise ValidationError("Selectivity runtime injected-event total must equal 3,242")
     if int(numeric(runtime["event_true_positives"], "selectivity event TPs").sum()) != 3_242:
-        raise ValidationError("Selectivity runtime event true positives must equal 3,240")
+        raise ValidationError("Selectivity runtime event true positives must equal 3,242")
 
     localization = read_csv_required(
         paths["runtime_fault_event_localization.csv"],
@@ -748,7 +1049,7 @@ def validate_validator_selectivity_validation(
         "validator-selectivity event localization",
     )
     if len(localization) != 3_242:
-        raise ValidationError("Validator-selectivity localization must contain 3,240 rows")
+        raise ValidationError("Validator-selectivity localization must contain 3,242 rows")
     assert_all_one(localization["was_injected"], "selectivity localization injected")
     assert_all_one(localization["was_localized"], "selectivity localization found")
 
@@ -1325,6 +1626,10 @@ def main() -> None:
             ],
             cloud_root=cloud_root,
         )),
+        (
+            "primary_input_reconstruction",
+            lambda: validate_primary_input_reconstruction(project_dir),
+        ),
         ("code_quality", lambda: (validate_code_quality_fix(project_dir), [])),
         ("comment12_traceability", lambda: validate_comment12_artifacts(project_dir)),
         ("comment13_environment_comparison", lambda: validate_comment13_artifacts(project_dir)),
@@ -1413,6 +1718,9 @@ def main() -> None:
             tests=tests,
             compilation=compilation,
         )
+        claims["primary_input_reconstruction"] = component_results[
+            "primary_input_reconstruction"
+        ]
 
         # Add the code-quality target to the artifact inventory.
         inventory_rows.append(
@@ -1445,6 +1753,15 @@ def main() -> None:
             "output_dir": relative_posix(output_dir, project_dir),
             "strict_requirements": {
                 "primary_benchmark_conditions": 240,
+                "primary_input_reconstruction_rows": 11_351,
+                "primary_input_reconstruction_positive_actions": 2_609,
+                "primary_input_reconstruction_selection_sha256": (
+                    "3ecd5826976393d0c44ae3d59d5d7e7a8b8b6ccd416571dd96b564504f261646"
+                ),
+                "primary_input_reconstruction_canonical_sha256": (
+                    "2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44"
+                ),
+                "primary_input_reconstruction_verified": True,
                 "timing_rows": 352,
                 "timing_configurations_x_7": 16,
                 "timing_configurations_x_15": 16,

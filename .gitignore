@@ -124,3 +124,9 @@ paper_outputs/validator_selectivity_validation_smoke.zip
 evidence/
 final_manuscript_update_evidence.zip
 myenv/
+
+# Provider-obtained MELD source data: never redistribute
+data/raw/MELD/
+
+# Locally reconstructed MELD primary replay table: do not redistribute
+paper_outputs/replay_input_v260.csv
