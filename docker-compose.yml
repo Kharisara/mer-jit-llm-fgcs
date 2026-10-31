@@ -1,0 +1,39 @@
+# Three distinct service containers on a single GitHub-hosted Linux VM.
+# The experiment does NOT claim physically independent machines.
+services:
+  collector:
+    image: python:3.12.12-slim
+    command: ["python", "-u", "/src/scripts/r1_dist_service.py", "--role", "collector", "--port", "8766"]
+    volumes:
+      - ./:/src:ro
+    ports:
+      - "127.0.0.1:18766:8766"
+    networks: [r1_lab]
+    restart: unless-stopped
+  worker_a:
+    image: python:3.12.12-slim
+    command: ["python", "-u", "/src/scripts/r1_dist_service.py", "--role", "worker", "--port", "8761"]
+    environment:
+      RECEIPT_ENDPOINT: http://collector:8766/receipt
+    volumes:
+      - ./:/src:ro
+    ports:
+      - "127.0.0.1:18761:8761"
+    networks: [r1_lab]
+    restart: unless-stopped
+    depends_on: [collector]
+  worker_b:
+    image: python:3.12.12-slim
+    command: ["python", "-u", "/src/scripts/r1_dist_service.py", "--role", "worker", "--port", "8762"]
+    environment:
+      RECEIPT_ENDPOINT: http://collector:8766/receipt
+    volumes:
+      - ./:/src:ro
+    ports:
+      - "127.0.0.1:18762:8762"
+    networks: [r1_lab]
+    restart: unless-stopped
+    depends_on: [collector]
+networks:
+  r1_lab:
+    driver: bridge
