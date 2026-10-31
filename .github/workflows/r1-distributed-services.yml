@@ -1,4 +1,4 @@
-name: ReplayBench-PG R1 - isolated-service fault pilot
+﻿name: ReplayBench-PG R1 - isolated-service fault pilot
 on:
   workflow_dispatch:
 permissions:
@@ -24,7 +24,7 @@ jobs:
       - name: Start three distinct HTTP service containers
         run: docker compose -f docker-compose.yml up -d --quiet-pull
       - name: Run actual ReplayBench-PG generic validator against isolated services
-        run: python scripts/r1_dist_runner.py --output r1_distributed_results
+        run: python -m scripts.r1_dist_runner --output r1_distributed_results
       - name: Record topology, container images and logs
         if: always()
         run: |
@@ -44,3 +44,4 @@ jobs:
       - name: Stop containers
         if: always()
         run: docker compose -f docker-compose.yml down --remove-orphans || true
+
