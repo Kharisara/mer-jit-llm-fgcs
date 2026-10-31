@@ -1,0 +1,100 @@
+name: ReplayBench-PG R1 - no-cost Linux-hosted validation
+
+# Manual runs only; use a standard runner in the PUBLIC repository.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run pilot first, then full experiment only after pilot passes'
+        required: true
+        default: pilot
+        type: choice
+        options:
+          - pilot
+          - full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: replaybench-r1-${{ github.ref }}-${{ inputs.mode }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: 'ReplayBench-PG ${{ inputs.mode }} (ubuntu-24.04)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      MODE: ${{ inputs.mode }}
+      RUN_DIR: array_r1_new_experiments/actions_${{ github.run_id }}_${{ github.run_attempt }}
+      CLOUD_REGION: github-actions-ubuntu-24.04
+      ARRAY_R1_SOURCE_COMMIT: ${{ github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Check out pinned experiment source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Obtain original MELD provider annotations (no redistribution)
+        uses: actions/checkout@v4
+        with:
+          repository: declare-lab/MELD
+          ref: e8cedf27b5d2877e198332c957127e16eb214afe
+          path: _provider_meld
+          sparse-checkout: |
+            data/MELD
+          sparse-checkout-cone-mode: true
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install minimal experiment dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            numpy==2.2.6 pandas==2.3.3 PyYAML==6.0.3
+
+      - name: Verify MELD provider file hashes
+        run: |
+          printf '%s  %s\n' \
+            'd2fa2d6529cf03cac2989efec05c9b27d8fd2f4c8fc5974c7ae88aa537fa02db' '_provider_meld/data/MELD/train_sent_emo.csv' \
+            '2e89c6f8aa182d6f62f8c6331aece905ac7273ca4999660bfb5213e1d0370c1c' '_provider_meld/data/MELD/dev_sent_emo.csv' \
+            '8d37103938f7067600839fe29d5a114a6cd1bcdafb75bec101e06464c5006888' '_provider_meld/data/MELD/test_sent_emo.csv' \
+            | sha256sum --check --strict
+
+      - name: Reconstruct canonical 11,351-row input and verify its hash
+        run: |
+          python scripts/prepare_primary_replay_v260.py \
+            --meld-root _provider_meld/data/MELD \
+            --selection data_provenance/meld_v260_record_ids.csv \
+            --output paper_outputs/replay_input_v260.csv \
+            --manifest "$RUNNER_TEMP/meld_reconstruction_manifest.json"
+          printf '%s  %s\n' \
+            '2b46fd5e6887305d2eb43b1f4383e23ed3c1062a4826e1b7a428a10bd8f84f44' \
+            'paper_outputs/replay_input_v260.csv' | sha256sum --check --strict
+
+      - name: Run fresh receipt-enabled experiment and label-independent validation
+        run: |
+          python array_r1_cloud_full_model.py \
+            --repo . --mode "$MODE" --out "$RUN_DIR"
+
+      - name: Export verified aggregate evidence only
+        run: |
+          python scripts/array_r1_actions_export.py \
+            --source "$RUN_DIR" \
+            --destination "$RUNNER_TEMP/r1_aggregate"
+
+      - name: Upload aggregate-only evidence (never raw MELD or replay traces)
+        uses: actions/upload-artifact@v4
+        with:
+          name: replaybench-r1-${{ inputs.mode }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/r1_aggregate/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
