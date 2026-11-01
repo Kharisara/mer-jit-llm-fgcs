@@ -1,0 +1,42 @@
+name: ReplayBench-PG R1 - OpenTelemetry matched comparator
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: r1-otel-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  comparator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout validated repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned OpenTelemetry and validator dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-otel-r1.txt
+      - name: Validate OTel audit invariants and genuine OTLP export
+        run: python -m unittest discover -s tests -p "test_array_r1_otel_*.py" -v
+      - name: Run OTel SDK exported evidence and actual ReplayBench-PG comparator
+        run: python -m scripts.array_r1_otel_comparator --output array_r1_otel_results --timing-reps 20
+      - name: Add GitHub run identity and environment information
+        if: always()
+        run: |
+          mkdir -p array_r1_otel_results
+          git rev-parse HEAD > array_r1_otel_results/commit_sha.txt
+          python --version > array_r1_otel_results/python_version.txt
+          python -m pip freeze > array_r1_otel_results/pip_freeze.txt
+      - name: Upload evidence even if experiment fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r1-otel-comparator-${{ github.run_id }}
+          path: array_r1_otel_results/
+          if-no-files-found: error
+          retention-days: 30
