@@ -6,11 +6,6 @@ on:
 permissions:
   contents: read
 
-# Keep application HTTP calls on the Tailscale network instead of a runner proxy.
-env:
-  NO_PROXY: 'localhost,127.0.0.1,.ts.net,rbpg-w-${{ github.run_id }}-${{ github.run_attempt }},rbpg-c-${{ github.run_id }}-${{ github.run_attempt }}'
-  no_proxy: 'localhost,127.0.0.1,.ts.net,rbpg-w-${{ github.run_id }}-${{ github.run_attempt }},rbpg-c-${{ github.run_id }}-${{ github.run_attempt }}'
-
 concurrency:
   group: r1-crosshost-${{ github.ref }}
   cancel-in-progress: false
