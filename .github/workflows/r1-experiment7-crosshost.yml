@@ -1,0 +1,127 @@
+name: ReplayBench-PG R1 - Experiment 7 cross-host two-VM pilot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r1-crosshost-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  vm-a-remote-worker:
+    name: VM A - remote HTTP worker
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Connect VM A to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          hostname: rbpg-w-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Serve remote worker (restart only after deliberate crash)
+        env:
+          R1_CROSSHOST_TOKEN: ${{ secrets.R1_CROSSHOST_TOKEN }}
+          RECEIPT_ENDPOINT: http://rbpg-c-${{ github.run_id }}-${{ github.run_attempt }}:18766/receipt
+        shell: bash
+        run: |
+          mkdir -p exp7_remote_logs
+          deadline=$((SECONDS + 900))
+          while (( SECONDS < deadline )); do
+            set +e
+            python3 -u -m scripts.r1_crosshost_service --role worker --port 18761 >> exp7_remote_logs/remote_worker.log 2>&1
+            code=$?
+            set -e
+            if [ "$code" -eq 0 ]; then echo 'Remote worker stopped after completion'; exit 0; fi
+            if [ "$code" -ne 47 ]; then echo "Unexpected service exit code $code"; exit "$code"; fi
+            echo 'Restarting after controlled worker process crash'
+            sleep 1
+          done
+          echo 'Remote worker timed out without completion request'
+          exit 124
+      - name: Archive remote worker log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp7-vm-a-worker-${{ github.run_id }}
+          path: exp7_remote_logs/
+          if-no-files-found: warn
+          retention-days: 14
+
+  vm-b-coordinator:
+    name: VM B - collector + local worker + coordinator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned validation dependencies
+        run: python -m pip install --disable-pip-version-check numpy==2.2.6 pandas==2.3.3 PyYAML==6.0.3
+      - name: Connect VM B to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          hostname: rbpg-c-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Start local services and run Experiment 7
+        env:
+          R1_CROSSHOST_TOKEN: ${{ secrets.R1_CROSSHOST_TOKEN }}
+        shell: bash
+        run: |
+          mkdir -p r1_experiment7_results
+          python -u -m scripts.r1_crosshost_service --role collector --port 18766 > r1_experiment7_results/collector.log 2>&1 &
+          collector_pid=$!
+          python -u -m scripts.r1_crosshost_service --role worker --port 18762 > r1_experiment7_results/local_worker.log 2>&1 &
+          local_worker_pid=$!
+          trap 'kill "$collector_pid" "$local_worker_pid" 2>/dev/null || true' EXIT
+          python -m scripts.r1_crosshost_runner --remote-host rbpg-w-${{ github.run_id }}-${{ github.run_attempt }} --output r1_experiment7_results
+      - name: Ask remote worker to stop
+        if: always()
+        env:
+          R1_CROSSHOST_TOKEN: ${{ secrets.R1_CROSSHOST_TOKEN }}
+          REMOTE_HOST: rbpg-w-${{ github.run_id }}-${{ github.run_attempt }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from urllib.request import Request, urlopen
+          url = 'http://' + os.environ['REMOTE_HOST'] + ':18761/complete'
+          request = Request(url, method='POST', data=b'{}', headers={
+              'Content-Type': 'application/json',
+              'X-R1-Crosshost-Token': os.environ['R1_CROSSHOST_TOKEN'],
+          })
+          try:
+              with urlopen(request, timeout=8) as response:
+                  print('Remote stop status:', response.status)
+          except Exception as e:
+              print('Remote stop could not be delivered:', type(e).__name__)
+          PY
+      - name: Record source commit and tailnet connectivity
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p r1_experiment7_results
+          git rev-parse HEAD > r1_experiment7_results/source_commit.txt
+          hostname > r1_experiment7_results/github_host.txt
+          tailscale status > r1_experiment7_results/tailscale_status.txt || true
+          tailscale ping -c 2 rbpg-w-${{ github.run_id }}-${{ github.run_attempt }} > r1_experiment7_results/tailscale_ping.txt 2>&1 || true
+      - name: Archive Experiment 7 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp7-vm-b-results-${{ github.run_id }}
+          path: r1_experiment7_results/
+          if-no-files-found: error
+          retention-days: 14
