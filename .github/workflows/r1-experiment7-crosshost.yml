@@ -6,6 +6,11 @@ on:
 permissions:
   contents: read
 
+# Keep application HTTP calls on the Tailscale network instead of a runner proxy.
+env:
+  NO_PROXY: 'localhost,127.0.0.1,.ts.net,rbpg-w-${{ github.run_id }}-${{ github.run_attempt }},rbpg-c-${{ github.run_id }}-${{ github.run_attempt }}'
+  no_proxy: 'localhost,127.0.0.1,.ts.net,rbpg-w-${{ github.run_id }}-${{ github.run_attempt }},rbpg-c-${{ github.run_id }}-${{ github.run_attempt }}'
+
 concurrency:
   group: r1-crosshost-${{ github.ref }}
   cancel-in-progress: false
@@ -117,6 +122,16 @@ jobs:
           hostname > r1_experiment7_results/github_host.txt
           tailscale status > r1_experiment7_results/tailscale_status.txt || true
           tailscale ping -c 2 rbpg-w-${{ github.run_id }}-${{ github.run_attempt }} > r1_experiment7_results/tailscale_ping.txt 2>&1 || true
+          # Direct socket probe distinguishes TCP/ACL failure from HTTP-proxy behavior.
+          python - <<'PYTCP' > r1_experiment7_results/remote_tcp_probe.txt 2>&1
+          import os, socket
+          host = 'rbpg-w-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT']
+          try:
+              with socket.create_connection((host, 18761), timeout=8):
+                  print('TCP_CONNECT_OK', host, 18761)
+          except OSError as error:
+              print('TCP_CONNECT_FAILED', type(error).__name__, str(error))
+          PYTCP
       - name: Archive Experiment 7 results
         if: always()
         uses: actions/upload-artifact@v4

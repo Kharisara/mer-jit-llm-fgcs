@@ -13,10 +13,11 @@ import platform
 import time
 from pathlib import Path
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import Request, ProxyHandler, build_opener
 
 from scripts import r1_dist_runner as original
 
+CONNECTION_FAILURE_COUNTS = {}
 SECRET = os.environ.get('R1_CROSSHOST_TOKEN', '')
 if len(SECRET) < 32:
     raise SystemExit('R1_CROSSHOST_TOKEN must be a random secret of at least 32 characters')
@@ -30,12 +31,20 @@ def request_json(base, path, data=None, timeout=4):
     req = Request(base + path, data=body, headers=headers,
                   method='POST' if body is not None else 'GET')
     try:
-        with urlopen(req, timeout=timeout) as response:
+        with DIRECT_HTTP.open(req, timeout=timeout) as response:
             return response.status, json.loads(response.read())
     except HTTPError as exc:
         return exc.code, json.loads(exc.read())
+    except OSError as exc:
+        count = CONNECTION_FAILURE_COUNTS.get(base, 0)
+        if count < 3:
+            print(f'HTTP_REACHABILITY_ERROR {base} {type(exc).__name__}: {exc}', flush=True)
+        CONNECTION_FAILURE_COUNTS[base] = count + 1
+        raise
 
 
+# Direct point-to-point requests must not use HTTP_PROXY/HTTPS_PROXY.
+DIRECT_HTTP = build_opener(ProxyHandler({}))
 original.request_json = request_json
 
 
@@ -62,10 +71,13 @@ def main():
     remote = health[original.WORKERS[0]]
     local = health[original.WORKERS[1]]
     collector = health[original.COLLECTOR]
-    if remote['host_id'] == local['host_id']:
-        raise SystemExit('NOT CROSS-HOST: remote and local workers have same host identity')
-    if local['host_id'] != collector['host_id']:
-        raise SystemExit('Topology mismatch: local worker and collector must share VM B')
+    # Linux hostname can be duplicated in runner images: compare per-kernel boot UUIDs.
+    if not all(h.get('kernel_boot_id') for h in (remote, local, collector)):
+        raise SystemExit('Unable to verify distinct VM kernels: missing boot IDs')
+    if remote['kernel_boot_id'] == local['kernel_boot_id']:
+        raise SystemExit('NOT CROSS-HOST: both workers share one Linux kernel boot ID')
+    if local['kernel_boot_id'] != collector['kernel_boot_id']:
+        raise SystemExit('Topology mismatch: local worker and collector do not share VM B kernel')
     if remote['github_run_id'] != local['github_run_id'] or not remote['github_run_id']:
         raise SystemExit('Topology mismatch: workers do not belong to same GitHub run')
     if remote['github_job'] == local['github_job']:

@@ -11,9 +11,10 @@ import hmac
 import json
 import os
 import platform
+from pathlib import Path
 import threading
 from http.server import ThreadingHTTPServer
-from urllib.request import Request, urlopen
+from urllib.request import Request, ProxyHandler, build_opener
 
 from scripts import r1_dist_service as original
 
@@ -22,12 +23,14 @@ if len(SECRET) < 32:
     raise SystemExit('R1_CROSSHOST_TOKEN must be a random secret of at least 32 characters')
 
 
+DIRECT_HTTP = build_opener(ProxyHandler({}))
+
 def post_json(url: str, payload: dict, timeout: float = 4):
     encoded = json.dumps(payload, separators=(',', ':')).encode('utf-8')
     request = Request(url, data=encoded, method='POST', headers={
         'Content-Type': 'application/json', 'X-R1-Crosshost-Token': SECRET,
     })
-    with urlopen(request, timeout=timeout) as response:
+    with DIRECT_HTTP.open(request, timeout=timeout) as response:
         return json.loads(response.read())
 
 
@@ -53,6 +56,7 @@ class AuthenticatedAPI(original.API):
                 'service_pid': os.getpid(),
                 'boot_id': original.SERVICE_BOOT_ID,
                 'host_id': platform.node(),
+                'kernel_boot_id': Path('/proc/sys/kernel/random/boot_id').read_text(encoding='ascii').strip(),
                 'github_job': os.getenv('GITHUB_JOB', ''),
                 'github_run_id': os.getenv('GITHUB_RUN_ID', ''),
             })
